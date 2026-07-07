@@ -1,0 +1,22 @@
+# Dépendances
+node_modules/
+
+# Build
+dist/
+
+# Env — JAMAIS commiter de secrets. Seul .env.example est suivi.
+.env
+.env.local
+.env.*.local
+
+# Logs / divers
+npm-debug.log*
+yarn-error.log*
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Fichiers de contexte Claude (locaux, jamais publiés)
+.claude/memory/
+PANDORA_*.md
