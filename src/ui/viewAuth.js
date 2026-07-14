@@ -2,7 +2,7 @@
 import { el } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
-import { signIn, signUp, isLoggedIn } from '../lib/auth.js'
+import { signIn, signUp, resetPassword, isLoggedIn } from '../lib/auth.js'
 
 export function viewAuth() {
   const wrap = el('section', 'page')
@@ -32,6 +32,8 @@ export function viewAuth() {
   submit.type = 'submit'
   const toggle = el('button', 'btn btn--link')
   toggle.type = 'button'
+  const forgot = el('button', 'btn btn--link', 'Mot de passe oublié ?')
+  forgot.type = 'button'
 
   function paint() {
     title.textContent = mode === 'login' ? 'Connexion' : 'Créer un compte'
@@ -39,9 +41,33 @@ export function viewAuth() {
     toggle.textContent =
       mode === 'login' ? 'Pas encore de compte ? S’inscrire' : 'Déjà inscrit ? Se connecter'
     nameField.wrap.style.display = mode === 'signup' ? '' : 'none'
+    forgot.style.display = mode === 'login' ? '' : 'none'
     msg.textContent = ''
     msg.className = 'form__msg'
   }
+
+  forgot.addEventListener('click', async () => {
+    const email = emailField.input.value.trim()
+    if (!email) {
+      msg.className = 'form__msg form__msg--err'
+      msg.textContent = 'Entrez d’abord votre e-mail ci-dessus, puis retouchez « Mot de passe oublié ? ».'
+      return
+    }
+    forgot.disabled = true
+    msg.className = 'form__msg'
+    msg.textContent = 'Envoi…'
+    try {
+      await resetPassword(email)
+      msg.className = 'form__msg form__msg--ok'
+      msg.textContent =
+        'E-mail envoyé ! Ouvrez le lien reçu : il vous amènera à l’écran « Nouveau mot de passe ».'
+    } catch (e) {
+      msg.className = 'form__msg form__msg--err'
+      msg.textContent = friendly(e.message)
+    } finally {
+      forgot.disabled = false
+    }
+  })
 
   toggle.addEventListener('click', () => {
     mode = mode === 'login' ? 'signup' : 'login'
@@ -84,6 +110,7 @@ export function viewAuth() {
   form.appendChild(passField.wrap)
   form.appendChild(submit)
   form.appendChild(msg)
+  form.appendChild(forgot)
   form.appendChild(toggle)
 
   card.appendChild(title)

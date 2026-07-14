@@ -18,6 +18,7 @@ import { viewSettings } from './ui/viewSettings.js'
 import { viewDetail } from './ui/viewDetail.js'
 import { viewImport } from './ui/viewImport.js'
 import { viewAdmins } from './ui/viewAdmins.js'
+import { viewNewPassword } from './ui/viewNewPassword.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 
 // --- Service worker (offline shell) ---
@@ -82,6 +83,7 @@ defineRoutes(
     '/mes-evenements': viewMine,
     '/moderation': viewAdmin,
     '/admins': viewAdmins,
+    '/nouveau-mdp': viewNewPassword,
     '/connexion': viewAuth,
   },
   {
@@ -98,11 +100,14 @@ defineRoutes(
   // Init auth d'abord (récupère session + profil), puis on monte le shell.
   await initAuth()
 
-  // Lien de confirmation e-mail / récupération : Supabase renvoie vers l'app avec
-  // les jetons dans le hash (#access_token=…). La session vient d'être établie par
-  // initAuth → on nettoie le hash pour ne pas le prendre pour une route (« Page
-  // introuvable ») et on atterrit sur l'agenda.
-  if (/access_token=|refresh_token=|type=signup|type=recovery|error_description=/.test(location.hash)) {
+  // Liens Supabase reçus par e-mail : les jetons arrivent dans le hash
+  // (#access_token=…). La session vient d'être établie par initAuth → on remplace
+  // le hash par la bonne route (sinon le routeur afficherait « Page introuvable »).
+  //  - type=recovery (mot de passe oublié) → écran « Nouveau mot de passe » ;
+  //  - confirmation d'inscription / autres → agenda.
+  if (/type=recovery/.test(location.hash)) {
+    history.replaceState(null, '', location.pathname + '#/nouveau-mdp')
+  } else if (/access_token=|refresh_token=|type=signup|error_description=/.test(location.hash)) {
     history.replaceState(null, '', location.pathname + '#/')
   }
 

@@ -57,6 +57,9 @@ Le plus simple sans CLI : ouvrir **SQL Editor** dans le dashboard Supabase et ex
    fonctions `create_event` / `update_event`.
 3. [`supabase/migrations/0003_admin_management.sql`](supabase/migrations/0003_admin_management.sql) —
    gestion des administrateurs par e-mail (`set_admin_by_email`, `list_admins`).
+4. [`supabase/migrations/0004_fix_role_guard.sql`](supabase/migrations/0004_fix_role_guard.sql) —
+   correctif : le garde-fou de rôle ne bloque plus le SQL Editor / service_role
+   (sans quoi le premier admin ne peut pas être désigné).
 
 > Avec la CLI Supabase installée : `supabase link` puis `supabase db push`.
 

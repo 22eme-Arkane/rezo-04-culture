@@ -81,3 +81,17 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut()
   if (error) throw error
 }
+
+/** Envoie l'e-mail de réinitialisation du mot de passe (lien → /nouveau-mdp). */
+export async function resetPassword(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: location.origin,
+  })
+  if (error) throw error
+}
+
+/** Définit un nouveau mot de passe (session de récupération ou connecté). */
+export async function updatePassword(newPassword) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw error
+}
