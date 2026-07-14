@@ -21,10 +21,37 @@ export async function viewSettings() {
     wrap.appendChild(el('p', 'settings-connected', 'Connecté : ' + who))
   }
 
-  // --- Groupe principal ---
-  const group = el('div', 'settings-group')
+  // --- Groupe 1 : mes publications ---
+  if (logged) {
+    const pub = el('div', 'settings-group')
+    pub.appendChild(rowNav(icon('plus'), 'Publier un événement', '/publier'))
+    pub.appendChild(rowNav(icon('ticket'), 'Mes événements', '/mes-evenements'))
+    wrap.appendChild(pub)
+  }
 
-  // 1. Ville par défaut (éditable).
+  // --- Groupe 2 : administration (admins uniquement) ---
+  if (logged && isAdmin()) {
+    const adm = el('div', 'settings-group')
+    let pending = 0
+    try {
+      pending = await listPendingCount()
+    } catch {
+      /* ignore */
+    }
+    adm.appendChild(rowNav(icon('shield'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
+    adm.appendChild(rowNav(icon('user'), 'Gérer les administrateurs', '/admins'))
+    let fbCount = 0
+    try {
+      fbCount = await countFeedback()
+    } catch {
+      /* ignore */
+    }
+    adm.appendChild(rowNav(icon('message'), 'Messages reçus' + (fbCount ? ` (${fbCount})` : ''), '/messages'))
+    wrap.appendChild(adm)
+  }
+
+  // --- Groupe 3 : préférences ---
+  const prefs = el('div', 'settings-group')
   const cityRow = rowValue(icon('pin'), 'Ville par défaut', getDefaultCity() || 'Non définie')
   cityRow.addEventListener('click', () => {
     const v = prompt('Votre ville (pour centrer la carte) :', getDefaultCity() || '')
@@ -32,48 +59,15 @@ export async function viewSettings() {
     setDefaultCity(v.trim())
     refresh()
   })
-  group.appendChild(cityRow)
-
-  if (logged) {
-    // 2. Publier un événement.
-    const publish = rowNav(icon('plus'), 'Publier un événement', '/publier')
-    group.appendChild(publish)
-
-    // 3. Mes événements.
-    const mine = rowNav(icon('ticket'), 'Mes événements', '/mes-evenements')
-    group.appendChild(mine)
-
-    // Modération (admin uniquement).
-    if (isAdmin()) {
-      let pending = 0
-      try {
-        pending = await listPendingCount()
-      } catch {
-        /* ignore */
-      }
-      const mod = rowNav(icon('shield'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation')
-      group.appendChild(mod)
-
-      const admins = rowNav(icon('user'), 'Gérer les administrateurs', '/admins')
-      group.appendChild(admins)
-
-      let fbCount = 0
-      try {
-        fbCount = await countFeedback()
-      } catch {
-        /* ignore */
-      }
-      const inbox = rowNav(icon('message'), 'Messages reçus' + (fbCount ? ` (${fbCount})` : ''), '/messages')
-      group.appendChild(inbox)
-    }
-  }
-
-  // 4. Thème de l'application.
+  prefs.appendChild(cityRow)
   const themeRow = rowButton(paletteIcon(), 'Thème de l’application')
   themeRow.addEventListener('click', openThemePicker)
-  group.appendChild(themeRow)
+  prefs.appendChild(themeRow)
+  wrap.appendChild(prefs)
 
-  // 5. Rechercher une mise à jour.
+  // --- Groupe 4 (tout en bas) : mise à jour, contact, compte ---
+  const bottom = el('div', 'settings-group')
+
   const updRow = rowButton(icon('refresh'), 'Rechercher une mise à jour')
   const updValue = el('span', 'settings-row__value', '')
   updRow.insertBefore(updValue, updRow.lastChild) // avant le chevron
@@ -89,15 +83,9 @@ export async function viewSettings() {
       updValue.textContent = 'Indisponible'
     }
   })
-  group.appendChild(updRow)
+  bottom.appendChild(updRow)
 
-  wrap.appendChild(group)
-
-  // --- Tout en bas : contact + compte ---
-  const bottom = el('div', 'settings-group')
-
-  const contact = rowNav(icon('message'), 'Nous contacter', '/contact')
-  bottom.appendChild(contact)
+  bottom.appendChild(rowNav(icon('message'), 'Nous contacter', '/contact'))
 
   if (logged) {
     const out = rowButton(icon('logOut'), 'Se déconnecter')
