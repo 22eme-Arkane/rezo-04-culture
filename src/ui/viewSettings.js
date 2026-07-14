@@ -12,7 +12,9 @@ import { checkForUpdate, reloadForUpdate } from '../lib/update.js'
 
 export async function viewSettings() {
   const wrap = el('section', 'page')
-  wrap.appendChild(el('h1', 'page__title', 'Paramètres'))
+  const head = el('header', 'screen-head')
+  head.appendChild(el('h1', 'screen-title', 'Paramètres'))
+  wrap.appendChild(head)
 
   const logged = isLoggedIn()
   if (logged) {

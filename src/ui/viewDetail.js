@@ -27,12 +27,15 @@ export async function viewDetail({ query } = {}) {
   }
 
   // Photo pleine résolution (chargée seulement ici, jamais dans les listes).
+  // Tap sur la photo → aperçu plein écran.
   const hero = el('div', 'detail__hero')
   if (ev.photo_url) {
     const img = el('img')
     img.src = ev.photo_url
     img.alt = ev.title
     hero.appendChild(img)
+    hero.classList.add('detail__hero--zoomable')
+    hero.addEventListener('click', () => openLightbox(ev.photo_url, ev.title))
   }
   wrap.appendChild(hero)
 
@@ -98,4 +101,23 @@ export async function viewDetail({ query } = {}) {
   if (ev.description) wrap.appendChild(el('p', 'detail__desc', ev.description))
 
   return wrap
+}
+
+// Aperçu plein écran d'une image (tap ou Échap pour fermer).
+function openLightbox(src, alt) {
+  const overlay = el('div', 'lightbox')
+  const img = el('img')
+  img.src = src
+  img.alt = alt || ''
+  overlay.appendChild(img)
+  const close = () => {
+    overlay.remove()
+    document.removeEventListener('keydown', onKey)
+  }
+  const onKey = (e) => {
+    if (e.key === 'Escape') close()
+  }
+  overlay.addEventListener('click', close)
+  document.addEventListener('keydown', onKey)
+  document.body.appendChild(overlay)
 }

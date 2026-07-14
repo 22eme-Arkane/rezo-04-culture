@@ -144,6 +144,7 @@ export async function viewMap() {
 
   function popupContent(ev) {
     const box = el('div', 'popup')
+    if (ev.category) box.appendChild(el('span', 'popup__cat', ev.category))
     box.appendChild(el('strong', 'popup__title', ev.title))
     box.appendChild(el('div', 'popup__meta', `${formatDate(ev.starts_at)} · ${formatTime(ev.starts_at)}`))
     box.appendChild(el('div', 'popup__meta', formatPrice(ev)))

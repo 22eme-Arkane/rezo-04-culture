@@ -108,11 +108,11 @@ html, body {
 /* --- En-tête d'écran --- */
 .screen-head { text-align: center; padding: 0.4rem 0 0.8rem; }
 .screen-title {
-  margin: 0; font-size: 1.9rem; font-weight: 400; color: var(--green);
+  margin: 0; font-size: 1.62rem; font-weight: 400; color: var(--green);
   font-family: 'Mushbie', 'Poppins', system-ui, sans-serif; letter-spacing: 0.01em;
-  display: flex; align-items: center; justify-content: center; gap: 0.55rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
 }
-.screen-title img { width: 40px; height: 40px; border-radius: 10px; }
+.screen-title img { width: 34px; height: 34px; border-radius: 9px; }
 .screen-sub { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.85rem; }
 .back-btn {
   align-self: flex-start;
@@ -238,6 +238,15 @@ html, body {
 /* --- Détail événement --- */
 .detail__hero { width: 100%; height: clamp(180px, 42vw, 240px); border-radius: var(--radius); overflow: hidden; background: var(--grad); }
 .detail__hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail__hero--zoomable { cursor: zoom-in; }
+
+/* Aperçu image plein écran */
+.lightbox {
+  position: fixed; inset: 0; z-index: 3000; background: rgba(0, 0, 0, 0.93);
+  display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+  padding: max(0.5rem, env(safe-area-inset-top)) 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+}
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .detail__title { margin: 0.9rem 0 0.2rem; font-size: 1.5rem; font-weight: 800; }
 .detail__meta { margin: 0.15rem 0; color: var(--muted); display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; }
 .detail__meta svg { width: 16px; height: 16px; }
@@ -350,6 +359,11 @@ html, body {
 .leaflet-container { background: var(--surface-2); font-family: inherit; }
 .popup { color: #222; display: flex; flex-direction: column; gap: 0.25rem; min-width: 160px; }
 .popup__title { font-size: 0.95rem; font-weight: 700; }
+.popup__cat {
+  align-self: flex-start; font-size: 0.66rem; font-weight: 700;
+  padding: 0.14rem 0.5rem; border-radius: 999px;
+  background: rgba(18, 92, 69, 0.12); color: #125c45;
+}
 .popup__meta { font-size: 0.8rem; color: #444; }
 .popup .btn { margin-top: 0.4rem; }
 
