@@ -34,9 +34,11 @@ begin
     raise exception 'Vous ne pouvez pas retirer votre propre rôle d''administrateur.';
   end if;
 
+  -- ON CONFLICT vise la contrainte PAR SON NOM (pas la colonne id) : aucune
+  -- ambiguïté possible avec le paramètre de sortie « id ».
   insert into public.profiles as p (id, role)
   values (target_id, case when make_admin then 'admin' else 'user' end)
-  on conflict (id) do update set role = excluded.role;
+  on conflict on constraint profiles_pkey do update set role = excluded.role;
 
   return query
     select p.id, p.display_name, p.role from public.profiles p where p.id = target_id;
