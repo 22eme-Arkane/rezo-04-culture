@@ -20,3 +20,6 @@ yarn-error.log*
 # Fichiers de contexte Claude (locaux, jamais publiés)
 .claude/memory/
 PANDORA_*.md
+
+.vercel
+.env*
