@@ -17,3 +17,13 @@ export async function setAdminByEmail(email, makeAdmin) {
   if (error) throw error
   return data?.[0] ?? null
 }
+
+/** Tous les membres inscrits (nom, rôle, date d'inscription). */
+export async function listMembers() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('display_name, role, created_at')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}

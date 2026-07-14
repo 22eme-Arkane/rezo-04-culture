@@ -99,7 +99,10 @@ html, body {
 .page { display: flex; flex-direction: column; gap: 1rem; }
 .page--map { gap: 0.6rem; }
 .page__head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; }
-.page__title { margin: 0; font-size: 1.4rem; font-weight: 800; color: var(--green); }
+.page__title {
+  margin: 0; font-size: 1.6rem; font-weight: 400; color: var(--green);
+  font-family: 'Mushbie', 'Poppins', system-ui, sans-serif; letter-spacing: 0.01em;
+}
 .page__subtitle { margin: 0; color: var(--muted); font-size: 0.88rem; }
 
 /* --- En-tête d'écran --- */
@@ -225,8 +228,9 @@ html, body {
 .fab {
   position: fixed; right: max(1rem, calc(50vw - var(--maxw) / 2 + 1rem));
   bottom: calc(var(--nav-h) + 1rem); z-index: 950;
-  width: 56px; height: 56px; border-radius: 999px; border: none; cursor: pointer;
-  background: var(--green); color: #fff; box-shadow: var(--shadow);
+  width: 56px; height: 56px; border-radius: 999px; cursor: pointer;
+  background: var(--green); color: var(--accent); box-shadow: var(--shadow);
+  border: 1.5px solid var(--accent); /* liseré jaune fin pour détacher le bouton */
   display: flex; align-items: center; justify-content: center;
 }
 .fab svg { width: 26px; height: 26px; }

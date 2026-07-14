@@ -39,6 +39,7 @@ export async function viewSettings() {
     }
     adm.appendChild(rowNav(icon('shield'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
     adm.appendChild(rowNav(icon('user'), 'Gérer les administrateurs', '/admins'))
+    adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
     wrap.appendChild(adm)
   }
 
