@@ -39,8 +39,24 @@ export function viewImport() {
   textarea.rows = 7
   textarea.placeholder =
     'Ex. : Concert de la chorale samedi 12 juillet à 20h30 à Forcalquier, entrée libre !'
+  // Persistance de la saisie (un aller-retour hors de l'app peut recharger la page).
+  const TEXT_KEY = 'rezo-import-text'
   const shared = consumeSharedText()
-  if (shared) textarea.value = shared
+  if (shared) {
+    textarea.value = shared
+    try {
+      localStorage.setItem(TEXT_KEY, shared)
+    } catch {}
+  } else {
+    try {
+      textarea.value = localStorage.getItem(TEXT_KEY) || ''
+    } catch {}
+  }
+  textarea.addEventListener('input', () => {
+    try {
+      localStorage.setItem(TEXT_KEY, textarea.value)
+    } catch {}
+  })
   field.appendChild(textarea)
   form.appendChild(field)
 
@@ -63,6 +79,9 @@ export function viewImport() {
     }
     const draft = parseEventMessage(text)
     setDraft(draft)
+    try {
+      localStorage.removeItem(TEXT_KEY) // consommé : le brouillon continue côté formulaire
+    } catch {}
     navigate('/publier?draft=1')
   })
   form.appendChild(analyze)

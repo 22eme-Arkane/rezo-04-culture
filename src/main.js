@@ -3,7 +3,7 @@ import './style.css'
 import { isConfigured } from './lib/supabaseClient.js'
 import { initTheme } from './lib/theme.js'
 import { initUpdateCheck, reloadForUpdate } from './lib/update.js'
-import { initAuth, onAuthChange } from './lib/auth.js'
+import { initAuth, onAuthChange, getUser } from './lib/auth.js'
 import { defineRoutes, startRouter, refresh } from './lib/router.js'
 import { el } from './ui/components.js'
 import { buildNav } from './ui/nav.js'
@@ -99,8 +99,15 @@ defineRoutes(
   await initAuth()
   renderNav()
 
-  // Sur login/logout : reconstruire la nav + re-rendre la vue courante.
+  // Sur login/logout UNIQUEMENT : reconstruire la nav + re-rendre la vue courante.
+  // ⚠ Supabase émet aussi des événements au simple retour dans l'app (rafraîchissement
+  // de jeton) : re-rendre à ce moment-là VIDAIT les formulaires en cours de saisie.
+  // On ne re-rend que si l'utilisateur a réellement changé.
+  let lastUid = getUser()?.id ?? null
   onAuthChange(() => {
+    const uid = getUser()?.id ?? null
+    if (uid === lastUid) return
+    lastUid = uid
     renderNav()
     refresh()
   })

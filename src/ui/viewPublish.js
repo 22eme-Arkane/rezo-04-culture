@@ -150,9 +150,79 @@ export async function viewPublish({ query } = {}) {
   let map = null
   let marker = null
 
+  // --- Brouillon persistant (création uniquement) ---
+  // Sur mobile, quitter l'app peut recharger la page au retour : on sauvegarde la
+  // saisie en continu (localStorage) et on la restaure. Vidé à la publication.
+  const FORM_KEY = 'rezo-publish-form'
+  function saveSnapshot() {
+    if (existing) return
+    try {
+      localStorage.setItem(
+        FORM_KEY,
+        JSON.stringify({
+          title: fTitle.input.value,
+          category: fCategory.input.value,
+          description: fDesc.input.value,
+          startLocal: fStart.input.value,
+          endLocal: fEnd.input.value,
+          isPaid: paidInput.checked,
+          price: priceInput.value,
+          address: addrInput.value,
+          lat: state.lat,
+          lng: state.lng,
+        })
+      )
+    } catch {
+      /* stockage indisponible : sans effet */
+    }
+  }
+  if (!existing && !draft) {
+    let saved = null
+    try {
+      saved = JSON.parse(localStorage.getItem(FORM_KEY) || 'null')
+    } catch {
+      saved = null
+    }
+    // On ne restaure que s'il y a une vraie saisie (titre ou description ou point).
+    if (saved && (saved.title || saved.description || saved.lat != null)) {
+      fTitle.input.value = saved.title ?? ''
+      if (saved.category) fCategory.input.value = saved.category
+      fDesc.input.value = saved.description ?? ''
+      fStart.input.value = saved.startLocal ?? ''
+      fEnd.input.value = saved.endLocal ?? ''
+      paidInput.checked = Boolean(saved.isPaid)
+      priceInput.style.display = paidInput.checked ? '' : 'none'
+      if (saved.price) priceInput.value = saved.price
+      addrInput.value = saved.address ?? ''
+      if (saved.lat != null) {
+        state.lat = saved.lat
+        state.lng = saved.lng
+      }
+      const note = el('p', 'demo-note')
+      note.textContent = '📝 Brouillon restauré — votre saisie a été conservée. '
+      const clearBtn = el('button', 'btn btn--link btn--sm', 'Recommencer à zéro')
+      clearBtn.type = 'button'
+      clearBtn.addEventListener('click', () => {
+        try {
+          localStorage.removeItem(FORM_KEY)
+        } catch {}
+        location.reload()
+      })
+      note.appendChild(clearBtn)
+      wrap.insertBefore(note, form)
+    }
+  }
+  form.addEventListener('input', () => {
+    clearTimeout(saveSnapshot._t)
+    saveSnapshot._t = setTimeout(saveSnapshot, 300)
+  })
+  form.addEventListener('change', saveSnapshot)
+  if (draft) saveSnapshot() // l'import depuis un message est lui aussi protégé
+
   function setPoint(lat, lng, recenter = true) {
     state.lat = lat
     state.lng = lng
+    saveSnapshot() // le lieu fait partie du brouillon persistant
     coordReadout.textContent = `Coordonnées : ${lat.toFixed(5)}, ${lng.toFixed(5)}`
     if (!map) return
     if (!marker) {
@@ -248,6 +318,12 @@ export async function viewPublish({ query } = {}) {
         } catch (pe) {
           console.warn('[Rézo] Photo non envoyée :', pe.message)
         }
+      }
+      // Publication réussie : le brouillon persistant n'a plus lieu d'être.
+      if (!existing) {
+        try {
+          localStorage.removeItem(FORM_KEY)
+        } catch {}
       }
       navigate('/mes-evenements')
     } catch (err) {
