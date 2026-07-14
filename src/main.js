@@ -97,6 +97,15 @@ defineRoutes(
 ;(async () => {
   // Init auth d'abord (récupère session + profil), puis on monte le shell.
   await initAuth()
+
+  // Lien de confirmation e-mail / récupération : Supabase renvoie vers l'app avec
+  // les jetons dans le hash (#access_token=…). La session vient d'être établie par
+  // initAuth → on nettoie le hash pour ne pas le prendre pour une route (« Page
+  // introuvable ») et on atterrit sur l'agenda.
+  if (/access_token=|refresh_token=|type=signup|type=recovery|error_description=/.test(location.hash)) {
+    history.replaceState(null, '', location.pathname + '#/')
+  }
+
   renderNav()
 
   // Sur login/logout UNIQUEMENT : reconstruire la nav + re-rendre la vue courante.
