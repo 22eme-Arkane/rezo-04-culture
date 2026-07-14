@@ -300,6 +300,15 @@ html, body {
 .settings-row--danger .settings-row__label { color: var(--danger); }
 .settings-row--danger .settings-row__label svg { color: var(--danger); }
 
+/* --- Messages « Nous contacter » (boîte admin) --- */
+.fb-item { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.4rem; }
+.fb-item:last-child { border-bottom: none; }
+.fb-meta { display: flex; align-items: center; gap: 0.55rem; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+.fb-tag { font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; }
+.fb-tag--bug { background: rgba(192, 57, 43, 0.12); color: var(--danger); }
+.fb-tag--avis { background: rgba(18, 92, 69, 0.12); color: var(--green); }
+.fb-text { margin: 0; font-size: 0.92rem; white-space: pre-wrap; }
+
 /* --- Carte (Leaflet) --- */
 .mapbar { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
 .mapbar__label { color: var(--muted); font-size: 0.85rem; }

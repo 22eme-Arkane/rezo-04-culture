@@ -8,6 +8,7 @@ import { navigate, refresh } from '../lib/router.js'
 import { isLoggedIn, isAdmin, getProfile, getUser, signOut } from '../lib/auth.js'
 import { getDefaultCity, setDefaultCity } from '../lib/geo.js'
 import { listPendingCount } from '../lib/events.js'
+import { countFeedback } from '../lib/feedback.js'
 import { checkForUpdate, reloadForUpdate } from '../lib/update.js'
 
 export async function viewSettings() {
@@ -55,6 +56,15 @@ export async function viewSettings() {
 
       const admins = rowNav(icon('user'), 'Gérer les administrateurs', '/admins')
       group.appendChild(admins)
+
+      let fbCount = 0
+      try {
+        fbCount = await countFeedback()
+      } catch {
+        /* ignore */
+      }
+      const inbox = rowNav(icon('message'), 'Messages reçus' + (fbCount ? ` (${fbCount})` : ''), '/messages')
+      group.appendChild(inbox)
     }
   }
 
@@ -83,8 +93,12 @@ export async function viewSettings() {
 
   wrap.appendChild(group)
 
-  // --- Tout en bas : compte ---
+  // --- Tout en bas : contact + compte ---
   const bottom = el('div', 'settings-group')
+
+  const contact = rowNav(icon('message'), 'Nous contacter', '/contact')
+  bottom.appendChild(contact)
+
   if (logged) {
     const out = rowButton(icon('logOut'), 'Se déconnecter')
     out.classList.add('settings-row--danger')

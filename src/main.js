@@ -19,6 +19,8 @@ import { viewDetail } from './ui/viewDetail.js'
 import { viewImport } from './ui/viewImport.js'
 import { viewAdmins } from './ui/viewAdmins.js'
 import { viewNewPassword } from './ui/viewNewPassword.js'
+import { viewContact } from './ui/viewContact.js'
+import { viewFeedback } from './ui/viewFeedback.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 
 // --- Service worker (offline shell) ---
@@ -84,6 +86,8 @@ defineRoutes(
     '/moderation': viewAdmin,
     '/admins': viewAdmins,
     '/nouveau-mdp': viewNewPassword,
+    '/contact': viewContact,
+    '/messages': viewFeedback,
     '/connexion': viewAuth,
   },
   {

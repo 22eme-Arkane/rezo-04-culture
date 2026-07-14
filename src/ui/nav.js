@@ -19,6 +19,8 @@ const PARENT = {
   '/connexion': '/parametres',
   '/admins': '/parametres',
   '/nouveau-mdp': '/parametres',
+  '/contact': '/parametres',
+  '/messages': '/parametres',
 }
 
 export function buildNav() {
