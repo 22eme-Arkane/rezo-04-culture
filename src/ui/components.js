@@ -49,18 +49,28 @@ export function el(tag, className, text) {
 
 /**
  * Carte événement — composant UNIQUE réutilisé partout (agenda, map, favoris,
- * mes événements, modération). Fond = vignette photo (overlay dégradé pour la
- * lisibilité) ; sans photo → carte "ambiance" dégradée violette.
- * Tap sur la carte → écran détail. Cœur en coin = favori (table gems).
+ * mes événements, modération). Photo en haut, informations EN DESSOUS sur fond
+ * clair (toujours lisibles, quelle que soit la photo — même blanche) ; sans
+ * photo → bandeau "ambiance" dégradé violet. Tap → détail. Cœur = favori.
  *
  * @param {object} ev   événement enrichi (thumb_url, photo_url, author_name…)
  * @param {object} opts { gemmed, onGemChange, showGem, actions: HTMLElement[] }
  */
 export function eventCard(ev, opts = {}) {
   const card = el('article', 'ecard')
-  const bg = ev.thumb_url || ev.photo_url
-  if (bg) card.style.backgroundImage = `url("${bg}")`
-  else card.classList.add('ecard--grad')
+
+  const photo = el('div', 'ecard__photo')
+  const src = ev.thumb_url || ev.photo_url
+  if (src) {
+    const img = el('img')
+    img.src = src
+    img.alt = ''
+    img.loading = 'lazy'
+    photo.appendChild(img)
+  } else {
+    photo.classList.add('ecard__photo--empty')
+  }
+  card.appendChild(photo)
 
   // Cœur favori (uniquement connecté).
   if (isLoggedIn() && opts.showGem !== false) {

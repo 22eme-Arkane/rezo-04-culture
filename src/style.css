@@ -186,29 +186,31 @@ html, body {
 .section-label { margin: 0.5rem 0 0.2rem; font-weight: 700; font-size: 0.95rem; color: var(--fg); }
 .events-list { display: flex; flex-direction: column; gap: 0.9rem; }
 
-/* --- Carte événement (photo plein cadre + overlay) --- */
+/* --- Carte événement (photo en haut, infos EN DESSOUS sur fond clair) --- */
 .ecard {
   position: relative; border-radius: var(--radius); overflow: hidden; cursor: pointer;
-  min-height: 132px; display: flex; align-items: flex-end; box-shadow: var(--shadow);
-  background-size: cover; background-position: center;
-  background-color: var(--grad);
-  color: #fff;
+  display: flex; flex-direction: column; box-shadow: var(--shadow);
+  background: var(--surface); color: var(--fg);
 }
-.ecard--grad { background-image: linear-gradient(135deg, var(--grad), color-mix(in srgb, var(--grad) 55%, #000)); }
-.ecard::before {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.72) 100%);
+.ecard__photo {
+  position: relative; height: 136px; flex: 0 0 auto;
+  background-image: linear-gradient(135deg, var(--grad), color-mix(in srgb, var(--grad) 55%, #000));
 }
-.ecard__body { position: relative; padding: 0.85rem 0.9rem; width: 100%; display: flex; flex-direction: column; gap: 0.2rem; }
+.ecard__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ecard__photo--empty::after {
+  content: '🎭'; position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center; font-size: 2.3rem; opacity: 0.55;
+}
+.ecard__body { padding: 0.7rem 0.9rem 0.8rem; display: flex; flex-direction: column; gap: 0.28rem; }
 .ecard__badges { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.1rem; }
-.ecard__badge { font-size: 0.66rem; font-weight: 700; padding: 0.16rem 0.5rem; border-radius: 999px; backdrop-filter: blur(2px); }
-.ecard__badge--cat { background: rgba(255, 255, 255, 0.9); color: #2a2410; }
-.ecard__badge--free { background: var(--green); color: var(--green-fg); }
-.ecard__badge--paid { background: var(--accent); color: var(--accent-fg); }
-.ecard__badge--status { background: rgba(0,0,0,0.5); color: #ffd76b; }
-.ecard__title { margin: 0; font-size: 1.15rem; font-weight: 700; line-height: 1.15; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-.ecard__meta { margin: 0; font-size: 0.8rem; opacity: 0.95; display: flex; align-items: center; gap: 0.3rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.ecard__meta svg { width: 14px; height: 14px; }
+.ecard__badge { font-size: 0.66rem; font-weight: 700; padding: 0.16rem 0.55rem; border-radius: 999px; }
+.ecard__badge--cat { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+.ecard__badge--free { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.ecard__badge--paid { background: color-mix(in srgb, var(--accent) 26%, transparent); color: color-mix(in srgb, var(--accent) 55%, var(--fg)); }
+.ecard__badge--status { background: color-mix(in srgb, var(--fg) 8%, transparent); color: var(--muted); }
+.ecard__title { margin: 0; font-size: 1.06rem; font-weight: 700; line-height: 1.2; }
+.ecard__meta { margin: 0; font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; }
+.ecard__meta svg { width: 14px; height: 14px; flex: 0 0 auto; }
 .ecard__fav {
   position: absolute; top: 0.6rem; right: 0.6rem; z-index: 2;
   width: 38px; height: 38px; border-radius: 999px; border: none; cursor: pointer;

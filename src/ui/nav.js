@@ -4,7 +4,6 @@ import { icon } from './icons.js'
 import { navigate, currentRoute } from '../lib/router.js'
 import { isAdmin } from '../lib/auth.js'
 import { listPendingCount } from '../lib/events.js'
-import { countFeedback } from '../lib/feedback.js'
 
 const TABS = [
   { path: '/', label: 'Calendrier', ic: 'calendar' },
@@ -23,7 +22,6 @@ const PARENT = {
   '/admins': '/parametres',
   '/nouveau-mdp': '/parametres',
   '/contact': '/parametres',
-  '/messages': '/parametres',
 }
 
 export function buildNav() {
@@ -44,18 +42,16 @@ export function buildNav() {
   }
 
   // Notification admin : pastille sur « Paramètres » = événements en attente de
-  // modération + messages « Nous contacter ». Chargée en arrière-plan.
+  // modération. Chargée en arrière-plan.
   if (isAdmin()) {
-    Promise.all([
-      listPendingCount().catch(() => 0),
-      countFeedback().catch(() => 0),
-    ]).then(([pending, fb]) => {
-      const total = (pending || 0) + (fb || 0)
-      if (!total) return
-      const badge = el('span', 'navtab__badge', total > 99 ? '99+' : String(total))
-      badge.title = `${pending} à modérer · ${fb} message(s)`
-      buttons['/parametres'].appendChild(badge)
-    })
+    listPendingCount()
+      .then((pending) => {
+        if (!pending) return
+        const badge = el('span', 'navtab__badge', pending > 99 ? '99+' : String(pending))
+        badge.title = `${pending} événement(s) à modérer`
+        buttons['/parametres'].appendChild(badge)
+      })
+      .catch(() => {})
   }
 
   nav.appendChild(inner)

@@ -8,7 +8,6 @@ import { navigate, refresh } from '../lib/router.js'
 import { isLoggedIn, isAdmin, getProfile, getUser, signOut } from '../lib/auth.js'
 import { getDefaultCity, setDefaultCity } from '../lib/geo.js'
 import { listPendingCount } from '../lib/events.js'
-import { countFeedback } from '../lib/feedback.js'
 import { checkForUpdate, reloadForUpdate } from '../lib/update.js'
 
 export async function viewSettings() {
@@ -40,13 +39,6 @@ export async function viewSettings() {
     }
     adm.appendChild(rowNav(icon('shield'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
     adm.appendChild(rowNav(icon('user'), 'Gérer les administrateurs', '/admins'))
-    let fbCount = 0
-    try {
-      fbCount = await countFeedback()
-    } catch {
-      /* ignore */
-    }
-    adm.appendChild(rowNav(icon('message'), 'Messages reçus' + (fbCount ? ` (${fbCount})` : ''), '/messages'))
     wrap.appendChild(adm)
   }
 
