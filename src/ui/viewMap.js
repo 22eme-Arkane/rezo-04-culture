@@ -157,11 +157,28 @@ export async function viewMap() {
 
   async function initMap() {
     center = await resolveStartLocation()
-    map = L.map(mapDiv, { zoomControl: true }).setView([center.lat, center.lng], 11)
+    map = L.map(mapDiv, { zoomControl: true, maxBoundsViscosity: 1.0 }).setView(
+      [center.lat, center.lng],
+      11
+    )
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap',
     }).addTo(map)
+
+    // Carte confinée à la région PACA : navigation bloquée au-delà, extérieur grisé
+    // (monde entier avec un « trou » sur la PACA).
+    const PACA = { s: 42.85, o: 4.15, n: 45.2, e: 7.9 }
+    map.setMaxBounds(L.latLngBounds([PACA.s, PACA.o], [PACA.n, PACA.e]).pad(0.04))
+    map.setMinZoom(7)
+    L.polygon(
+      [
+        [[-89, -179], [-89, 179], [89, 179], [89, -179]],
+        [[PACA.s, PACA.o], [PACA.s, PACA.e], [PACA.n, PACA.e], [PACA.n, PACA.o]],
+      ],
+      { stroke: false, fillColor: '#5c5f66', fillOpacity: 0.45, interactive: false }
+    ).addTo(map)
+
     markers.addTo(map)
     userMarker = L.circleMarker([center.lat, center.lng], {
       radius: 6,
