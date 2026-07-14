@@ -30,9 +30,16 @@ function eventDayKeys(ev) {
 export async function viewCalendar() {
   const wrap = el('section', 'screen')
 
-  // --- En-tête ---
+  // --- En-tête : logo + titre ---
   const head = el('header', 'screen-head')
-  head.appendChild(el('h1', 'screen-title', 'Rézo 04 Culture'))
+  const title = el('h1', 'screen-title')
+  const logo = el('img')
+  logo.src = '/icons/logo.png'
+  logo.alt = ''
+  logo.addEventListener('error', () => logo.remove()) // pas encore de logo → titre seul
+  title.appendChild(logo)
+  title.appendChild(document.createTextNode('Rézo 04 Culture'))
+  head.appendChild(title)
   wrap.appendChild(head)
 
   // --- Chips de catégories (filtre partagé Calendrier + Map) ---

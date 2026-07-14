@@ -70,6 +70,14 @@
 
 :root { --radius: 20px; --radius-sm: 14px; --nav-h: 66px; --maxw: 540px; }
 
+/* Police de titre « Mushbie » (auto-hébergée — fonctionne hors-ligne).
+   ⚠ Version TRIAL : à remplacer par la licence complète avant l'ouverture large. */
+@font-face {
+  font-family: 'Mushbie';
+  src: url('/fonts/mushbie.otf') format('opentype');
+  font-display: swap;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -96,7 +104,12 @@ html, body {
 
 /* --- En-tête d'écran --- */
 .screen-head { text-align: center; padding: 0.4rem 0 0.8rem; }
-.screen-title { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--green); letter-spacing: -0.01em; }
+.screen-title {
+  margin: 0; font-size: 1.9rem; font-weight: 400; color: var(--green);
+  font-family: 'Mushbie', 'Poppins', system-ui, sans-serif; letter-spacing: 0.01em;
+  display: flex; align-items: center; justify-content: center; gap: 0.55rem;
+}
+.screen-title img { width: 40px; height: 40px; border-radius: 10px; }
 .screen-sub { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.85rem; }
 .back-btn {
   align-self: flex-start;
