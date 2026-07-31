@@ -8,6 +8,7 @@ import { isLoggedIn, isAdmin, getProfile, getUser, signOut } from '../lib/auth.j
 import { getDefaultCity, setDefaultCity, resolveDefaultCity } from '../lib/geo.js'
 import { listPendingCount } from '../lib/events.js'
 import { countFeedback } from '../lib/feedback.js'
+import { currentBuild } from '../lib/update.js'
 import { studioHeader } from './studio.js'
 
 export async function viewSettings() {
@@ -20,13 +21,14 @@ export async function viewSettings() {
     wrap.appendChild(el('p', 'settings-connected', 'Connecté : ' + who))
   }
 
-  // --- Groupe 1 : mes publications ---
+  // --- Groupe 1 : mes publications + ma ville ---
+  const pub = el('div', 'settings-group')
   if (logged) {
-    const pub = el('div', 'settings-group')
     pub.appendChild(rowNav(icon('plus'), 'Publier un événement', '/publier'))
     pub.appendChild(rowNav(icon('ticket'), 'Mes événements', '/mes-evenements'))
-    wrap.appendChild(pub)
   }
+  // La ville reste utile même sans compte : c'est elle qui centre la carte.
+  wrap.appendChild(pub)
 
   // --- Groupe 2 : administration (admins uniquement) ---
   if (logged && isAdmin()) {
@@ -46,8 +48,7 @@ export async function viewSettings() {
     wrap.appendChild(adm)
   }
 
-  // --- Groupe 3 : préférences ---
-  const prefs = el('div', 'settings-group')
+  // Ville par défaut : placée sous « Mes événements », dans le même groupe.
   const cityRow = rowValue(icon('pin'), 'Ville par défaut', getDefaultCity() || 'Non définie')
   const cityValue = cityRow.querySelector('.settings-row__value')
   cityRow.addEventListener('click', async () => {
@@ -74,10 +75,9 @@ export async function viewSettings() {
     }
     refresh()
   })
-  prefs.appendChild(cityRow)
-  wrap.appendChild(prefs)
+  pub.appendChild(cityRow)
 
-  // --- Groupe 4 (tout en bas) : contact, compte ---
+  // --- Groupe du bas : soutien, contact, compte ---
   // (La recherche de mise à jour est automatique à chaque lancement + bannière ;
   //  un simple rafraîchissement de la page suffit à récupérer la dernière version.)
   const bottom = el('div', 'settings-group')
@@ -103,6 +103,17 @@ export async function viewSettings() {
     bottom.appendChild(login)
   }
   wrap.appendChild(bottom)
+
+  // Numéro de version : indispensable pour savoir, en cas de souci signalé, si
+  // la personne a bien reçu la dernière mise à jour.
+  const build = currentBuild()
+  wrap.appendChild(
+    el(
+      'p',
+      'form__hint settings-version',
+      'Version ' + (build === 'dev' ? 'de développement' : new Date(Number(build)).toLocaleString('fr-FR'))
+    )
+  )
 
   return wrap
 }

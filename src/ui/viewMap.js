@@ -272,12 +272,44 @@ export async function viewMap() {
     // La carte occupe désormais la place restante (flex) : sa taille définitive
     // n'est connue qu'APRÈS la mise en page. On cadre donc APRÈS mesure, sinon le
     // zoom est calculé sur un conteneur encore vide et l'affichage est décadré.
-    map.invalidateSize({ animate: false })
+    fitToViewport()
     drawRadius()
     applyDepartmentLimits()
     watchResize()
 
     await loadEvents()
+  }
+
+  /**
+   * Hauteur de la carte MESURÉE sur l'appareil, jamais devinée.
+   *
+   * Les mises en page en CSS pur (flex, 100dvh, env(safe-area-inset-bottom))
+   * dépendent du navigateur : `:has()` ignoré, `dvh` mal géré, barre d'URL qui
+   * se rétracte, encoche… Sur certains téléphones la carte finissait sous la
+   * barre d'onglets, avec l'attribution OpenStreetMap collée dessus.
+   * On lit donc la position RÉELLE de la barre d'onglets (élément fixe, donc en
+   * coordonnées de l'écran visible) et on cale la carte juste au-dessus.
+   */
+  function fitToViewport() {
+    if (!mapDiv.isConnected) return
+    const nav = document.querySelector('.bottom-nav')
+    const visible = window.visualViewport?.height ?? window.innerHeight
+    const limite = nav ? nav.getBoundingClientRect().top : visible
+    const haut = mapDiv.getBoundingClientRect().top
+    // 8 px de respiration sous la carte, et un plancher pour rester utilisable.
+    const hauteur = Math.max(140, Math.round(limite - haut - 8))
+    if (Math.abs(parseFloat(mapDiv.style.height) - hauteur) < 1) return
+
+    // ⚠ La hauteur est posée sur la CARTE elle-même, en style inline : c'est la
+    // seule façon de battre à coup sûr le `height: 58vh; min-height: 320px` de
+    // la règle générique `.map`. La caler sur le cadre ne suffisait pas — la
+    // carte reprenait ses 58vh dès qu'une règle de mise en page n'était pas
+    // appliquée, et repassait sous la barre d'onglets.
+    mapDiv.style.height = hauteur + 'px'
+    mapDiv.style.minHeight = '0'
+    mapFrame.style.flex = '0 0 auto'
+    mapFrame.style.height = hauteur + 'px'
+    map?.invalidateSize({ animate: false })
   }
 
   /** Bornes de navigation : impossible de sortir du 04 ni de dézoomer au-delà. */
@@ -289,22 +321,46 @@ export async function viewMap() {
     map.setMaxBounds(departmentBounds.pad(0.02))
   }
 
-  /** Rotation de l'écran, barre d'URL mobile qui se rétracte, clavier : Leaflet
-   *  mémorise la taille de son conteneur et doit être prévenu à chaque changement.
-   *  L'observateur se débranche tout seul quand la vue quitte le DOM (le routeur
-   *  vide son conteneur sans prévenir personne) — sinon la carte fuiterait. */
+  /** Rotation de l'écran, barre d'URL mobile qui se rétracte, clavier : la place
+   *  disponible change SANS que le conteneur bouge de lui-même. On recalcule donc
+   *  à chaque événement, et Leaflet est prévenu à chaque fois (il mémorise la
+   *  taille de son conteneur).
+   *  Tout se débranche seul quand la vue quitte le DOM : le routeur vide son
+   *  conteneur sans prévenir personne, la carte fuiterait sinon. */
   function watchResize() {
-    if (typeof ResizeObserver !== 'function') return
-    const ro = new ResizeObserver(() => {
-      if (!mapDiv.isConnected) {
-        ro.disconnect()
-        map.remove()
-        return
-      }
-      map.invalidateSize({ animate: false })
+    const relayout = () => {
+      if (!mapFrame.isConnected) return detach()
+      fitToViewport()
       applyDepartmentLimits()
-    })
-    ro.observe(mapDiv)
+    }
+
+    const vv = window.visualViewport
+    window.addEventListener('resize', relayout)
+    window.addEventListener('orientationchange', relayout)
+    vv?.addEventListener('resize', relayout)
+    vv?.addEventListener('scroll', relayout)
+
+    const ro =
+      typeof ResizeObserver === 'function'
+        ? new ResizeObserver(() => {
+            if (!mapDiv.isConnected) return detach()
+            map.invalidateSize({ animate: false })
+          })
+        : null
+    ro?.observe(mapDiv)
+
+    function detach() {
+      window.removeEventListener('resize', relayout)
+      window.removeEventListener('orientationchange', relayout)
+      vv?.removeEventListener('resize', relayout)
+      vv?.removeEventListener('scroll', relayout)
+      ro?.disconnect()
+      map?.remove()
+    }
+
+    // La barre d'onglets et les polices peuvent finir de se poser après le
+    // premier rendu : un dernier calage une fois tout stabilisé.
+    setTimeout(relayout, 250)
   }
 
   radiusBtns.forEach((b, i) => {
