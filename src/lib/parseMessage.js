@@ -1,4 +1,4 @@
-// Rézo 04 Culture — extraction d'un événement depuis un message texte (WhatsApp…).
+// Armana — extraction d'un événement depuis un message texte (WhatsApp…).
 //
 // 100 % LOCAL, gratuit, sans API : chrono-node pour la date (français), + heuristiques
 // simples pour titre / prix / catégorie / ville. Best-effort : l'utilisateur corrige

@@ -1,4 +1,4 @@
-// Rézo 04 Culture — passage d'un brouillon d'événement entre écrans (mémoire volatile).
+// Armana — passage d'un brouillon d'événement entre écrans (mémoire volatile).
 //
 // - draft : objet pré-rempli (issu de l'analyse d'un message) consommé UNE fois par le
 //   formulaire de publication.

@@ -1,4 +1,4 @@
-// Rézo 04 Culture — couche d'accès aux données (événements, photos, favoris).
+// Armana — couche d'accès aux données (événements, photos, favoris).
 //
 // Toute autorisation est imposée par la RLS côté base ; ce module ne fait que
 // formuler les requêtes. On lit les événements via la vue events_geo (lat/lng en
@@ -164,6 +164,7 @@ export async function listPendingEvents() {
     .select('*')
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
+    .limit(100) // la file se traite par paquets : pas de chargement sans fin
   if (error) throw error
   return attachRelations(data)
 }
@@ -222,11 +223,12 @@ export async function setEventStatus(id, status) {
  * Chemins : {uid}/{eventId}/photo.webp (pleine) et thumb.webp (vignette).
  * La ligne event_photos ne référence que la pleine ; la vignette est dérivée.
  */
-export async function uploadEventPhoto(eventId, file) {
+export async function uploadEventPhoto(eventId, file, crop = null) {
   const uid = getUser()?.id
   if (!uid) throw new Error('Non connecté')
 
-  const { full, thumb } = await makePhotoVariants(file)
+  // `crop` = cadrage choisi par l'auteur dans l'aperçu ; appliqué à la vignette.
+  const { full, thumb } = await makePhotoVariants(file, { crop })
   const base = `${uid}/${eventId}`
   const opts = { upsert: true, contentType: 'image/webp' }
 
@@ -246,6 +248,55 @@ export async function uploadEventPhoto(eventId, file) {
     .insert({ event_id: eventId, storage_path: `${base}/photo.webp`, position: 0 })
   if (insErr) throw insErr
   return `${base}/photo.webp`
+}
+
+/**
+ * Purge des MOIS RÉVOLUS (admin) — règle de rétention : on garde le mois en
+ * cours et les mois à venir, on supprime tout ce qui appartient aux mois passés.
+ *
+ * ⚠ ORDRE CRITIQUE : les FICHIERS d'abord, les LIGNES ensuite. Un simple DELETE
+ * SQL ne libère PAS le Storage — les fichiers deviendraient introuvables et
+ * occuperaient le quota pour toujours.
+ */
+export async function purgePastMonths() {
+  const { data, error } = await supabase.rpc('expired_events_before_month')
+  if (error) throw error
+  const rows = data ?? []
+  if (!rows.length) return { events: 0, files: 0 }
+
+  const ids = [...new Set(rows.map((r) => r.id))]
+  const files = []
+  for (const r of rows) {
+    if (!r.storage_path) continue
+    files.push(r.storage_path)
+    // La vignette est déduite du chemin (convention {uid}/{eventId}/photo.webp).
+    if (r.storage_path.endsWith('photo.webp')) {
+      files.push(r.storage_path.replace(/photo\.webp$/, 'thumb.webp'))
+    }
+  }
+
+  // 1) Fichiers, par paquets (l'API Storage n'aime pas les listes géantes).
+  let removed = 0
+  for (const batch of chunk(files, 100)) {
+    const { data: gone, error: rmErr } = await supabase.storage.from('event-photos').remove(batch)
+    if (rmErr) throw new Error('Suppression des photos : ' + rmErr.message)
+    removed += gone?.length ?? 0
+  }
+
+  // 2) Lignes (event_photos et gems partent en cascade), par paquets aussi :
+  //    les identifiants transitent dans l'URL, qui a une longueur limitée.
+  for (const batch of chunk(ids, 100)) {
+    const { error: delErr } = await supabase.from('events').delete().in('id', batch)
+    if (delErr) throw new Error('Suppression des événements : ' + delErr.message)
+  }
+
+  return { events: ids.length, files: removed }
+}
+
+function chunk(arr, size) {
+  const out = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
 }
 
 // --- Favoris (Gems) --------------------------------------------------------

@@ -1,4 +1,4 @@
-// Rézo 04 Culture — helpers UI partagés + composant Carte événement (unique).
+// Armana — helpers UI partagés + composant Carte événement (unique).
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { addGem, removeGem } from '../lib/events.js'
@@ -117,7 +117,7 @@ export function eventCard(ev, opts = {}) {
 
   body.appendChild(el('h3', 'ecard__title', ev.title))
 
-  const when = el('p', 'ecard__meta')
+  const when = el('p', 'ecard__meta ecard__meta--when')
   when.appendChild(icon('calendar'))
   when.appendChild(
     document.createTextNode(` ${formatDate(ev.starts_at)} · ${formatTime(ev.starts_at)}`)
@@ -125,7 +125,7 @@ export function eventCard(ev, opts = {}) {
   body.appendChild(when)
 
   if (ev.address) {
-    const where = el('p', 'ecard__meta')
+    const where = el('p', 'ecard__meta ecard__meta--where')
     where.appendChild(icon('pin'))
     where.appendChild(document.createTextNode(' ' + ev.address))
     body.appendChild(where)

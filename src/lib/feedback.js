@@ -1,4 +1,4 @@
-// Rézo 04 Culture — messages « Nous contacter » (bug / avis).
+// Armana — messages « Nous contacter » (bug / avis).
 // Écriture : tout utilisateur connecté. Lecture/suppression : admins (RLS).
 import { supabase } from './supabaseClient.js'
 import { getUser } from './auth.js'

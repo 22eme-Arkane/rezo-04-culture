@@ -1,4 +1,4 @@
-# Rézo 04 Culture
+# Armana
 
 PWA d'agenda culturel du **département 04** (Alpes-de-Haute-Provence). Objectif :
 remplacer un groupe WhatsApp de 1000+ personnes par une appli claire — à l'ouverture,

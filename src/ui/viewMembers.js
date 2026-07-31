@@ -1,4 +1,4 @@
-// Rézo 04 Culture — écran « Membres » (admin) : tous les inscrits.
+// Armana — écran « Membres » (admin) : tous les inscrits.
 import { el, emptyState } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'

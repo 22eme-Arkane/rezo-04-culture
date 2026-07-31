@@ -1,4 +1,4 @@
-// Rézo 04 Culture — barre de navigation basse (4 onglets, icônes Lucide).
+// Armana — barre de navigation basse (4 onglets, icônes Lucide).
 import { el } from './components.js'
 import { icon } from './icons.js'
 import { navigate, currentRoute } from '../lib/router.js'
@@ -6,10 +6,10 @@ import { isAdmin } from '../lib/auth.js'
 import { listPendingCount } from '../lib/events.js'
 
 const TABS = [
-  { path: '/', label: 'Calendrier', ic: 'calendar' },
-  { path: '/carte', label: 'Map', ic: 'map' },
+  { path: '/', label: 'Agenda', ic: 'calendar' },
+  { path: '/carte', label: 'Carte', ic: 'map' },
   { path: '/favoris', label: 'Favoris', ic: 'heart' },
-  { path: '/parametres', label: 'Paramètres', ic: 'settings' },
+  { path: '/parametres', label: 'Profil', ic: 'user' },
 ]
 
 // Les sous-écrans allument l'onglet parent.
@@ -23,10 +23,12 @@ const PARENT = {
   '/nouveau-mdp': '/parametres',
   '/contact': '/parametres',
   '/membres': '/parametres',
+  '/statistiques': '/parametres',
+  '/importer': '/',
 }
 
 export function buildNav() {
-  const nav = el('nav', 'bottom-nav')
+  const nav = el('nav', 'bottom-nav bottom-nav--studio')
   const inner = el('div', 'bottom-nav__inner')
   const { path } = currentRoute()
   const active = PARENT[path] ?? path

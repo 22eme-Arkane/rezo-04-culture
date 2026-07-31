@@ -1,4 +1,4 @@
-// Rézo 04 Culture — Modération (admin) : file des événements en attente.
+// Armana — Modération (admin) : file des événements en attente.
 import { el, eventCard, emptyState } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'

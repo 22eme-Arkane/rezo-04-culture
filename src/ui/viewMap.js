@@ -1,4 +1,4 @@
-// Rézo 04 Culture — écran Map : Leaflet + OSM, filtre par rayon (PostGIS ST_DWithin).
+// Armana — écran Map : Leaflet + OSM, filtre par rayon (PostGIS ST_DWithin).
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import '../lib/leafletIcons.js' // correctif icônes marqueur (Vite)
@@ -6,10 +6,16 @@ import '../lib/leafletIcons.js' // correctif icônes marqueur (Vite)
 import { el, formatDate, formatTime, formatPrice } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
-import { resolveStartLocation } from '../lib/geo.js'
+import { DEFAULT_CENTER, resolveStartLocation } from '../lib/geo.js'
 import { eventsWithinRadius } from '../lib/events.js'
 import { getCategory, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
+import { studioHeader } from './studio.js'
+import {
+  departmentOuterRings,
+  isInsideDepartment04,
+  loadDepartment04Boundary,
+} from '../lib/department04.js'
 
 const RADII = [
   { label: '10 km', m: 10000 },
@@ -29,13 +35,11 @@ function coversDay(ev, day) {
 }
 
 export async function viewMap() {
-  const wrap = el('section', 'screen')
-  const head = el('header', 'screen-head')
-  head.appendChild(el('h1', 'screen-title', 'Carte'))
-  wrap.appendChild(head)
+  const wrap = el('section', 'screen screen--studio-map')
+  const head = studioHeader('Carte', { tone: 'blue' })
 
   // Chips de catégories (même filtre partagé que le Calendrier).
-  const chipsRow = el('div', 'chips-row')
+  const chipsRow = el('div', 'chips-row chips-row--studio-map')
   const allChips = []
   const addChip = (label, value) => {
     const c = el('button', 'chip', label)
@@ -55,54 +59,100 @@ export async function viewMap() {
     for (const c of allChips) c.classList.toggle('is-active', c.dataset.value === active)
   }
   paintChips()
-  wrap.appendChild(chipsRow)
+  head.appendChild(chipsRow)
+  wrap.appendChild(head)
 
-  // Barre rayon + position.
-  const bar = el('div', 'mapbar')
-  bar.appendChild(el('span', 'mapbar__label', 'Rayon :'))
+  // Panneau de recherche : rayon et date, dans une seule surface éditoriale.
+  const controls = el('section', 'map-search-panel')
+  controls.setAttribute('aria-label', 'Filtres de la carte')
+
+  const radiusControl = el('div', 'map-search-control')
+  const radiusHeading = el('div', 'map-search-control__heading')
+  const radiusIcon = el('span', 'map-search-control__icon')
+  radiusIcon.appendChild(icon('pin'))
+  radiusHeading.appendChild(radiusIcon)
+  const radiusCopy = el('div', 'map-search-control__copy')
+  radiusCopy.appendChild(el('strong', null, 'Rayon'))
+  radiusCopy.appendChild(el('span', null, 'Choisissez votre rayon'))
+  radiusHeading.appendChild(radiusCopy)
+  const recenter = el('button', 'map-search-control__recenter')
+  recenter.type = 'button'
+  recenter.title = 'Recentrer sur ma position'
+  recenter.setAttribute('aria-label', 'Recentrer sur ma position')
+  recenter.appendChild(icon('refresh'))
+  radiusHeading.appendChild(recenter)
+  radiusControl.appendChild(radiusHeading)
+
+  const radiusOptions = el('div', 'map-radius-options')
   let radiusM = RADII[1].m
   const radiusBtns = RADII.map((r, i) => {
-    const b = el('button', 'chip', r.label)
+    const b = el('button', 'map-radius-option', r.label)
+    b.type = 'button'
     if (i === 1) b.classList.add('is-active')
-    bar.appendChild(b)
+    radiusOptions.appendChild(b)
     return b
   })
-  const recenter = el('button', 'btn btn--sm')
-  recenter.appendChild(icon('pin'))
-  bar.appendChild(recenter)
-  const count = el('span', 'mapbar__count', '')
-  bar.appendChild(count)
-  wrap.appendChild(bar)
+  radiusControl.appendChild(radiusOptions)
+  controls.appendChild(radiusControl)
 
-  // Sélecteur de date : n'afficher que les événements actifs ce jour-là.
+  // Sélecteur de date : uniquement les événements actifs ce jour-là.
   let selectedDate = null
-  const dateBar = el('div', 'mapbar')
-  dateBar.appendChild(el('span', 'mapbar__label', 'Date :'))
-  const dateInput = el('input', 'map-date')
+  const dateControl = el('div', 'map-search-control map-search-control--date')
+  const dateHeading = el('label', 'map-search-control__heading')
+  const dateIcon = el('span', 'map-search-control__icon map-search-control__icon--yellow')
+  dateIcon.appendChild(icon('calendar'))
+  dateHeading.appendChild(dateIcon)
+  const dateCopy = el('span', 'map-search-control__copy')
+  dateCopy.appendChild(el('strong', null, 'Date'))
+  dateCopy.appendChild(el('span', null, 'Tous les événements par défaut'))
+  dateHeading.appendChild(dateCopy)
+  dateControl.appendChild(dateHeading)
+  const datePicker = el('div', 'map-date-picker')
+  const dateInput = el('input', 'map-date map-date--studio')
   dateInput.type = 'date'
   dateInput.min = ymd(new Date())
-  dateBar.appendChild(dateInput)
-  const clearDate = el('button', 'btn btn--sm', 'Toutes')
-  dateBar.appendChild(clearDate)
-  wrap.appendChild(dateBar)
+  dateInput.setAttribute('aria-label', 'Filtrer par date')
+  datePicker.appendChild(dateInput)
+  const clearDate = el('button', 'map-date-clear', 'Toutes')
+  clearDate.type = 'button'
+  datePicker.appendChild(clearDate)
+  dateControl.appendChild(datePicker)
+  controls.appendChild(dateControl)
+
+  const resultsBar = el('div', 'map-results-bar')
+  resultsBar.appendChild(el('span', 'map-results-bar__dot'))
+  const count = el('span', 'map-results-bar__count', '')
+  resultsBar.appendChild(count)
+  wrap.appendChild(controls)
 
   dateInput.addEventListener('change', () => {
     selectedDate = dateInput.value || null
+    dateControl.classList.toggle('has-date', Boolean(selectedDate))
     loadEvents()
   })
   clearDate.addEventListener('click', () => {
     dateInput.value = ''
     selectedDate = null
+    dateControl.classList.remove('has-date')
     loadEvents()
   })
 
-  const mapDiv = el('div', 'map')
-  wrap.appendChild(mapDiv)
+  const mapFrame = el('div', 'map-frame-studio')
+  const departmentBadge = el('div', 'map-department-badge')
+  departmentBadge.appendChild(el('strong', null, '04'))
+  departmentBadge.appendChild(el('span', null, 'Alpes-de-Haute-Provence'))
+  mapFrame.appendChild(departmentBadge)
+  mapFrame.appendChild(resultsBar)
+  const mapDiv = el('div', 'map map--studio')
+  mapFrame.appendChild(mapDiv)
+  wrap.appendChild(mapFrame)
 
   let map = null
   let center = null
   let userMarker = null
   let radiusCircle = null
+  let departmentBoundary = null
+  let departmentBounds = null
   const markers = L.layerGroup()
 
   async function loadEvents() {
@@ -113,6 +163,11 @@ export async function viewMap() {
       const cat = getCategory()
       if (cat) events = events.filter((e) => e.category === cat)
       if (selectedDate) events = events.filter((e) => coversDay(e, selectedDate))
+      if (departmentBoundary) {
+        events = events.filter((e) =>
+          isInsideDepartment04({ lat: Number(e.lat), lng: Number(e.lng) }, departmentBoundary)
+        )
+      }
       markers.clearLayers()
       let plotted = 0
       for (const ev of events) {
@@ -128,10 +183,10 @@ export async function viewMap() {
     }
   }
 
-  function drawRadius() {
+  function drawRadius({ fit = true } = {}) {
     if (radiusCircle) map.removeLayer(radiusCircle)
-    const styles = getComputedStyle(document.documentElement)
-    const accent = styles.getPropertyValue('--accent').trim() || '#f7c108'
+    const styles = getComputedStyle(wrap)
+    const accent = styles.getPropertyValue('--mask-yellow').trim() || '#f4ca15'
     radiusCircle = L.circle([center.lat, center.lng], {
       radius: radiusM,
       color: accent,
@@ -139,7 +194,10 @@ export async function viewMap() {
       fillColor: accent,
       fillOpacity: 0.1,
     }).addTo(map)
-    map.fitBounds(radiusCircle.getBounds(), { padding: [20, 20] })
+    // La carte s'ouvre SUR la zone de recherche (ville par défaut ou position),
+    // pas sur le département entier : sinon la ville choisie dans les réglages
+    // semblait ignorée.
+    if (fit) map.fitBounds(radiusCircle.getBounds(), { padding: [16, 16], animate: false })
   }
 
   function popupContent(ev) {
@@ -156,41 +214,97 @@ export async function viewMap() {
   }
 
   async function initMap() {
+    departmentBoundary = await loadDepartment04Boundary()
     center = await resolveStartLocation()
+    if (!isInsideDepartment04(center, departmentBoundary)) center = { ...DEFAULT_CENTER, fallback: true }
     map = L.map(mapDiv, { zoomControl: true, maxBoundsViscosity: 1.0 }).setView(
       [center.lat, center.lng],
       11
     )
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap',
+      // Crédit obligatoire des tuiles OSM (c'est ce qui rend la carte gratuite) :
+      // le lien vers la page de copyright fait partie des conditions d'usage.
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · contour Etalab',
     }).addTo(map)
 
-    // Carte confinée à la région PACA : navigation bloquée au-delà, extérieur grisé
-    // (monde entier avec un « trou » sur la PACA).
-    const PACA = { s: 42.85, o: 4.15, n: 45.2, e: 7.9 }
-    map.setMaxBounds(L.latLngBounds([PACA.s, PACA.o], [PACA.n, PACA.e]).pad(0.04))
-    map.setMinZoom(7)
-    L.polygon(
-      [
-        [[-89, -179], [-89, 179], [89, 179], [89, -179]],
-        [[PACA.s, PACA.o], [PACA.s, PACA.e], [PACA.n, PACA.e], [PACA.n, PACA.o]],
-      ],
-      { stroke: false, fillColor: '#5c5f66', fillOpacity: 0.45, interactive: false }
-    ).addTo(map)
+    // Frontière exacte du 04. Un masque 100 % opaque recouvre le monde entier,
+    // avec le département comme « trou » : aucun territoire voisin n'est visible.
+    const boundaryLayer = L.geoJSON(departmentBoundary)
+    departmentBounds = boundaryLayer.getBounds()
+    map.createPane('departmentMask')
+    map.getPane('departmentMask').style.zIndex = '430'
+    map.getPane('departmentMask').style.pointerEvents = 'none'
+    const world = [[-90, -180], [-90, 180], [90, 180], [90, -180]]
+    const departmentMask = L.polygon([world, ...departmentOuterRings(departmentBoundary)], {
+      pane: 'departmentMask',
+      stroke: false,
+      fillColor: '#fff4df',
+      fillOpacity: 1,
+      fillRule: 'evenodd',
+      interactive: false,
+      className: 'department-mask',
+    }).addTo(map)
+    applyDepartmentMaskPattern(departmentMask)
+    L.geoJSON(departmentBoundary, {
+      pane: 'departmentMask',
+      interactive: false,
+      style: {
+        color: '#f4ca15',
+        weight: 4,
+        opacity: 1,
+        fillOpacity: 0,
+        className: 'department-outline',
+      },
+    }).addTo(map)
 
     markers.addTo(map)
     userMarker = L.circleMarker([center.lat, center.lng], {
       radius: 6,
       color: '#fff',
       weight: 2,
-      fillColor: '#e23e57',
+      fillColor: '#f04b2f',
       fillOpacity: 1,
     }).addTo(map)
-    userMarker.bindPopup('Vous êtes ici')
+    userMarker.bindPopup(center.city ? `Ville choisie : ${center.city}` : 'Vous êtes ici')
+
+    // La carte occupe désormais la place restante (flex) : sa taille définitive
+    // n'est connue qu'APRÈS la mise en page. On cadre donc APRÈS mesure, sinon le
+    // zoom est calculé sur un conteneur encore vide et l'affichage est décadré.
+    map.invalidateSize({ animate: false })
     drawRadius()
+    applyDepartmentLimits()
+    watchResize()
+
     await loadEvents()
-    setTimeout(() => map.invalidateSize(), 120)
+  }
+
+  /** Bornes de navigation : impossible de sortir du 04 ni de dézoomer au-delà. */
+  function applyDepartmentLimits() {
+    const fitZoom = map.getBoundsZoom(departmentBounds, false, L.point(12, 12))
+    // Deux niveaux de recul : l'extérieur reste masqué, mais on situe mieux la
+    // silhouette du département.
+    map.setMinZoom(Math.max(6, fitZoom - 2))
+    map.setMaxBounds(departmentBounds.pad(0.02))
+  }
+
+  /** Rotation de l'écran, barre d'URL mobile qui se rétracte, clavier : Leaflet
+   *  mémorise la taille de son conteneur et doit être prévenu à chaque changement.
+   *  L'observateur se débranche tout seul quand la vue quitte le DOM (le routeur
+   *  vide son conteneur sans prévenir personne) — sinon la carte fuiterait. */
+  function watchResize() {
+    if (typeof ResizeObserver !== 'function') return
+    const ro = new ResizeObserver(() => {
+      if (!mapDiv.isConnected) {
+        ro.disconnect()
+        map.remove()
+        return
+      }
+      map.invalidateSize({ animate: false })
+      applyDepartmentLimits()
+    })
+    ro.observe(mapDiv)
   }
 
   radiusBtns.forEach((b, i) => {
@@ -206,7 +320,10 @@ export async function viewMap() {
   })
 
   recenter.addEventListener('click', async () => {
-    center = await resolveStartLocation()
+    const located = await resolveStartLocation()
+    center = departmentBoundary && isInsideDepartment04(located, departmentBoundary)
+      ? located
+      : { ...DEFAULT_CENTER, fallback: true }
     if (map) {
       userMarker.setLatLng([center.lat, center.lng])
       drawRadius()
@@ -214,11 +331,42 @@ export async function viewMap() {
     }
   })
 
-  requestAnimationFrame(() => {
+  // setTimeout plutôt que requestAnimationFrame : rAF est gelé quand l'onglet
+  // n'est pas visible (app ouverte en arrière-plan) et la carte ne se construisait
+  // jamais. Le dimensionnement est géré par invalidateSize + ResizeObserver.
+  setTimeout(() => {
     initMap().catch((e) => {
       count.textContent = 'Carte indisponible : ' + e.message
     })
-  })
+  }, 0)
 
   return wrap
+}
+
+/** Motif SVG discret appliqué uniquement à l'extérieur du contour départemental. */
+function applyDepartmentMaskPattern(layer) {
+  const path = layer.getElement()
+  const svg = path?.ownerSVGElement
+  if (!path || !svg) return
+  const ns = 'http://www.w3.org/2000/svg'
+  let defs = svg.querySelector('defs')
+  if (!defs) {
+    defs = document.createElementNS(ns, 'defs')
+    svg.prepend(defs)
+  }
+  const pattern = document.createElementNS(ns, 'pattern')
+  pattern.id = 'department-04-outside-pattern'
+  pattern.setAttribute('patternUnits', 'userSpaceOnUse')
+  pattern.setAttribute('width', '132')
+  pattern.setAttribute('height', '118')
+  pattern.innerHTML = `
+    <rect width="132" height="118" fill="#0b55c5"/>
+    <path d="M-18 112 112-18M54 142 150 46" stroke="#f4ca15" stroke-width="18" opacity=".09"/>
+    <circle cx="112" cy="18" r="17" fill="#539957" opacity=".12"/>
+    <image href="/assets/studio-affiche/masks-logo.png" x="8" y="8" width="46" height="46" opacity=".9" transform="rotate(-9 31 31)"/>
+    <image href="/assets/studio-affiche/masks-logo.png" x="74" y="61" width="39" height="39" opacity=".72" transform="rotate(11 93 80)"/>
+  `
+  defs.appendChild(pattern)
+  path.setAttribute('fill', 'url(#department-04-outside-pattern)')
+  path.setAttribute('fill-opacity', '1')
 }

@@ -1,4 +1,4 @@
-# Edge Functions — Rézo 04 Culture
+# Edge Functions — Armana
 
 ## `purge-expired` — purge quotidienne des événements terminés
 
@@ -36,7 +36,7 @@ select cron.schedule(
   '0 4 * * *',
   $$
   select net.http_post(
-    url     := 'https://<PROJECT_REF>.functions.supabase.co/purge-expired',
+    url     := 'https://<PROJECT_REF>.supabase.co/functions/v1/purge-expired',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key')
@@ -52,7 +52,7 @@ select cron.schedule(
 ### Test manuel
 
 ```bash
-curl -X POST 'https://<PROJECT_REF>.functions.supabase.co/purge-expired' \
+curl -X POST 'https://<PROJECT_REF>.supabase.co/functions/v1/purge-expired' \
   -H "Authorization: Bearer <SERVICE_ROLE_KEY>"
 ```
 

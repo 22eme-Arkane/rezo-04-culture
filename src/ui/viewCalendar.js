@@ -1,11 +1,11 @@
-// Rézo 04 Culture — écran Calendrier (défaut) : en-tête, chips de catégories,
+// Armana — écran Calendrier (défaut) : en-tête, chips de catégories,
 // calendrier mensuel (jours à événements marqués), liste des événements.
-import { el, eventCard, emptyState, formatMonthLabel, formatDateFull } from './components.js'
+import { el, emptyState, formatMonthLabel, formatDateFull } from './components.js'
+import { posterEventCard } from './posterEventCard.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
-import { listApprovedEvents, listGemEventIds, CATEGORIES } from '../lib/events.js'
-import { getCategory, setCategory } from '../lib/filter.js'
+import { listApprovedEvents, listGemEventIds } from '../lib/events.js'
 
 /** Clé locale AAAA-MM-JJ d'une date (fuseau du navigateur, pas UTC). */
 function dayKey(d) {
@@ -27,29 +27,61 @@ function eventDayKeys(ev) {
   return keys
 }
 
+function studioPreviewEvents(seed = {}) {
+  const samples = [
+    { offset: 0, title: 'Les Inattendus', category: 'Spectacle', address: 'Forcalquier', is_paid: false },
+    { offset: 1, title: 'Jazz sous les étoiles', category: 'Concert', address: 'Digne-les-Bains', is_paid: true, price: 12 },
+    { offset: 7, title: 'Arts & Paysages', category: 'Randonnée', address: 'Annot', is_paid: false },
+    { offset: 8, title: 'Lettres à demain', category: 'Théâtre', address: 'Manosque', is_paid: false },
+  ]
+  const start = new Date()
+  return samples.map((sample, index) => {
+    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + sample.offset, 20, 30)
+    return {
+      ...seed,
+      ...sample,
+      id: `studio-preview-${index + 1}`,
+      starts_at: date.toISOString(),
+      ends_at: null,
+      status: 'approved',
+      _studioPreview: true,
+    }
+  })
+}
+
 export async function viewCalendar() {
-  const wrap = el('section', 'screen')
+  const wrap = el('section', 'screen screen--studio-calendar')
 
-  // --- En-tête : logo + titre ---
-  const head = el('header', 'screen-head')
-  const title = el('h1', 'screen-title')
+  // --- En-tête Studio Affiche : titre utile + marque ---
+  const head = el('header', 'screen-head screen-head--studio')
+  const title = el('h1', 'screen-title screen-title--studio', 'Agenda')
   const logo = el('img')
-  logo.src = '/icons/logo.png'
-  logo.alt = ''
-  logo.addEventListener('error', () => logo.remove()) // pas encore de logo → titre seul
-  title.appendChild(logo)
-  title.appendChild(document.createTextNode('Rézo 04 Culture'))
+  logo.src = '/assets/studio-affiche/masks-logo.png'
+  logo.alt = 'Armana'
+  logo.addEventListener('error', () => logo.remove())
   head.appendChild(title)
-  wrap.appendChild(head)
 
-  // --- Chips de catégories (filtre partagé Calendrier + Map) ---
-  const chipsRow = el('div', 'chips-row')
+  const calendarToggle = el('button', 'studio-calendar-toggle')
+  calendarToggle.type = 'button'
+  calendarToggle.title = 'Fermer le calendrier'
+  calendarToggle.setAttribute('aria-label', 'Fermer le calendrier')
+  calendarToggle.setAttribute('aria-expanded', 'true')
+  calendarToggle.classList.add('is-open')
+  calendarToggle.appendChild(icon('calendar'))
+
+  head.appendChild(calendarToggle)
+  head.appendChild(logo)
+
+  // --- Filtres rapides, calqués sur la maquette Studio Affiche ---
+  const chipsRow = el('div', 'chips-row chips-row--studio')
   const allChips = []
+  let quickFilter = 'all'
   const addChip = (label, value) => {
     const c = el('button', 'chip', label)
-    c.dataset.value = value ?? ''
+    c.dataset.value = value
+    if (value === 'all') c.appendChild(icon('chevronDown'))
     c.addEventListener('click', () => {
-      setCategory(value)
+      quickFilter = value
       paintChips()
       repaintCalendar()
       repaintList()
@@ -57,23 +89,42 @@ export async function viewCalendar() {
     allChips.push(c)
     chipsRow.appendChild(c)
   }
-  addChip('Tous les événements', null)
-  for (const cat of CATEGORIES) addChip(cat, cat)
+  addChip("Aujourd'hui", 'today')
+  addChip('Ce week-end', 'weekend')
+  addChip('Gratuit', 'free')
+  addChip('Tout', 'all')
   const paintChips = () => {
-    const active = getCategory() ?? ''
-    for (const c of allChips) c.classList.toggle('is-active', c.dataset.value === active)
+    for (const c of allChips) c.classList.toggle('is-active', c.dataset.value === quickFilter)
   }
   paintChips()
-  wrap.appendChild(chipsRow)
+  head.appendChild(chipsRow)
+  wrap.appendChild(head)
 
   // --- Données ---
-  const [events, gemIds] = await Promise.all([
+  const [approvedEvents, gemIds] = await Promise.all([
     listApprovedEvents(),
     isLoggedIn() ? listGemEventIds() : Promise.resolve(new Set()),
   ])
+  const studioPreview = import.meta.env.DEV && new URLSearchParams(location.search).has('studio-preview')
+  const events = studioPreview ? studioPreviewEvents(approvedEvents[0]) : approvedEvents
   const filtered = () => {
-    const cat = getCategory()
-    return cat ? events.filter((e) => e.category === cat) : events
+    if (quickFilter === 'free') return events.filter((event) => !event.is_paid)
+    if (quickFilter === 'today') {
+      const todayKey = dayKey(new Date())
+      return events.filter((event) => eventDayKeys(event).includes(todayKey))
+    }
+    if (quickFilter === 'weekend') {
+      const now = new Date()
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const daysUntilSaturday = (6 - start.getDay() + 7) % 7
+      const saturday = new Date(start)
+      saturday.setDate(start.getDate() + daysUntilSaturday)
+      const sunday = new Date(saturday)
+      sunday.setDate(saturday.getDate() + 1)
+      const weekendDays = new Set([dayKey(saturday), dayKey(sunday)])
+      return events.filter((event) => eventDayKeys(event).some((key) => weekendDays.has(key)))
+    }
+    return events
   }
 
   // --- Calendrier mensuel ---
@@ -82,7 +133,10 @@ export async function viewCalendar() {
   let monthCursor = new Date(thisMonth)
   let selectedDay = null // clé AAAA-MM-JJ ou null = "à venir"
 
-  const cal = el('div', 'calendar')
+  const cal = el('div', 'calendar calendar--studio')
+  cal.id = 'agenda-calendar-panel'
+  cal.hidden = false
+  calendarToggle.setAttribute('aria-controls', cal.id)
   const calHead = el('div', 'calendar__head')
   const prevBtn = el('button', 'calendar__nav')
   prevBtn.appendChild(icon('chevronLeft'))
@@ -96,6 +150,15 @@ export async function viewCalendar() {
   const grid = el('div', 'calendar__grid')
   cal.appendChild(grid)
   wrap.appendChild(cal)
+
+  calendarToggle.addEventListener('click', () => {
+    const willOpen = cal.hidden
+    cal.hidden = !willOpen
+    calendarToggle.classList.toggle('is-open', willOpen)
+    calendarToggle.title = willOpen ? 'Fermer le calendrier' : 'Ouvrir le calendrier'
+    calendarToggle.setAttribute('aria-label', calendarToggle.title)
+    calendarToggle.setAttribute('aria-expanded', String(willOpen))
+  })
 
   prevBtn.addEventListener('click', () => {
     monthCursor = new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1)
@@ -164,11 +227,14 @@ export async function viewCalendar() {
         el('p', 'demo-note', 'Les événements « [DÉMO] » sont des exemples de démonstration.')
       )
     }
+    let posterIndex = 0
     for (const ev of shown) {
       list.appendChild(
-        eventCard(ev, {
+        posterEventCard(ev, {
           gemmed: gemIds.has(ev.id),
           onGemChange: (id, on) => (on ? gemIds.add(id) : gemIds.delete(id)),
+          index: posterIndex++,
+          preview: Boolean(ev._studioPreview),
         })
       )
     }

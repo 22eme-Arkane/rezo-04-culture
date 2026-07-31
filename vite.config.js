@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 
-// Rézo 04 Culture — configuration Vite minimale.
+// Armana — configuration Vite minimale.
 // - Racine = ce dossier ; sortie de build dans dist/ (déployé tel quel sur Cloudflare Pages).
 // - Le service worker et le manifest sont servis depuis public/ à la racine du site.
 // - Seules les variables préfixées VITE_ sont exposées au client (voir .env.example).

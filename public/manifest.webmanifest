@@ -1,7 +1,7 @@
 {
-  "name": "Rézo 04 Culture",
-  "short_name": "Rézo 04",
-  "description": "Agenda culturel du département 04 : calendrier, carte et favoris.",
+  "name": "Armana",
+  "short_name": "Armana",
+  "description": "L’agenda culturel des Alpes-de-Haute-Provence : calendrier, carte et favoris.",
   "lang": "fr",
   "start_url": "/",
   "scope": "/",

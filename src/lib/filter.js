@@ -1,4 +1,4 @@
-// Rézo 04 Culture — état de filtre partagé (catégorie active).
+// Armana — état de filtre partagé (catégorie active).
 // Le filtre agit à la fois sur l'agenda (Calendrier) et sur la carte (Map).
 // null = toutes les catégories.
 

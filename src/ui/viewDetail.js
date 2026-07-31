@@ -1,4 +1,4 @@
-// Rézo 04 Culture — écran détail d'un événement (photo pleine résolution + infos).
+// Armana — écran détail d'un événement (photo pleine résolution + infos).
 import { el, formatDateFull, formatTime, formatPrice, emptyState } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'

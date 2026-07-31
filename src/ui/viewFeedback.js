@@ -1,4 +1,4 @@
-// Rézo 04 Culture — écran « Messages reçus » (admin) : bugs signalés + avis.
+// Armana — écran « Messages reçus » (admin) : bugs signalés + avis.
 import { el, emptyState } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'

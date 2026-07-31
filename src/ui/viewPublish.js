@@ -1,9 +1,11 @@
-// Rézo 04 Culture — vue Publier / Modifier un événement.
+// Armana — vue Publier / Modifier un événement.
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import '../lib/leafletIcons.js' // correctif icônes marqueur (Vite)
-import { el } from './components.js'
+import { el, formatPrice, formatTime } from './components.js'
 import { loginPrompt } from './components.js'
+import { posterEventCard } from './posterEventCard.js'
+import { createPhotoFramer } from './photoFramer.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
@@ -16,6 +18,16 @@ import {
   uploadEventPhoto,
   getEventById,
 } from '../lib/events.js'
+
+const PREVIEW_MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
+
+function toolButton(label, title) {
+  const b = el('button', 'photo-preview__zoom', label)
+  b.type = 'button'
+  b.title = title
+  b.setAttribute('aria-label', title)
+  return b
+}
 
 export async function viewPublish({ query } = {}) {
   if (!isLoggedIn()) {
@@ -61,7 +73,7 @@ export async function viewPublish({ query } = {}) {
   const form = el('form', 'form form--wide')
 
   const fTitle = textField('Titre *', 'text', init.title)
-  const fCategory = selectField('Catégorie', CATEGORIES, init.category)
+  const fCategory = selectField('Catégorie *', CATEGORIES, init.category)
   const fDesc = textareaField('Description', init.description)
   const fStart = textField('Début *', 'datetime-local', toLocalInput(init.starts_at))
   const fEnd = textField('Fin (optionnel)', 'datetime-local', toLocalInput(init.ends_at))
@@ -121,6 +133,110 @@ export async function viewPublish({ query } = {}) {
     )
   } else if (existing?.photo_url) {
     fPhoto.appendChild(el('p', 'form__hint', 'Une photo existe déjà ; en choisir une nouvelle l’ajoute.'))
+  }
+
+  // --- Aperçu « tel qu'il apparaîtra dans l'agenda » ---
+  // Exactement la carte de l'Agenda (date à gauche sur fond de couleur, photo au
+  // centre, informations à droite). La photo se cadre au doigt : ce que l'auteur
+  // voit ici est ce que la vignette affichera.
+  const preview = el('div', 'photo-preview')
+  preview.appendChild(el('p', 'form__label', 'Aperçu dans l’agenda'))
+  const previewCard = posterEventCard(previewEventData(), {
+    preview: true,
+    showGem: false,
+    index: 0,
+  })
+  preview.appendChild(previewCard)
+  const frameHint = el('p', 'form__hint photo-preview__hint', '')
+  preview.appendChild(frameHint)
+
+  const frameTools = el('div', 'photo-preview__tools')
+  const zoomOut = toolButton('−', 'Dézoomer')
+  const zoomIn = toolButton('+', 'Zoomer')
+  const resetFrame = el('button', 'btn btn--ghost btn--sm', 'Recadrer')
+  resetFrame.type = 'button'
+  frameTools.appendChild(zoomOut)
+  frameTools.appendChild(zoomIn)
+  frameTools.appendChild(resetFrame)
+  preview.appendChild(frameTools)
+  fPhoto.appendChild(preview)
+
+  const previewMedia = previewCard.querySelector('.poster-card__media')
+  let previewImg = previewMedia.querySelector('img')
+  if (!previewImg) {
+    previewImg = el('img')
+    previewImg.alt = ''
+    previewMedia.appendChild(previewImg)
+  }
+  const framer = createPhotoFramer(previewMedia, previewImg)
+  let framingEnabled = false
+
+  /** Données de l'événement telles que saisies, pour l'aperçu. */
+  function previewEventData() {
+    const startsAt = fStart?.input.value ? new Date(fStart.input.value) : new Date()
+    return {
+      id: 'preview',
+      title: fTitle?.input.value.trim() || 'Titre de votre événement',
+      starts_at: startsAt.toISOString(),
+      address: addrInput?.value.trim() || 'Lieu à préciser',
+      category: fCategory?.input.value || 'Catégorie ?',
+      is_paid: paidInput?.checked ?? false,
+      price: paidInput?.checked && priceInput?.value ? Number(priceInput.value) : null,
+      thumb_url: null,
+    }
+  }
+
+  /** Met à jour les textes de l'aperçu sans reconstruire la carte (le cadrage
+   *  de la photo, lui, doit survivre à chaque frappe au clavier). */
+  function refreshPreview() {
+    const ev = previewEventData()
+    const d = new Date(ev.starts_at)
+    setText('.poster-card__day', String(d.getDate()).padStart(2, '0'))
+    setText('.poster-card__month', PREVIEW_MONTH.format(d).replace('.', '').toUpperCase())
+    setText('.poster-card__time', formatTime(ev.starts_at))
+    setText('.poster-card__category', ev.category)
+    setText('.poster-card__title', ev.title)
+    setText('.poster-card__place', ev.address)
+    setText('.poster-card__price', formatPrice(ev))
+    frameHint.textContent = framingEnabled
+      ? 'Glissez la photo pour la cadrer · pincez (ou molette) pour zoomer.'
+      : 'Choisissez une photo pour la cadrer ici.'
+    frameTools.style.display = framingEnabled ? '' : 'none'
+  }
+
+  function setText(sel, value) {
+    const node = previewCard.querySelector(sel)
+    if (node) node.textContent = value
+  }
+
+  photoInput.addEventListener('change', async () => {
+    const file = photoInput.files?.[0]
+    if (!file) return
+    try {
+      await framer.setFile(file)
+      framingEnabled = true
+      previewMedia.classList.remove('poster-card__media--empty')
+      refreshPreview()
+    } catch (e) {
+      framingEnabled = false
+      frameHint.textContent = 'Cette image n’a pas pu être lue : ' + e.message
+    }
+  })
+
+  zoomIn.addEventListener('click', () => framer.zoomBy(1.2))
+  zoomOut.addEventListener('click', () => framer.zoomBy(1 / 1.2))
+  resetFrame.addEventListener('click', () => framer.reset())
+
+  // Photo reçue par partage (WhatsApp) : on la charge d'emblée dans l'aperçu.
+  if (sharedPhoto) {
+    framer
+      .setFile(sharedPhoto)
+      .then(() => {
+        framingEnabled = true
+        previewMedia.classList.remove('poster-card__media--empty')
+        refreshPreview()
+      })
+      .catch(() => {})
   }
 
   const submit = el('button', 'btn btn--primary btn--block')
@@ -213,10 +329,15 @@ export async function viewPublish({ query } = {}) {
     }
   }
   form.addEventListener('input', () => {
+    refreshPreview()
     clearTimeout(saveSnapshot._t)
     saveSnapshot._t = setTimeout(saveSnapshot, 300)
   })
-  form.addEventListener('change', saveSnapshot)
+  form.addEventListener('change', () => {
+    refreshPreview()
+    saveSnapshot()
+  })
+  refreshPreview()
   if (draft) saveSnapshot() // l'import depuis un message est lui aussi protégé
 
   function setPoint(lat, lng, recenter = true) {
@@ -254,7 +375,8 @@ export async function viewPublish({ query } = {}) {
       }
     } catch (e) {
       msg.className = 'form__msg form__msg--err'
-      msg.textContent = 'Géocodage indisponible : ' + e.message
+      msg.textContent =
+        'Recherche impossible (' + e.message + '). Touchez directement la carte pour placer le lieu.'
     } finally {
       geoBtn.disabled = false
       geoBtn.textContent = 'Localiser'
@@ -266,7 +388,8 @@ export async function viewPublish({ query } = {}) {
     map = L.map(pickMap).setView(start, state.lat != null ? 14 : 10)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap',
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
     }).addTo(map)
     if (state.lat != null) setPoint(state.lat, state.lng)
     map.on('click', (e) => setPoint(e.latlng.lat, e.latlng.lng, false))
@@ -286,6 +409,7 @@ export async function viewPublish({ query } = {}) {
     const ends_at = fEnd.input.value ? new Date(fEnd.input.value).toISOString() : null
 
     if (!title) return fail('Le titre est requis.')
+    if (!fCategory.input.value) return fail('Choisissez une catégorie.')
     if (!starts_at) return fail('La date de début est requise.')
     if (state.lat == null || state.lng == null)
       return fail('Placez le lieu sur la carte (adresse ou clic).')
@@ -314,9 +438,22 @@ export async function viewPublish({ query } = {}) {
       const file = photoInput.files?.[0] || sharedPhoto
       if (file) {
         try {
-          await uploadEventPhoto(row.id, file)
+          // Le cadrage choisi dans l'aperçu est appliqué à la vignette.
+          await uploadEventPhoto(row.id, file, framingEnabled ? framer.getCrop() : null)
         } catch (pe) {
-          console.warn('[Rézo] Photo non envoyée :', pe.message)
+          // Ne JAMAIS avaler cet échec en silence : l'auteur croyait sa photo
+          // publiée, et un problème de droits sur le Storage passait inaperçu.
+          console.warn('[Armana] Photo non envoyée :', pe.message)
+          fail(
+            'L’événement est bien enregistré, mais la photo n’a pas pu être envoyée (' +
+              pe.message +
+              '). Vous pourrez la rajouter depuis « Mes événements ».'
+          )
+          submit.disabled = false
+          submit.textContent = 'Continuer sans la photo'
+          submit.type = 'button'
+          submit.addEventListener('click', () => navigate('/mes-evenements'), { once: true })
+          return
         }
       }
       // Publication réussie : le brouillon persistant n'a plus lieu d'être.
@@ -366,12 +503,19 @@ function selectField(label, options, value) {
   const wrap = el('label', 'form__field')
   wrap.appendChild(el('span', 'form__label', label))
   const input = el('select', 'form__input')
+  // Option vide EN TÊTE : sans elle, le premier choix de la liste (« Musique »)
+  // était retenu par défaut et tous les événements non renseignés atterrissaient
+  // en Musique — filtres et badges faussés dès la première soirée.
+  const empty = el('option', null, '— Choisir une catégorie —')
+  empty.value = ''
+  input.appendChild(empty)
   for (const o of options) {
     const opt = el('option', null, o)
     opt.value = o
     if (o === value) opt.selected = true
     input.appendChild(opt)
   }
+  if (!options.includes(value)) empty.selected = true
   wrap.appendChild(input)
   return { wrap, input }
 }

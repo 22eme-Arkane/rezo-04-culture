@@ -1,5 +1,5 @@
 -- =============================================================================
--- Rézo 04 Culture — Seed de DÉMONSTRATION (facultatif)
+-- Armana — Seed de DÉMONSTRATION (facultatif)
 -- =============================================================================
 -- 2-3 événements d'exemple, clairement marqués « [DÉMO] », pour visualiser l'app.
 -- À exécuter APRÈS avoir créé au moins un compte (les événements ont besoin d'un

@@ -1,4 +1,4 @@
-/* Rézo 04 Culture — service worker (offline shell + réception de partage), PRODUCTION.
+/* Armana — service worker (offline shell + réception de partage), PRODUCTION.
  *
  * ⚠ Ne JAMAIS mettre en cache les sources de dev (/src, /@vite…) : modules périmés →
  * page blanche. On ne cache "cache-first" que les assets buildés hachés (/assets/…).
@@ -9,9 +9,17 @@
  *  - le reste : réseau, sans cache.
  * Supabase (API/Storage) et tuiles OSM ne sont jamais interceptés.
  */
-const CACHE = 'rezo-shell-v3'
+// Version incrémentée à chaque changement du shell : l'activation supprime les
+// caches précédents, ce qui garantit que les appareils déjà installés basculent
+// bien sur la nouvelle version (renommage Armana compris).
+const CACHE = 'armana-shell-v1'
 const SHARE_CACHE = 'rezo-share-v1'
-const SHELL = ['/', '/index.html', '/manifest.webmanifest']
+const SHELL = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/data/alpes-de-haute-provence.geojson',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -85,18 +93,30 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Cache-first UNIQUEMENT pour les assets buildés hachés.
+  // Cache-first UNIQUEMENT pour les assets buildés HACHÉS (/assets/xxx-a1b2c3.js).
+  // ⚠ /assets/studio-affiche/… est copié tel quel depuis public/ : le nom ne
+  // change JAMAIS. En cache-first, un logo remplacé resterait figé à vie sur les
+  // téléphones déjà installés → on le sert en « cache, puis rafraîchit ».
   if (url.pathname.startsWith('/assets/')) {
+    const unhashed = url.pathname.startsWith('/assets/studio-affiche/')
     event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then((res) => {
+      caches.match(request).then((cached) => {
+        // Asset haché déjà en cache : immuable, aucun appel réseau.
+        if (cached && !unhashed) return cached
+
+        const network = fetch(request).then((res) => {
+          // Ne jamais mettre une erreur (404, 500…) en cache.
+          if (res.ok) {
             const copy = res.clone()
             caches.open(CACHE).then((c) => c.put(request, copy))
-            return res
-          })
-      )
+          }
+          return res
+        })
+
+        if (!cached) return network.catch(() => caches.match(request))
+        network.catch(() => {}) // rafraîchissement silencieux en tâche de fond
+        return cached
+      })
     )
   }
 })

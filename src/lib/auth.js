@@ -1,4 +1,4 @@
-// Rézo 04 Culture — état d'authentification + profil courant.
+// Armana — état d'authentification + profil courant.
 //
 // Source unique de vérité côté client pour « qui est connecté et quel est son rôle ».
 // La sécurité réelle reste côté base (RLS) : ce module ne sert QU'À l'affichage.
@@ -33,7 +33,7 @@ async function loadProfile() {
     .eq('id', state.session.user.id)
     .maybeSingle()
   if (error) {
-    console.warn('[Rézo] Profil non chargé :', error.message)
+    console.warn('[Armana] Profil non chargé :', error.message)
     state.profile = null
   } else {
     state.profile = data

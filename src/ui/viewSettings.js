@@ -1,20 +1,17 @@
-// Rézo 04 Culture — écran Paramètres : lignes compactes, ordre :
+// Armana — écran Paramètres : lignes compactes, ordre :
 // Ville par défaut → Publier → Mes événements → (Modération) → Thème,
 // et « Se déconnecter » tout en bas.
 import { el } from './components.js'
 import { icon } from './icons.js'
-import { openThemePicker } from './themePicker.js'
 import { navigate, refresh } from '../lib/router.js'
 import { isLoggedIn, isAdmin, getProfile, getUser, signOut } from '../lib/auth.js'
-import { getDefaultCity, setDefaultCity } from '../lib/geo.js'
+import { getDefaultCity, setDefaultCity, resolveDefaultCity } from '../lib/geo.js'
 import { listPendingCount } from '../lib/events.js'
-import { checkForUpdate, reloadForUpdate } from '../lib/update.js'
+import { studioHeader } from './studio.js'
 
 export async function viewSettings() {
-  const wrap = el('section', 'page')
-  const head = el('header', 'screen-head')
-  head.appendChild(el('h1', 'screen-title', 'Paramètres'))
-  wrap.appendChild(head)
+  const wrap = el('section', 'page page--studio-profile')
+  wrap.appendChild(studioHeader('Profil'))
 
   const logged = isLoggedIn()
   if (logged) {
@@ -40,6 +37,7 @@ export async function viewSettings() {
       /* ignore */
     }
     adm.appendChild(rowNav(icon('shield'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
+    adm.appendChild(rowNav(icon('chart'), 'Statistiques', '/statistiques'))
     adm.appendChild(rowNav(icon('user'), 'Gérer les administrateurs', '/admins'))
     adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
     wrap.appendChild(adm)
@@ -48,37 +46,38 @@ export async function viewSettings() {
   // --- Groupe 3 : préférences ---
   const prefs = el('div', 'settings-group')
   const cityRow = rowValue(icon('pin'), 'Ville par défaut', getDefaultCity() || 'Non définie')
-  cityRow.addEventListener('click', () => {
-    const v = prompt('Votre ville (pour centrer la carte) :', getDefaultCity() || '')
+  const cityValue = cityRow.querySelector('.settings-row__value')
+  cityRow.addEventListener('click', async () => {
+    const v = prompt('Votre ville (la carte s’ouvrira dessus) :', getDefaultCity() || '')
     if (v === null) return
-    setDefaultCity(v.trim())
+    const city = v.trim()
+    if (!city) {
+      setDefaultCity('')
+      refresh()
+      return
+    }
+    // On géocode TOUT DE SUITE et on mémorise le point : la carte s'ouvrira sur
+    // cette ville même hors ligne, sans rappeler Nominatim à chaque fois.
+    setDefaultCity(city)
+    cityValue.textContent = 'Localisation…'
+    const pos = await resolveDefaultCity()
+    if (!pos) {
+      cityValue.textContent = city
+      alert(
+        'Ville enregistrée, mais introuvable sur la carte pour l’instant.\n' +
+          'Vérifiez l’orthographe : la carte se centrera dessus dès qu’elle sera reconnue.'
+      )
+      return
+    }
     refresh()
   })
   prefs.appendChild(cityRow)
-  const themeRow = rowButton(paletteIcon(), 'Thème de l’application')
-  themeRow.addEventListener('click', openThemePicker)
-  prefs.appendChild(themeRow)
   wrap.appendChild(prefs)
 
-  // --- Groupe 4 (tout en bas) : mise à jour, contact, compte ---
+  // --- Groupe 4 (tout en bas) : contact, compte ---
+  // (La recherche de mise à jour est automatique à chaque lancement + bannière ;
+  //  un simple rafraîchissement de la page suffit à récupérer la dernière version.)
   const bottom = el('div', 'settings-group')
-
-  const updRow = rowButton(icon('refresh'), 'Rechercher une mise à jour')
-  const updValue = el('span', 'settings-row__value', '')
-  updRow.insertBefore(updValue, updRow.lastChild) // avant le chevron
-  updRow.addEventListener('click', async () => {
-    updValue.textContent = 'Vérification…'
-    const r = await checkForUpdate()
-    if (r.updateAvailable) {
-      updValue.textContent = 'Disponible'
-      if (confirm('Une nouvelle version est disponible. Recharger maintenant ?')) reloadForUpdate()
-    } else if (r.ok) {
-      updValue.textContent = 'À jour'
-    } else {
-      updValue.textContent = 'Indisponible'
-    }
-  })
-  bottom.appendChild(updRow)
 
   bottom.appendChild(rowNav(icon('message'), 'Nous contacter', '/contact'))
 
@@ -132,14 +131,4 @@ function labelBlock(iconEl, label) {
   l.appendChild(iconEl)
   l.appendChild(document.createTextNode(label))
   return l
-}
-
-// Palette (emoji) pour la ligne thème, taille alignée sur les icônes.
-function paletteIcon() {
-  const s = el('span')
-  s.textContent = '🎨'
-  s.style.fontSize = '17px'
-  s.style.width = '18px'
-  s.style.display = 'inline-flex'
-  return s
 }

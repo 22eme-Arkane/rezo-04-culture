@@ -1,20 +1,20 @@
-// Rézo 04 Culture — écran Favoris : événements mis en favori par l'utilisateur.
-import { el, eventCard, emptyState, loginPrompt } from './components.js'
+// Armana — écran Favoris : événements mis en favori par l'utilisateur.
+import { el, emptyState, loginPrompt } from './components.js'
+import { posterEventCard } from './posterEventCard.js'
+import { studioHeader } from './studio.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { listGemmedEvents } from '../lib/events.js'
 
 export async function viewGems() {
-  const wrap = el('section', 'screen')
-  const head = el('header', 'screen-head')
-  head.appendChild(el('h1', 'screen-title', 'Mes favoris'))
-  wrap.appendChild(head)
+  const wrap = el('section', 'screen screen--studio-favorites')
+  wrap.appendChild(studioHeader('Favoris'))
 
   if (!isLoggedIn()) {
     wrap.appendChild(loginPrompt('Connectez-vous pour retrouver vos favoris.'))
     return wrap
   }
 
-  const list = el('div', 'events-list')
+  const list = el('div', 'events-list studio-events-list')
   wrap.appendChild(list)
 
   const events = await listGemmedEvents()
@@ -26,12 +26,12 @@ export async function viewGems() {
   }
 
   for (const ev of events) {
-    const card = eventCard(ev, {
+    const card = posterEventCard(ev, {
       gemmed: true,
       onGemChange: (id, on) => {
         if (!on) {
           card.remove()
-          if (!list.querySelector('.ecard')) {
+          if (!list.querySelector('.poster-card')) {
             list.appendChild(emptyState('Aucun favori pour l’instant.'))
           }
         }

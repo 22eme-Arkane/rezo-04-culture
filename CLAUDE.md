@@ -1,8 +1,8 @@
-# CLAUDE.md — Rézo 04 Culture
+# CLAUDE.md — Armana
 
 ## Identité du projet
 
-**Rézo 04 Culture** est une **PWA d'agenda culturel régional** pour le département 04
+**Armana** est une **PWA d'agenda culturel régional** pour le département 04
 (Alpes-de-Haute-Provence), multi-utilisateur, adossée à **Supabase**. Elle remplace un
 groupe WhatsApp de 1000+ personnes : à l'ouverture, l'utilisateur voit les événements
 culturels de sa région sur un **calendrier** + une **carte** interactive filtrable par
@@ -94,8 +94,15 @@ coin (table `gems`). Tap → écran détail.
 2. **Filtre d'affichage** : ne lister que les événements non terminés
    (`ends_at >= now()`, sinon `starts_at`). Les mois passés ne s'affichent jamais
    (`isUpcoming` / `applyUpcoming` dans `src/lib/events.js`).
-3. **Purge automatique** (Edge Function `supabase/functions/purge-expired`, cron quotidien) :
-   cible les événements terminés depuis > `PURGE_GRACE_DAYS` (défaut 2).
+3. **Règle de rétention — au MOIS, pas au jour.** On conserve le **mois en cours**
+   et **tous les mois à venir** ; on supprime tout ce qui appartient aux **mois
+   révolus**. En juillet : juillet, août, septembre… sont gardés ; juin, mai… sont
+   purgés (base **et** photos). Deux mises en œuvre :
+   - **Edge Function** `supabase/functions/purge-expired` + cron quotidien
+     (automatique, à déployer une fois) ;
+   - **bouton « Nettoyer les mois passés »** dans Profil → Statistiques
+     (manuel, disponible sans aucun déploiement — s'appuie sur la RPC
+     `expired_events_before_month` et les droits admin du bucket, migration 0009).
    ⚠ **PIÈGE** : supprimer d'abord les **fichiers Storage** (original + vignette) via
    l'API Storage, **PUIS** les lignes en base (`event_photos` + `gems` en cascade).
    Un simple DELETE SQL ne libère PAS le Storage. `service_role` **côté serveur
@@ -170,7 +177,7 @@ Travailler comme un ingénieur qui relit, teste et corrige son propre code avant
 ## Arborescence
 
 ```
-Rézo 04 Culture/
+Armana/
 ├── CLAUDE.md
 ├── README.md
 ├── .env.example                 # sans valeurs

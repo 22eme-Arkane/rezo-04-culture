@@ -1,4 +1,4 @@
-// Rézo 04 Culture — point d'entrée : assemble le shell (nav + routeur) et l'auth.
+// Armana — point d'entrée : assemble le shell (nav + routeur) et l'auth.
 import './style.css'
 import { isConfigured } from './lib/supabaseClient.js'
 import { initTheme } from './lib/theme.js'
@@ -21,7 +21,9 @@ import { viewAdmins } from './ui/viewAdmins.js'
 import { viewNewPassword } from './ui/viewNewPassword.js'
 import { viewContact } from './ui/viewContact.js'
 import { viewMembers } from './ui/viewMembers.js'
+import { viewStats } from './ui/viewStats.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
+import { recordVisit } from './lib/admins.js'
 
 // --- Service worker (offline shell) ---
 // UNIQUEMENT en production : en dev, un SW "cache-first" servirait des modules
@@ -29,12 +31,23 @@ import { setSharedText, setSharedFile } from './lib/draft.js'
 if ('serviceWorker' in navigator) {
   if (import.meta.env.PROD) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('[Rézo] SW :', e))
+      navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('[Armana] SW :', e))
     })
   } else {
     navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()))
     if (self.caches) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k)))
   }
+}
+
+// Le sélecteur de thème a été retiré avec la refonte visuelle : personne ne doit
+// rester coincé sur un thème sombre sans moyen d'en sortir. Remise à zéro unique.
+try {
+  if (!localStorage.getItem('armana-theme-reset')) {
+    localStorage.setItem('rezo-theme', 'soleil-or')
+    localStorage.setItem('armana-theme-reset', '1')
+  }
+} catch {
+  /* stockage indisponible : sans effet */
 }
 
 // Thème (redondant avec le script inline de index.html, garantit la cohérence).
@@ -88,6 +101,7 @@ defineRoutes(
     '/nouveau-mdp': viewNewPassword,
     '/contact': viewContact,
     '/membres': viewMembers,
+    '/statistiques': viewStats,
     '/connexion': viewAuth,
   },
   {
@@ -116,6 +130,10 @@ defineRoutes(
   }
 
   renderNav()
+
+  // Fréquentation : une ligne par utilisateur et par jour (statistiques admin).
+  // Volontairement sans await : purement statistique, jamais bloquant.
+  if (getUser()) recordVisit()
 
   // Sur login/logout UNIQUEMENT : reconstruire la nav + re-rendre la vue courante.
   // ⚠ Supabase émet aussi des événements au simple retour dans l'app (rafraîchissement
@@ -150,7 +168,7 @@ defineRoutes(
       await cache.delete('shared-file')
       if (text) setSharedText(text)
     } catch (e) {
-      console.warn('[Rézo] Partage non lu :', e)
+      console.warn('[Armana] Partage non lu :', e)
     }
     history.replaceState(null, '', location.pathname + '#/importer')
   } else {

@@ -1,4 +1,4 @@
-// Rézo 04 Culture — Mes événements : liste de mes publications + édition/suppression.
+// Armana — Mes événements : liste de mes publications + édition/suppression.
 import { el, eventCard, emptyState, loginPrompt } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'

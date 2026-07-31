@@ -1,4 +1,4 @@
-// Rézo 04 Culture — Edge Function : purge des événements terminés.
+// Armana — Edge Function : purge des événements terminés.
 //
 // OBJECTIF (plan gratuit) : libérer la base ET le Storage. Déclenchée par un cron
 // quotidien (voir README de ce dossier).
@@ -15,8 +15,37 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const BUCKET = 'event-photos'
-// Délai de grâce (jours) après la fin de l'événement avant purge. Réglable.
-const GRACE_DAYS = Number(Deno.env.get('PURGE_GRACE_DAYS') ?? '2')
+// Fuseau de référence : la bascule d'un mois se fait à minuit heure française.
+const TZ = 'Europe/Paris'
+// Sécurité : on ne traite qu'un nombre borné d'événements par exécution
+// (les identifiants transitent dans l'URL PostgREST, qui a une longueur limitée).
+const BATCH = 100
+
+/**
+ * RÈGLE DE RÉTENTION : on conserve le MOIS EN COURS et les MOIS À VENIR ;
+ * on supprime tout ce qui appartient aux mois révolus.
+ * En juillet : juillet, août, septembre… sont gardés ; juin, mai… sont purgés.
+ * Renvoie le premier instant du mois courant, en heure de Paris.
+ */
+function startOfCurrentMonth(): Date {
+  const now = new Date()
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(now)
+  const year = Number(parts.find((p) => p.type === 'year')!.value)
+  const month = Number(parts.find((p) => p.type === 'month')!.value)
+  // Décalage réel de Paris ce jour-là (+01:00 ou +02:00 selon l'heure d'été).
+  const offsetMin = parisOffsetMinutes(now)
+  return new Date(Date.UTC(year, month - 1, 1, 0, -offsetMin, 0))
+}
+
+function parisOffsetMinutes(at: Date): number {
+  const asParis = new Date(at.toLocaleString('en-US', { timeZone: TZ }))
+  const asUtc = new Date(at.toLocaleString('en-US', { timeZone: 'UTC' }))
+  return Math.round((asParis.getTime() - asUtc.getTime()) / 60000)
+}
 
 Deno.serve(async (req) => {
   // Autorisation simple : réservé au cron/appel authentifié service_role.
@@ -27,18 +56,19 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
 
-  const cutoff = new Date(Date.now() - GRACE_DAYS * 86_400_000).toISOString()
+  const cutoff = startOfCurrentMonth().toISOString()
 
-  // 1) Cibler les événements terminés depuis > GRACE_DAYS.
+  // 1) Cibler les événements des MOIS RÉVOLUS.
   //    Fin effective = ends_at si présent, sinon starts_at (événement d'un jour).
   const { data: expired, error: selErr } = await admin
     .from('events')
     .select('id')
     .or(`ends_at.lt.${cutoff},and(ends_at.is.null,starts_at.lt.${cutoff})`)
+    .limit(BATCH)
   if (selErr) return json({ error: 'select: ' + selErr.message }, 500)
 
   const ids = (expired ?? []).map((e: { id: string }) => e.id)
-  if (!ids.length) return json({ purged: 0, files_removed: 0 })
+  if (!ids.length) return json({ purged: 0, files_removed: 0, cutoff })
 
   // 2) Récupérer les chemins de fichiers à supprimer (une photo → photo.webp + thumb.webp).
   const { data: photos, error: phErr } = await admin
@@ -51,15 +81,17 @@ Deno.serve(async (req) => {
   for (const p of photos ?? []) {
     const path = (p as { storage_path: string }).storage_path
     files.push(path)
-    files.push(path.replace(/photo\.webp$/, 'thumb.webp'))
+    // La vignette est déduite du chemin (convention {uid}/{eventId}/photo.webp).
+    if (path.endsWith('photo.webp')) files.push(path.replace(/photo\.webp$/, 'thumb.webp'))
   }
 
-  // 3) Supprimer les FICHIERS Storage EN PREMIER.
+  // 3) Supprimer les FICHIERS Storage EN PREMIER, par paquets.
   let filesRemoved = 0
-  if (files.length) {
-    const { data: removed, error: rmErr } = await admin.storage.from(BUCKET).remove(files)
+  for (let i = 0; i < files.length; i += BATCH) {
+    const slice = files.slice(i, i + BATCH)
+    const { data: removed, error: rmErr } = await admin.storage.from(BUCKET).remove(slice)
     if (rmErr) return json({ error: 'storage.remove: ' + rmErr.message }, 500)
-    filesRemoved = removed?.length ?? 0
+    filesRemoved += removed?.length ?? 0
   }
 
   // 4) PUIS supprimer les lignes (event_photos + gems partent en cascade).

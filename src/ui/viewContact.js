@@ -1,4 +1,4 @@
-// Rézo 04 Culture — écran « Nous contacter » : signaler un bug ou donner son avis.
+// Armana — écran « Nous contacter » : signaler un bug ou donner son avis.
 // Le message est transmis aux administrateurs (boîte « Messages reçus » dans l'app).
 import { el, loginPrompt } from './components.js'
 import { icon } from './icons.js'

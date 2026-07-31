@@ -1,0 +1,21 @@
+{
+  "name": "Studio Affiche",
+  "version": 1,
+  "palette": {
+    "blue": "#0B55C5",
+    "green": "#064F36",
+    "yellow": "#FFC400",
+    "red": "#F04B2F",
+    "cream": "#FFF4DF",
+    "ink": "#062B1D"
+  },
+  "overlays": [
+    "diagonal-blue-yellow",
+    "curve-green-red",
+    "ribbons-cream-blue",
+    "frame-yellow-green",
+    "stage-red-blue",
+    "wave-green-cream"
+  ],
+  "patterns": ["paper-grain", "abstract-culture"]
+}

@@ -1,4 +1,4 @@
-// Rézo 04 Culture — compression d'image côté client (WebP) avant upload.
+// Armana — compression d'image côté client (WebP) avant upload.
 //
 // Objectif : rester sur le plan gratuit Supabase. On réduit fortement le poids
 // AVANT l'envoi et on génère une vignette pour les listes/cartes.
@@ -29,16 +29,31 @@ function fit(w, h, maxSize) {
 
 /**
  * Redimensionne et encode une image en WebP.
+ * @param {{maxSize?:number, quality?:number, crop?:{sx:number,sy:number,sw:number,sh:number}}} opts
+ *   `crop` = rectangle à conserver, en pixels de la photo source (cadrage choisi
+ *   par l'utilisateur dans l'aperçu). Absent → image entière.
  * @returns {Promise<Blob>}
  */
-export async function toWebp(file, { maxSize = 1600, quality = 0.82 } = {}) {
+export async function toWebp(file, { maxSize = 1600, quality = 0.82, crop = null } = {}) {
   const img = await loadImage(file)
-  const { w, h } = fit(img.naturalWidth, img.naturalHeight, maxSize)
+  const valid =
+    crop &&
+    crop.sw > 0 &&
+    crop.sh > 0 &&
+    crop.sx >= 0 &&
+    crop.sy >= 0 &&
+    crop.sx + crop.sw <= img.naturalWidth + 1 &&
+    crop.sy + crop.sh <= img.naturalHeight + 1
+  const src = valid
+    ? crop
+    : { sx: 0, sy: 0, sw: img.naturalWidth, sh: img.naturalHeight }
+
+  const { w, h } = fit(src.sw, src.sh, maxSize)
   const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
+  canvas.width = Math.max(1, Math.round(w))
+  canvas.height = Math.max(1, Math.round(h))
   const ctx = canvas.getContext('2d')
-  ctx.drawImage(img, 0, 0, w, h)
+  ctx.drawImage(img, src.sx, src.sy, src.sw, src.sh, 0, 0, canvas.width, canvas.height)
   const blob = await new Promise((resolve) =>
     canvas.toBlob(resolve, 'image/webp', quality)
   )
@@ -46,11 +61,15 @@ export async function toWebp(file, { maxSize = 1600, quality = 0.82 } = {}) {
   return blob
 }
 
-/** Produit { full, thumb } (deux Blobs WebP) à partir d'un fichier image. */
-export async function makePhotoVariants(file) {
+/**
+ * Produit { full, thumb } (deux Blobs WebP) à partir d'un fichier image.
+ * Le cadrage choisi ne s'applique QU'À LA VIGNETTE (celle des cartes) : la photo
+ * pleine résolution reste entière pour l'écran de détail.
+ */
+export async function makePhotoVariants(file, { crop = null } = {}) {
   const [full, thumb] = await Promise.all([
     toWebp(file, { maxSize: 1600, quality: 0.82 }),
-    toWebp(file, { maxSize: 400, quality: 0.7 }),
+    toWebp(file, { maxSize: 400, quality: 0.7, crop }),
   ])
   return { full, thumb }
 }

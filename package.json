@@ -1,9 +1,9 @@
 {
-  "name": "rezo-04-culture",
+  "name": "armana",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Rézo 04 Culture — PWA d'agenda culturel régional (département 04) : calendrier + carte, publication et favoris (Gems), backend Supabase.",
+  "description": "Armana — PWA d'agenda culturel régional (département 04) : calendrier + carte, publication et favoris (Gems), backend Supabase.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

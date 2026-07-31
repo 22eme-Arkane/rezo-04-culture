@@ -1,4 +1,4 @@
-// Rézo 04 Culture — écran « Administrateurs » (admin uniquement) :
+// Armana — écran « Administrateurs » (admin uniquement) :
 // lister, désigner par e-mail, retirer.
 import { el, emptyState } from './components.js'
 import { icon } from './icons.js'

@@ -1,4 +1,4 @@
-// Rézo 04 Culture — Connexion / Inscription (e-mail + mot de passe Supabase Auth).
+// Armana — Connexion / Inscription (e-mail + mot de passe Supabase Auth).
 import { el } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'

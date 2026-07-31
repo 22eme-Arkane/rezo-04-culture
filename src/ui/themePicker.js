@@ -1,4 +1,4 @@
-// Rézo 04 Culture — modale de sélection du thème (aperçu en direct).
+// Armana — modale de sélection du thème (aperçu en direct).
 import { el } from './components.js'
 import { THEMES, getTheme, applyTheme } from '../lib/theme.js'
 

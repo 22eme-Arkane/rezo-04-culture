@@ -1,4 +1,4 @@
-// Rézo 04 Culture — gestion des thèmes visuels (data-theme sur <html>).
+// Armana — gestion des thèmes visuels (data-theme sur <html>).
 //
 // Chaque thème est un simple identifiant ; ses couleurs sont définies en CSS
 // (src/style.css → blocs [data-theme="..."]). Le choix est persisté en localStorage

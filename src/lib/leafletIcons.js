@@ -1,4 +1,4 @@
-// Rézo 04 Culture — correctif des icônes de marqueur Leaflet avec un bundler (Vite).
+// Armana — correctif des icônes de marqueur Leaflet avec un bundler (Vite).
 //
 // Avec Vite, les chemins d'images par défaut de Leaflet (marker-icon.png…) sont
 // cassés → marqueur sans image. On importe les images comme assets et on réassocie

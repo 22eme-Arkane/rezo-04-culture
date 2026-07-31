@@ -1,4 +1,4 @@
-// Rézo 04 Culture — écran « Nouveau mot de passe » (arrivée du lien de
+// Armana — écran « Nouveau mot de passe » (arrivée du lien de
 // réinitialisation reçu par e-mail : Supabase ouvre une session de récupération,
 // on demande simplement le nouveau mot de passe).
 import { el } from './components.js'

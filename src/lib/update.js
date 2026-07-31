@@ -1,4 +1,4 @@
-// Rézo 04 Culture — détection de mise à jour (nouveau déploiement).
+// Armana — détection de mise à jour (nouveau déploiement).
 //
 // Principe : chaque build fige un identifiant (__BUILD_ID__) et publie /version.json
 // avec le même id. L'app compare son id embarqué au /version.json en ligne :

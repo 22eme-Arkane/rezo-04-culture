@@ -1,4 +1,4 @@
-// Rézo 04 Culture — écran « Créer depuis un message » (WhatsApp, SMS, e-mail…).
+// Armana — écran « Créer depuis un message » (WhatsApp, SMS, e-mail…).
 // Colle (ou reçoit via le partage natif) un message → analyse LOCALE (chrono-node +
 // heuristiques) → formulaire de publication pré-rempli. Aucune donnée envoyée.
 import { el, loginPrompt } from './components.js'

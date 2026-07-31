@@ -1,4 +1,4 @@
-// Rézo 04 Culture — mini routeur par hash (#/route). Sans dépendance.
+// Armana — mini routeur par hash (#/route). Sans dépendance.
 //
 // Chaque route est une fonction async (params) => HTMLElement. Le routeur monte le
 // résultat dans le conteneur fourni et gère un état de chargement/erreur simple.
@@ -45,7 +45,7 @@ async function render() {
     container.innerHTML = ''
     if (view) container.appendChild(view)
   } catch (err) {
-    console.error('[Rézo] Erreur de rendu :', err)
+    console.error('[Armana] Erreur de rendu :', err)
     container.innerHTML = ''
     const box = document.createElement('div')
     box.className = 'error-box'
