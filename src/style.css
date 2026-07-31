@@ -452,10 +452,25 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
    carte au lieu de pousser le contenu sous la barre d'onglets. #app fait au
    minimum 100dvh, .content en occupe le reste, et le padding bas réserve
    exactement la hauteur de la barre. */
+/* `[data-route]` est posé par main.js : il fonctionne sur TOUS les navigateurs,
+   contrairement à `:has()` que les versions mobiles anciennes ignorent en
+   silence — la carte débordait alors sous la barre d'onglets.
+   ⚠ RÈGLE SÉPARÉE, surtout PAS groupée avec la variante `:has()` : en CSS, une
+   liste de sélecteurs est invalidée EN ENTIER dès qu'un seul membre n'est pas
+   reconnu. Les regrouper aurait emporté le repli avec elle. */
+.content[data-route='carte'] {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+  padding-bottom: var(--nav-safe);
+  background: #fff4df;
+}
 .content:has(.screen--studio-map) {
   display: flex;
   flex-direction: column;
+  padding-top: 0;
   padding-bottom: var(--nav-safe);
+  background: #fff4df;
 }
 .screen--studio-map {
   display: flex;
@@ -465,6 +480,40 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
 }
 .screen--studio-map .studio-head,
 .screen--studio-map .map-search-panel { flex: 0 0 auto; }
+
+/* Écrans courts (petits téléphones, navigateur avec barre d'URL, paysage) :
+   on comprime l'en-tête et le panneau pour que la carte garde une taille utile
+   sans jamais imposer de défilement. */
+@media (max-height: 700px) {
+  .screen--studio-map .studio-head {
+    padding-top: 0.7rem;
+    padding-bottom: 0.55rem;
+    margin-bottom: 0.45rem;
+  }
+  .screen--studio-map .studio-head__title { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+  .screen--studio-map .studio-head__logo { width: 42px; height: 42px; }
+  .screen--studio-map .chips-row--studio-map { padding-top: 0.25rem; }
+  .screen--studio-map .map-search-panel { gap: 0.22rem; margin-bottom: 0.4rem; }
+  .screen--studio-map .map-search-control { min-height: 36px; }
+  .screen--studio-map .map-frame-studio { min-height: 150px; margin-bottom: 0.35rem; }
+}
+
+/* Très peu de hauteur (téléphone en paysage) : en revanche la largeur ne manque
+   pas, on met donc le rayon et la date côte à côte et on efface le superflu. */
+@media (max-height: 480px) {
+  .screen--studio-map .studio-head {
+    padding-top: 0.4rem;
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.3rem;
+  }
+  .screen--studio-map .studio-head__title { font-size: 1.35rem; }
+  .screen--studio-map .studio-head__logo { display: none; }
+  .screen--studio-map .map-search-panel {
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 0.3rem;
+  }
+  .screen--studio-map .map-frame-studio { min-height: 120px; margin-bottom: 0.25rem; }
+}
 .content:has(.screen--studio-favorites) {
   max-width: 480px;
   padding: 0 0.5rem calc(var(--nav-safe) + 1rem);

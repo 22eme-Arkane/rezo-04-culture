@@ -206,7 +206,34 @@ export async function updateEvent(id, p) {
   return data
 }
 
+/**
+ * Supprime un événement ET ses photos.
+ * ⚠ ORDRE CRITIQUE : les FICHIERS d'abord, la LIGNE ensuite. Un simple DELETE
+ * SQL ne libère pas le Storage : la ligne event_photos partant en cascade, les
+ * fichiers deviendraient introuvables et occuperaient le quota pour toujours.
+ * Droits : l'auteur (dossier {uid}/) ou un admin (politique ajoutée en 0009).
+ */
 export async function deleteEvent(id) {
+  try {
+    const { data: photos } = await supabase
+      .from('event_photos')
+      .select('storage_path')
+      .eq('event_id', id)
+    const files = []
+    for (const p of photos ?? []) {
+      if (!p.storage_path) continue
+      files.push(p.storage_path)
+      if (p.storage_path.endsWith('photo.webp')) {
+        files.push(p.storage_path.replace(/photo\.webp$/, 'thumb.webp'))
+      }
+    }
+    if (files.length) await supabase.storage.from('event-photos').remove(files)
+  } catch (e) {
+    // On n'empêche pas la suppression de l'événement pour autant : la purge
+    // mensuelle et le nettoyage admin rattraperont un fichier resté en place.
+    console.warn('[Armana] Photos non supprimées :', e.message)
+  }
+
   const { error } = await supabase.from('events').delete().eq('id', id)
   if (error) throw error
 }

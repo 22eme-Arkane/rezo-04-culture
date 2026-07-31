@@ -75,7 +75,19 @@ app.appendChild(navHost) // barre fixe en bas
 function renderNav() {
   navHost.innerHTML = ''
   navHost.appendChild(buildNav())
+  markRoute()
 }
+
+// Route courante exposée sur le conteneur : `.content[data-route="carte"]`.
+// La mise en page plein écran de la Carte s'appuyait sur `:has()`, que les
+// navigateurs mobiles un peu anciens ignorent silencieusement — la carte
+// débordait alors sous la barre d'onglets. Un attribut ordinaire fonctionne
+// partout.
+function markRoute() {
+  const path = (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/^\//, '')
+  content.dataset.route = path || 'agenda'
+}
+markRoute()
 
 // Bannière "nouvelle version disponible" (affichée si un nouveau déploiement existe).
 function showUpdateBanner() {
