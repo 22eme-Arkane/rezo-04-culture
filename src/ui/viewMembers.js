@@ -1,22 +1,15 @@
 // Armana — écran « Membres » (admin) : tous les inscrits.
 import { el, emptyState } from './components.js'
 import { icon } from './icons.js'
-import { navigate } from '../lib/router.js'
+import { studioHeader } from './studio.js'
 import { isAdmin } from '../lib/auth.js'
 import { listMembers } from '../lib/admins.js'
 
 const DTF = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 
 export async function viewMembers() {
-  const wrap = el('section', 'page')
-
-  const back = el('button', 'back-btn')
-  back.appendChild(icon('arrowLeft'))
-  back.appendChild(document.createTextNode(' Paramètres'))
-  back.addEventListener('click', () => navigate('/parametres'))
-  wrap.appendChild(back)
-
-  wrap.appendChild(el('h1', 'page__title', 'Membres'))
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Membres', { backTo: '/parametres' }))
 
   if (!isAdmin()) {
     wrap.appendChild(emptyState('Accès réservé aux administrateurs.'))

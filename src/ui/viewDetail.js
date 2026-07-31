@@ -1,19 +1,16 @@
 // Armana — écran détail d'un événement (photo pleine résolution + infos).
 import { el, formatDateFull, formatTime, formatPrice, emptyState } from './components.js'
 import { icon } from './icons.js'
-import { navigate } from '../lib/router.js'
+import { studioHeader } from './studio.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { getEventById, listGemEventIds, addGem, removeGem } from '../lib/events.js'
 
 export async function viewDetail({ query } = {}) {
   const id = query?.get('id')
-  const wrap = el('section', 'page')
-
-  const back = el('button', 'back-btn')
-  back.appendChild(icon('arrowLeft'))
-  back.appendChild(document.createTextNode(' Retour'))
-  back.addEventListener('click', () => history.back())
-  wrap.appendChild(back)
+  const wrap = el('section', 'page page--studio-sub page--studio-detail')
+  wrap.appendChild(
+    studioHeader('Événement', { backLabel: 'Retour', onBack: () => history.back() })
+  )
 
   if (!id) {
     wrap.appendChild(emptyState('Événement introuvable.'))
@@ -37,16 +34,20 @@ export async function viewDetail({ query } = {}) {
     hero.classList.add('detail__hero--zoomable')
     hero.addEventListener('click', () => openLightbox(ev.photo_url, ev.title))
   }
-  wrap.appendChild(hero)
+  const card = el('article', 'detail-card')
+  card.appendChild(hero)
+  const body = el('div', 'detail-card__body')
 
-  wrap.appendChild(el('h1', 'detail__title', ev.title))
+  body.appendChild(el('h2', 'detail__title', ev.title))
 
   const badges = el('div', 'detail__badges')
   if (ev.category) badges.appendChild(el('span', 'ecard__badge ecard__badge--cat', ev.category))
   badges.appendChild(
     el('span', ev.is_paid ? 'ecard__badge ecard__badge--paid' : 'ecard__badge ecard__badge--free', formatPrice(ev))
   )
-  wrap.appendChild(badges)
+  body.appendChild(badges)
+
+  const facts = el('div', 'detail__facts')
 
   const when = el('p', 'detail__meta')
   when.appendChild(icon('calendar'))
@@ -54,19 +55,20 @@ export async function viewDetail({ query } = {}) {
     ? `${formatDateFull(ev.starts_at)} · ${formatTime(ev.starts_at)} → ${formatTime(ev.ends_at)}`
     : `${formatDateFull(ev.starts_at)} · ${formatTime(ev.starts_at)}`
   when.appendChild(document.createTextNode(' ' + dateTxt))
-  wrap.appendChild(when)
+  facts.appendChild(when)
 
   if (ev.address) {
     const where = el('p', 'detail__meta')
     where.appendChild(icon('pin'))
     where.appendChild(document.createTextNode(' ' + ev.address))
-    wrap.appendChild(where)
+    facts.appendChild(where)
   }
 
   const author = el('p', 'detail__meta')
   author.appendChild(icon('user'))
   author.appendChild(document.createTextNode(' Publié par ' + (ev.author_name || 'Anonyme')))
-  wrap.appendChild(author)
+  facts.appendChild(author)
+  body.appendChild(facts)
 
   // Favori (connecté).
   if (isLoggedIn()) {
@@ -95,10 +97,18 @@ export async function viewDetail({ query } = {}) {
         favBtn.disabled = false
       }
     })
-    wrap.appendChild(favBtn)
+    body.appendChild(favBtn)
   }
 
-  if (ev.description) wrap.appendChild(el('p', 'detail__desc', ev.description))
+  if (ev.description) {
+    const desc = el('div', 'detail__description')
+    desc.appendChild(el('h3', 'detail__section-title', 'À propos'))
+    desc.appendChild(el('p', 'detail__desc', ev.description))
+    body.appendChild(desc)
+  }
+
+  card.appendChild(body)
+  wrap.appendChild(card)
 
   return wrap
 }

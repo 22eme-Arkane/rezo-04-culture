@@ -2,20 +2,13 @@
 // lister, désigner par e-mail, retirer.
 import { el, emptyState } from './components.js'
 import { icon } from './icons.js'
-import { navigate } from '../lib/router.js'
+import { studioHeader } from './studio.js'
 import { isAdmin, getUser } from '../lib/auth.js'
 import { listAdmins, setAdminByEmail } from '../lib/admins.js'
 
 export async function viewAdmins() {
-  const wrap = el('section', 'page')
-
-  const back = el('button', 'back-btn')
-  back.appendChild(icon('arrowLeft'))
-  back.appendChild(document.createTextNode(' Paramètres'))
-  back.addEventListener('click', () => navigate('/parametres'))
-  wrap.appendChild(back)
-
-  wrap.appendChild(el('h1', 'page__title', 'Administrateurs'))
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Administrateurs', { backTo: '/parametres' }))
 
   if (!isAdmin()) {
     wrap.appendChild(emptyState('Accès réservé aux administrateurs.'))

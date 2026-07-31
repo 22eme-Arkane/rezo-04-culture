@@ -4,10 +4,12 @@
 import { el } from './components.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn, updatePassword } from '../lib/auth.js'
+import { studioHeader } from './studio.js'
 
 export function viewNewPassword() {
-  const wrap = el('section', 'page')
-  const card = el('div', 'card-panel')
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Nouveau mot de passe', { backTo: '/connexion', backLabel: 'Connexion' }))
+  const card = el('div', 'card-panel studio-auth-card')
   card.appendChild(el('h2', 'card-panel__title', 'Nouveau mot de passe'))
 
   if (!isLoggedIn()) {

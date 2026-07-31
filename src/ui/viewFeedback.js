@@ -1,7 +1,6 @@
 // Armana — écran « Messages reçus » (admin) : bugs signalés + avis.
 import { el, emptyState } from './components.js'
-import { icon } from './icons.js'
-import { navigate } from '../lib/router.js'
+import { studioHeader } from './studio.js'
 import { isAdmin } from '../lib/auth.js'
 import { listFeedback, deleteFeedback } from '../lib/feedback.js'
 
@@ -13,20 +12,21 @@ const DTF = new Intl.DateTimeFormat('fr-FR', {
 })
 
 export async function viewFeedback() {
-  const wrap = el('section', 'page')
-
-  const back = el('button', 'back-btn')
-  back.appendChild(icon('arrowLeft'))
-  back.appendChild(document.createTextNode(' Paramètres'))
-  back.addEventListener('click', () => navigate('/parametres'))
-  wrap.appendChild(back)
-
-  wrap.appendChild(el('h1', 'page__title', 'Messages reçus'))
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Messages', { backTo: '/parametres' }))
 
   if (!isAdmin()) {
     wrap.appendChild(emptyState('Accès réservé aux administrateurs.'))
     return wrap
   }
+
+  wrap.appendChild(
+    el(
+      'p',
+      'page__subtitle',
+      'Bugs signalés et avis envoyés depuis « Nous contacter ». Visible des seuls administrateurs.'
+    )
+  )
 
   const box = el('div', 'settings-group')
   wrap.appendChild(box)

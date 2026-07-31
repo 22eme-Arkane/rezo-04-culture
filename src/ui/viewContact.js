@@ -1,23 +1,15 @@
 // Armana — écran « Nous contacter » : signaler un bug ou donner son avis.
 // Le message est transmis aux administrateurs (boîte « Messages reçus » dans l'app).
 import { el, loginPrompt } from './components.js'
-import { icon } from './icons.js'
-import { navigate } from '../lib/router.js'
+import { studioHeader } from './studio.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { sendFeedback } from '../lib/feedback.js'
 
 const TEXT_KEY = 'rezo-contact-text'
 
 export function viewContact() {
-  const wrap = el('section', 'page')
-
-  const back = el('button', 'back-btn')
-  back.appendChild(icon('arrowLeft'))
-  back.appendChild(document.createTextNode(' Paramètres'))
-  back.addEventListener('click', () => navigate('/parametres'))
-  wrap.appendChild(back)
-
-  wrap.appendChild(el('h1', 'page__title', 'Nous contacter'))
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Nous contacter', { backTo: '/parametres' }))
   wrap.appendChild(
     el(
       'p',

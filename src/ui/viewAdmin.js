@@ -1,20 +1,13 @@
 // Armana — Modération (admin) : file des événements en attente.
-import { el, eventCard, emptyState } from './components.js'
-import { icon } from './icons.js'
-import { navigate } from '../lib/router.js'
+import { el, emptyState } from './components.js'
+import { posterEventCard } from './posterEventCard.js'
+import { studioEventItem, studioHeader } from './studio.js'
 import { isAdmin } from '../lib/auth.js'
 import { listPendingEvents, setEventStatus, deleteEvent } from '../lib/events.js'
 
 export async function viewAdmin() {
-  const wrap = el('section', 'page')
-
-  const back = el('button', 'back-btn')
-  back.appendChild(icon('arrowLeft'))
-  back.appendChild(document.createTextNode(' Paramètres'))
-  back.addEventListener('click', () => navigate('/parametres'))
-  wrap.appendChild(back)
-
-  wrap.appendChild(el('h1', 'page__title', 'Modération'))
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Modération', { backTo: '/parametres' }))
 
   if (!isAdmin()) {
     wrap.appendChild(emptyState('Accès réservé aux administrateurs.'))
@@ -32,16 +25,17 @@ export async function viewAdmin() {
   }
 
   for (const ev of events) {
+    let item
     const approve = el('button', 'btn btn--success btn--sm')
-    approve.textContent = '✅ Approuver'
+    approve.textContent = 'Approuver'
     const reject = el('button', 'btn btn--ghost btn--sm')
-    reject.textContent = '⛔ Rejeter'
+    reject.textContent = 'Rejeter'
     const del = el('button', 'btn btn--danger btn--sm')
-    del.textContent = '🗑 Supprimer'
+    del.textContent = 'Supprimer'
 
     const done = () => {
-      card.remove()
-      if (!list.querySelector('.ecard')) list.appendChild(emptyState('Rien à modérer. 👌'))
+      item.remove()
+      if (!list.querySelector('.studio-event-item')) list.appendChild(emptyState('Rien à modérer. 👌'))
     }
 
     async function moderate(action) {
@@ -62,8 +56,9 @@ export async function viewAdmin() {
       moderate(() => deleteEvent(ev.id))
     })
 
-    const card = eventCard(ev, { showGem: false, actions: [approve, reject, del] })
-    list.appendChild(card)
+    const card = posterEventCard(ev, { showGem: false, index: events.indexOf(ev) })
+    item = studioEventItem(card, [approve, reject, del], { status: ev.status })
+    list.appendChild(item)
   }
   return wrap
 }

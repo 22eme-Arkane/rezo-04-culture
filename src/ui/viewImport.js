@@ -4,20 +4,14 @@
 import { el, loginPrompt } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
+import { studioHeader } from './studio.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { parseEventMessage } from '../lib/parseMessage.js'
 import { setDraft, consumeSharedText, peekSharedFile } from '../lib/draft.js'
 
 export function viewImport() {
-  const wrap = el('section', 'page')
-
-  const back = el('button', 'back-btn')
-  back.appendChild(icon('arrowLeft'))
-  back.appendChild(document.createTextNode(' Retour'))
-  back.addEventListener('click', () => navigate('/'))
-  wrap.appendChild(back)
-
-  wrap.appendChild(el('h1', 'page__title', 'Créer depuis un message'))
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Depuis un message', { backTo: '/publier', backLabel: 'Publier' }))
   wrap.appendChild(
     el(
       'p',

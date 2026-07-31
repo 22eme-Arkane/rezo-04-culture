@@ -7,6 +7,7 @@ import { navigate, refresh } from '../lib/router.js'
 import { isLoggedIn, isAdmin, getProfile, getUser, signOut } from '../lib/auth.js'
 import { getDefaultCity, setDefaultCity, resolveDefaultCity } from '../lib/geo.js'
 import { listPendingCount } from '../lib/events.js'
+import { countFeedback } from '../lib/feedback.js'
 import { studioHeader } from './studio.js'
 
 export async function viewSettings() {
@@ -30,13 +31,15 @@ export async function viewSettings() {
   // --- Groupe 2 : administration (admins uniquement) ---
   if (logged && isAdmin()) {
     const adm = el('div', 'settings-group')
-    let pending = 0
-    try {
-      pending = await listPendingCount()
-    } catch {
-      /* ignore */
-    }
+    // Les deux compteurs en parallèle : inutile d'attendre l'un puis l'autre.
+    const [pending, messages] = await Promise.all([
+      listPendingCount().catch(() => 0),
+      countFeedback().catch(() => 0),
+    ])
     adm.appendChild(rowNav(icon('shield'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
+    adm.appendChild(
+      rowNav(icon('message'), 'Messages reçus' + (messages ? ` (${messages})` : ''), '/messages')
+    )
     adm.appendChild(rowNav(icon('chart'), 'Statistiques', '/statistiques'))
     adm.appendChild(rowNav(icon('user'), 'Gérer les administrateurs', '/admins'))
     adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))

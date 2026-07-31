@@ -7,6 +7,7 @@ import { loginPrompt } from './components.js'
 import { posterEventCard } from './posterEventCard.js'
 import { createPhotoFramer } from './photoFramer.js'
 import { icon } from './icons.js'
+import { studioHeader } from './studio.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { DEFAULT_CENTER, geocodeAddress } from '../lib/geo.js'
@@ -31,8 +32,8 @@ function toolButton(label, title) {
 
 export async function viewPublish({ query } = {}) {
   if (!isLoggedIn()) {
-    const wrap = el('section', 'page')
-    wrap.appendChild(el('h1', 'page__title', 'Publier un événement'))
+    const wrap = el('section', 'page page--studio-sub')
+    wrap.appendChild(studioHeader('Publier', { backTo: '/parametres' }))
     wrap.appendChild(loginPrompt('Connectez-vous pour publier un événement.'))
     return wrap
   }
@@ -45,8 +46,13 @@ export async function viewPublish({ query } = {}) {
   // Photo reçue via le partage natif (WhatsApp…), en création uniquement.
   const sharedPhoto = existing ? null : consumeSharedFile()
 
-  const wrap = el('section', 'page')
-  wrap.appendChild(el('h1', 'page__title', existing ? 'Modifier l’événement' : 'Publier un événement'))
+  const wrap = el('section', 'page page--studio-sub page--studio-publish')
+  wrap.appendChild(
+    studioHeader(existing ? 'Modifier' : 'Publier', {
+      backTo: existing ? '/mes-evenements' : '/parametres',
+      backLabel: existing ? 'Mes événements' : 'Profil',
+    })
+  )
   wrap.appendChild(
     el(
       'p',

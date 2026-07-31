@@ -1,17 +1,12 @@
 // Armana — Connexion / Inscription (e-mail + mot de passe Supabase Auth).
 import { el } from './components.js'
-import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
+import { studioHeader } from './studio.js'
 import { signIn, signUp, resetPassword, isLoggedIn } from '../lib/auth.js'
 
 export function viewAuth() {
-  const wrap = el('section', 'page')
-
-  const back = el('button', 'back-btn')
-  back.appendChild(icon('arrowLeft'))
-  back.appendChild(document.createTextNode(' Retour'))
-  back.addEventListener('click', () => navigate('/'))
-  wrap.appendChild(back)
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Bienvenue', { backTo: '/', backLabel: 'Agenda' }))
 
   if (isLoggedIn()) {
     navigate('/')
@@ -19,7 +14,7 @@ export function viewAuth() {
   }
 
   let mode = 'login' // 'login' | 'signup'
-  const card = el('div', 'card-panel')
+  const card = el('div', 'card-panel studio-auth-card')
   const title = el('h2', 'card-panel__title')
   const form = el('form', 'form')
   const msg = el('p', 'form__msg')

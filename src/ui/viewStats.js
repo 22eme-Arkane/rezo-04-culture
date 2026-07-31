@@ -14,8 +14,8 @@ const MOIS = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: '2-digit' 
 const JOUR = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' })
 
 export async function viewStats() {
-  const wrap = el('section', 'page page--studio-profile')
-  wrap.appendChild(studioHeader('Statistiques'))
+  const wrap = el('section', 'page page--studio-sub')
+  wrap.appendChild(studioHeader('Statistiques', { backTo: '/parametres' }))
 
   if (!isLoggedIn() || !isAdmin()) {
     wrap.appendChild(el('p', 'empty-state', 'Réservé aux administrateurs.'))
