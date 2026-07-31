@@ -25,6 +25,7 @@ const PARENT = {
   '/membres': '/parametres',
   '/statistiques': '/parametres',
   '/messages': '/parametres',
+  '/soutenir': '/parametres',
   '/importer': '/',
 }
 

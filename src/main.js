@@ -23,6 +23,7 @@ import { viewContact } from './ui/viewContact.js'
 import { viewMembers } from './ui/viewMembers.js'
 import { viewStats } from './ui/viewStats.js'
 import { viewFeedback } from './ui/viewFeedback.js'
+import { viewSupport } from './ui/viewSupport.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 import { recordVisit } from './lib/admins.js'
 
@@ -104,6 +105,7 @@ defineRoutes(
     '/membres': viewMembers,
     '/statistiques': viewStats,
     '/messages': viewFeedback,
+    '/soutenir': viewSupport,
     '/connexion': viewAuth,
   },
   {
