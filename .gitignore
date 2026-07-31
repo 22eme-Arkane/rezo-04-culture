@@ -17,8 +17,10 @@ yarn-error.log*
 .vscode/
 .idea/
 
-# Fichiers de contexte Claude (locaux, jamais publiés)
+# Fichiers de contexte Claude (locaux, jamais publiés — le dépôt est public)
 .claude/memory/
+.claude/settings.json
+.claude/settings.local.json
 PANDORA_*.md
 
 .vercel
