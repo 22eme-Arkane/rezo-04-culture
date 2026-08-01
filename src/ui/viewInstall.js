@@ -12,8 +12,7 @@
 import { el } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
-
-const LIEN = 'https://armana04.vercel.app'
+import { APP_URL, copyText, shareApp } from '../lib/share.js'
 
 // --- Détection de l'appareil ------------------------------------------------
 // Volontairement tolérante : en cas de doute on affiche tout, les instructions
@@ -189,8 +188,8 @@ function boutonsLien() {
   copier.appendChild(icon('check'))
   copier.appendChild(document.createTextNode(' Copier le lien'))
   copier.addEventListener('click', async () => {
-    const ok = await copierTexte(LIEN)
-    copier.lastChild.textContent = ok ? ' Lien copié !' : ' ' + LIEN
+    const ok = await copyText(APP_URL)
+    copier.lastChild.textContent = ok ? ' Lien copié !' : ' ' + APP_URL
     // On laisse le retour visible un moment, puis on rend le bouton réutilisable.
     setTimeout(() => {
       copier.lastChild.textContent = ' Copier le lien'
@@ -202,44 +201,11 @@ function boutonsLien() {
   if (navigator.share) {
     const partager = el('button', 'btn btn--ghost install-action')
     partager.type = 'button'
-    partager.appendChild(icon('message'))
+    partager.appendChild(icon('share'))
     partager.appendChild(document.createTextNode(' Partager Armana'))
-    partager.addEventListener('click', () => {
-      navigator
-        .share({
-          title: 'Armana',
-          text: 'L’agenda culturel des Alpes-de-Haute-Provence.',
-          url: LIEN,
-        })
-        .catch(() => {
-          /* partage annulé : sans effet */
-        })
-    })
+    partager.addEventListener('click', () => shareApp())
     row.appendChild(partager)
   }
 
   return row
-}
-
-async function copierTexte(texte) {
-  try {
-    await navigator.clipboard.writeText(texte)
-    return true
-  } catch {
-    // Presse-papiers refusé (http, navigateur ancien, permission) : repli manuel.
-    try {
-      const zone = el('textarea')
-      zone.value = texte
-      zone.setAttribute('readonly', '')
-      zone.style.position = 'fixed'
-      zone.style.opacity = '0'
-      document.body.appendChild(zone)
-      zone.select()
-      const ok = document.execCommand('copy')
-      document.body.removeChild(zone)
-      return ok
-    } catch {
-      return false
-    }
-  }
 }

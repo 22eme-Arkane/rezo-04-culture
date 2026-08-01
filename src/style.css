@@ -344,6 +344,22 @@ html, body {
 .settings-row--danger .settings-row__label { color: var(--danger); }
 .settings-row--danger .settings-row__label svg { color: var(--danger); }
 
+/* Ligne du compte + bouton rond de partage, côte à côte (dernière du groupe). */
+.settings-pair { display: flex; align-items: center; }
+.settings-pair > .settings-row { flex: 1 1 auto; min-width: 0; border-bottom: none; }
+.settings-share {
+  flex: 0 0 auto; width: 40px; height: 40px; padding: 0; margin-right: 0.6rem;
+  display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--surface-2); color: var(--green); cursor: pointer;
+}
+.settings-share svg { width: 18px; height: 18px; }
+.settings-share:active { background: var(--border); }
+.settings-share[disabled] { opacity: 0.55; }
+.settings-share__msg { margin: -0.5rem 0 0.8rem; word-break: break-word; }
+/* Vide la plupart du temps : ne pas laisser ses marges creuser un trou. */
+.settings-share__msg:empty { display: none; }
+
 /* --- Messages « Nous contacter » (boîte admin) --- */
 .fb-item { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.4rem; }
 .fb-item:last-child { border-bottom: none; }
