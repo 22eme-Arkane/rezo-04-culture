@@ -18,9 +18,27 @@ import {
   updateEvent,
   uploadEventPhoto,
   getEventById,
+  isUpcoming,
 } from '../lib/events.js'
 
 const PREVIEW_MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
+
+// Date écrite en toutes lettres, ANNÉE COMPRISE : c'est elle qui manque partout
+// ailleurs (l'aperçu n'affiche que « 01 AOÛT »).
+const DATE_LONGUE = new Intl.DateTimeFormat('fr-FR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+/** Nombre de mois entre aujourd'hui et `d` (négatif si passé). */
+function moisDEcart(d) {
+  const now = new Date()
+  return (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth())
+}
 
 function toolButton(label, title) {
   const b = el('button', 'photo-preview__zoom', label)
@@ -83,6 +101,45 @@ export async function viewPublish({ query } = {}) {
   const fDesc = textareaField('Description', init.description)
   const fStart = textField('Début *', 'datetime-local', toLocalInput(init.starts_at))
   const fEnd = textField('Fin (optionnel)', 'datetime-local', toLocalInput(init.ends_at))
+
+  // ⚠ L'ANNÉE est le piège de `datetime-local` : on tape le jour et le mois, et
+  // l'année reste sur ce que le navigateur avait proposé. Rien ne la rappelait
+  // ensuite — l'aperçu n'affiche que le jour et le mois — si bien qu'un
+  // événement saisi pour l'an prochain paraissait juste et se retrouvait tout
+  // en bas de l'agenda (cas réel : « La mare où (l')on se Mire », daté 2027).
+  // On écrit donc la date en toutes lettres sous le champ.
+  const dateEcho = el('span', 'form__hint date-echo')
+  fStart.wrap.appendChild(dateEcho)
+
+  function majEchoDate() {
+    const v = fStart.input.value
+    if (!v) {
+      dateEcho.textContent = ''
+      dateEcho.classList.remove('date-echo--warn')
+      return
+    }
+    const d = new Date(v)
+    if (Number.isNaN(d.getTime())) {
+      dateEcho.textContent = ''
+      dateEcho.classList.remove('date-echo--warn')
+      return
+    }
+    const ecart = moisDEcart(d)
+    let texte = '→ ' + DATE_LONGUE.format(d)
+    let alerte = false
+    // ⚠ `>= 12` et non `> 12` : la faute de frappe classique est l'année juste
+    // au-dessus, soit EXACTEMENT 12 mois d'écart — c'est le cas qu'il faut
+    // attraper en premier, et un seuil strict le laissait passer.
+    if (ecart >= 12) {
+      texte += ' — dans un an ou plus, l’année est-elle la bonne ?'
+      alerte = true
+    } else if (!isUpcoming({ starts_at: d.toISOString(), ends_at: null })) {
+      texte += ' — date déjà passée, l’événement n’apparaîtrait pas'
+      alerte = true
+    }
+    dateEcho.textContent = texte
+    dateEcho.classList.toggle('date-echo--warn', alerte)
+  }
 
   // Gratuit / payant.
   const paidWrap = el('div', 'form__field')
@@ -200,6 +257,7 @@ export async function viewPublish({ query } = {}) {
   /** Met à jour les textes de l'aperçu sans reconstruire la carte (le cadrage
    *  de la photo, lui, doit survivre à chaque frappe au clavier). */
   function refreshPreview() {
+    majEchoDate()
     const ev = previewEventData()
     const d = new Date(ev.starts_at)
     setText('.poster-card__day', String(d.getDate()).padStart(2, '0'))
@@ -459,6 +517,30 @@ export async function viewPublish({ query } = {}) {
     if (!title) return fail('Le titre est requis.')
     if (!fCategory.input.value) return fail('Choisissez une catégorie.')
     if (!starts_at) return fail('La date de début est requise.')
+
+    // Garde-fou sur l'année. On demande confirmation plutôt que de bloquer : un
+    // événement peut légitimement être annoncé très à l'avance, et une date
+    // passée peut être corrigée après coup sur un événement existant.
+    const debut = new Date(starts_at)
+    if (
+      moisDEcart(debut) >= 12 &&
+      !confirm(
+        `Vous avez indiqué :\n\n${DATE_LONGUE.format(debut)}\n\n` +
+          'C’est dans un an ou plus. Est-ce bien l’année voulue ?'
+      )
+    ) {
+      return
+    }
+    if (
+      !isUpcoming({ starts_at, ends_at }) &&
+      !confirm(
+        `Vous avez indiqué :\n\n${DATE_LONGUE.format(debut)}\n\n` +
+          'Cette date est déjà passée : l’événement n’apparaîtra pas dans l’agenda. ' +
+          'Enregistrer quand même ?'
+      )
+    ) {
+      return
+    }
     if (state.lat == null || state.lng == null)
       return fail('Placez le lieu sur la carte (adresse ou clic).')
     if (ends_at && ends_at < starts_at) return fail('La fin est avant le début.')

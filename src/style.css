@@ -344,6 +344,11 @@ html, body {
 .settings-row--danger .settings-row__label { color: var(--danger); }
 .settings-row--danger .settings-row__label svg { color: var(--danger); }
 
+/* Rappel de la date saisie, en toutes lettres et AVEC L'ANNÉE, sous le champ
+   « Début » : seul endroit du formulaire où une année erronée se voit. */
+.date-echo { display: block; margin-top: 0.35rem; }
+.date-echo--warn { color: var(--danger); font-weight: 700; }
+
 /* Bandeau du haut du Profil : « Connecté : … » à gauche, partage à droite. */
 .settings-topbar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
 .settings-topbar .settings-connected { align-self: center; margin: 0; }
