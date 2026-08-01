@@ -238,6 +238,25 @@ grant execute on function public.update_event(
   double precision, double precision, text, text, smallint[], text
 ) to authenticated;
 
+-- -----------------------------------------------------------------------------
+-- E. Vérification — doit afficher une ligne avec QUATRE fois « true »
+-- -----------------------------------------------------------------------------
+-- Le SQL Editor exécute tout dans une transaction : la moindre erreur annule
+-- l'ensemble en silence. Cette dernière requête rend le succès visible.
+select
+  exists (select 1 from information_schema.columns
+           where table_schema = 'public' and table_name = 'events'
+             and column_name = 'recur_days')                       as colonne_recurrence,
+  exists (select 1 from information_schema.columns
+           where table_schema = 'public' and table_name = 'events'
+             and column_name = 'contact')                          as colonne_contact,
+  exists (select 1 from information_schema.columns
+           where table_schema = 'public' and table_name = 'events_geo'
+             and column_name = 'recur_days')                       as vue_a_jour,
+  exists (select 1 from information_schema.routines
+           where routine_schema = 'public'
+             and routine_name = 'events_within_radius')            as fonction_rayon;
+
 -- =============================================================================
 -- Fin de migration 0013
 -- =============================================================================
