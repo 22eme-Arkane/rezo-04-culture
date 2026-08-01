@@ -19,6 +19,49 @@ export async function setAdminByEmail(email, makeAdmin) {
 }
 
 /**
+ * Désigne (ou retire) un admin par identifiant — utilisé par l'écran Membres.
+ * `list_members` ne renvoie volontairement pas les e-mails : l'annuaire complet
+ * des inscrits ne doit pas circuler côté client.
+ */
+export async function setAdminById(id, makeAdmin) {
+  const { data, error } = await supabase.rpc('set_admin_by_id', {
+    target_id: id,
+    make_admin: makeAdmin,
+  })
+  if (error) throw error
+  return data?.[0] ?? null
+}
+
+// --- Propriétaire du projet ---------------------------------------------------
+// Le drapeau `profiles.is_owner` n'est pas lisible directement (aucun GRANT sur
+// la colonne) : on passe par une RPC, dont le résultat ne change pas au cours
+// d'une session. La garantie reste côté base — cette valeur ne sert qu'à
+// afficher ou masquer l'entrée du journal.
+let ownerPromise = null
+
+export function amIOwner() {
+  if (!ownerPromise) {
+    ownerPromise = supabase
+      .rpc('am_i_owner')
+      .then(({ data, error }) => (error ? false : data === true))
+      .catch(() => false)
+  }
+  return ownerPromise
+}
+
+/** À appeler au changement de compte : le cache ci-dessus deviendrait faux. */
+export function resetOwnerCache() {
+  ownerPromise = null
+}
+
+/** Journal des actions d'administration (propriétaire uniquement). */
+export async function listAdminActions(max = 200) {
+  const { data, error } = await supabase.rpc('list_admin_actions', { max_rows: max })
+  if (error) throw error
+  return data ?? []
+}
+
+/**
  * Tous les membres inscrits (nom, rôle, date d'inscription).
  * Passe par une RPC réservée aux admins : la table profiles n'expose plus que
  * (id, display_name) au public, sinon l'annuaire complet des inscrits était

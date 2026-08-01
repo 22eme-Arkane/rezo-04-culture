@@ -65,7 +65,11 @@ export async function viewAdmins() {
       label.appendChild(document.createTextNode(a.display_name || a.email))
       row.appendChild(label)
 
-      if (a.id === myId) {
+      if (a.is_owner) {
+        // Protégé en base (migration 0011) : aucun admin ne peut le rétrograder.
+        label.appendChild(el('span', 'fb-tag fb-tag--avis', 'Propriétaire'))
+        row.appendChild(el('span', 'settings-row__value', 'protégé'))
+      } else if (a.id === myId) {
         row.appendChild(el('span', 'settings-row__value', 'vous'))
       } else {
         const rm = el('button', 'btn btn--danger btn--sm', 'Retirer')

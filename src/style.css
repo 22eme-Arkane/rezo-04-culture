@@ -349,6 +349,18 @@ html, body {
 .date-echo { display: block; margin-top: 0.35rem; }
 .date-echo--warn { color: var(--danger); font-weight: 700; }
 
+/* Journal des administrateurs (propriétaire seul). */
+.journal-item {
+  display: flex; align-items: baseline; gap: 0.6rem;
+  padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--border);
+}
+.journal-item:last-child { border-bottom: none; }
+.journal-item__texte { margin: 0; flex: 1 1 auto; font-size: 0.86rem; line-height: 1.45; }
+.journal-item__quand { flex: 0 0 auto; color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
+/* Suppressions et rétrogradations : ce qu'on cherche en cas de litige. */
+.journal-item--sensible { background: rgba(192, 57, 43, 0.06); }
+.journal-item--sensible .journal-item__texte { font-weight: 650; }
+
 /* Bandeau du haut du Profil : « Connecté : … » à gauche, partage à droite. */
 .settings-topbar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
 .settings-topbar .settings-connected { align-self: center; margin: 0; }

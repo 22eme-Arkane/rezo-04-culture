@@ -25,8 +25,9 @@ import { viewStats } from './ui/viewStats.js'
 import { viewFeedback } from './ui/viewFeedback.js'
 import { viewSupport } from './ui/viewSupport.js'
 import { viewInstall } from './ui/viewInstall.js'
+import { viewJournal } from './ui/viewJournal.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
-import { recordVisit } from './lib/admins.js'
+import { recordVisit, resetOwnerCache } from './lib/admins.js'
 
 // --- Service worker (offline shell) ---
 // UNIQUEMENT en production : en dev, un SW "cache-first" servirait des modules
@@ -120,6 +121,7 @@ defineRoutes(
     '/messages': viewFeedback,
     '/soutenir': viewSupport,
     '/installer': viewInstall,
+    '/journal': viewJournal,
     '/connexion': viewAuth,
   },
   {
@@ -162,6 +164,7 @@ defineRoutes(
     const uid = getUser()?.id ?? null
     if (uid === lastUid) return
     lastUid = uid
+    resetOwnerCache() // sinon le compte suivant hériterait du drapeau du précédent
     renderNav()
     refresh()
   })
