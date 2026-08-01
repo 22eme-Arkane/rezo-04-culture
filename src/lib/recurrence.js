@@ -95,16 +95,20 @@ export function nextOccurrence(ev, from = new Date()) {
   return start
 }
 
-/** « Tous les mercredis et vendredis, du 1er juillet au 31 août ». */
-export function describeRecurrence(ev) {
+/** « Tous les mercredis et vendredis » — sans la période. */
+export function recurrenceDaysLabel(ev) {
   const jours = recurDays(ev)
   if (!jours) return ''
   const noms = JOURS.filter((j) => jours.has(j.n)).map((j) => j.long)
-  let quand
-  if (noms.length === 7) quand = 'Tous les jours'
-  else if (noms.length === 1) quand = `Tous les ${noms[0]}s`
-  else quand = `Tous les ${noms.slice(0, -1).join('s, ')}s et ${noms[noms.length - 1]}s`
+  if (noms.length === 7) return 'Tous les jours'
+  if (noms.length === 1) return `Tous les ${noms[0]}s`
+  return `Tous les ${noms.slice(0, -1).join('s, ')}s et ${noms[noms.length - 1]}s`
+}
 
+/** « Tous les mercredis et vendredis, du 1er juillet au 31 août ». */
+export function describeRecurrence(ev) {
+  const quand = recurrenceDaysLabel(ev)
+  if (!quand) return ''
   const debut = new Date(ev.starts_at)
   const fin = ev.ends_at ? new Date(ev.ends_at) : null
   if (!fin) return quand

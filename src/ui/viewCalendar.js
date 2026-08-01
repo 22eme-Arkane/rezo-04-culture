@@ -6,7 +6,7 @@ import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { getCategory, setCategory } from '../lib/filter.js'
-import { dayKey, eventDayKeys } from '../lib/recurrence.js'
+import { dayKey, eventDayKeys, isRecurring, recurrenceDaysLabel } from '../lib/recurrence.js'
 import { CATEGORIES, listApprovedEvents, listGemEventIds } from '../lib/events.js'
 
 // Les jours couverts par un événement (multi-jours ET récurrence) sont calculés
@@ -120,27 +120,70 @@ export async function viewCalendar() {
   ])
   const studioPreview = import.meta.env.DEV && new URLSearchParams(location.search).has('studio-preview')
   const allEvents = studioPreview ? studioPreviewEvents(approvedEvents[0]) : approvedEvents
+  /** Filtres portant sur l'ÉVÉNEMENT lui-même (style, gratuité). */
   const filtered = () => {
-    // Le style d'abord, le moment ensuite : les deux filtres se cumulent.
     const cat = getCategory()
     const events = cat ? allEvents.filter((event) => event.category === cat) : allEvents
-    if (quickFilter === 'free') return events.filter((event) => !event.is_paid)
-    if (quickFilter === 'today') {
-      const todayKey = dayKey(new Date())
-      return events.filter((event) => eventDayKeys(event).includes(todayKey))
-    }
+    return quickFilter === 'free' ? events.filter((event) => !event.is_paid) : events
+  }
+
+  /** Filtres portant sur le JOUR — appliqués aux occurrences, pas aux événements. */
+  function joursDuFiltreRapide() {
+    if (quickFilter === 'today') return new Set([dayKey(new Date())])
     if (quickFilter === 'weekend') {
       const now = new Date()
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const daysUntilSaturday = (6 - start.getDay() + 7) % 7
-      const saturday = new Date(start)
-      saturday.setDate(start.getDate() + daysUntilSaturday)
-      const sunday = new Date(saturday)
-      sunday.setDate(saturday.getDate() + 1)
-      const weekendDays = new Set([dayKey(saturday), dayKey(sunday)])
-      return events.filter((event) => eventDayKeys(event).some((key) => weekendDays.has(key)))
+      const samedi = new Date(start)
+      samedi.setDate(start.getDate() + ((6 - start.getDay() + 7) % 7))
+      const dimanche = new Date(samedi)
+      dimanche.setDate(samedi.getDate() + 1)
+      return new Set([dayKey(samedi), dayKey(dimanche)])
     }
-    return events
+    return null
+  }
+
+  /**
+   * UNE CARTE PAR JOUR COUVERT. Un festival du 7 au 9 août apparaît trois fois
+   * dans l'agenda, à sa date propre ; un marché hebdomadaire apparaît à chaque
+   * date où il a lieu.
+   *
+   * ⚠ Ce sont des copies d'affichage : l'événement reste UNIQUE en base. Rien
+   * n'est dupliqué — ni la photo, ni la modération, ni les favoris — et
+   * corriger l'événement corrige toutes ses dates d'un coup. `id` est conservé,
+   * donc le favori et l'ouverture de la fiche pointent bien vers l'original.
+   */
+  function occurrences() {
+    const aujourdhui = dayKey(new Date())
+    const filtreJours = joursDuFiltreRapide()
+    const out = []
+    for (const ev of filtered()) {
+      // ⚠ Compter sur TOUS les jours, pas seulement ceux restants : un festival
+      // entamé doit annoncer « Jour 2 sur 3 », pas « Jour 1 sur 2 ».
+      const tous = eventDayKeys(ev)
+      const total = tous.length
+      const debut = new Date(ev.starts_at)
+      tous.forEach((k, i) => {
+        if (k < aujourdhui) return
+        if (filtreJours && !filtreJours.has(k)) return
+        const [a, m, j] = k.split('-').map(Number)
+        const d = new Date(a, m - 1, j, debut.getHours(), debut.getMinutes(), 0, 0)
+        out.push({
+          ...ev,
+          starts_at: d.toISOString(),
+          _dayKey: k,
+          // Étiquette seulement s'il y a plusieurs dates : inutile de surcharger
+          // une carte d'événement ponctuel.
+          _occ:
+            total > 1
+              ? isRecurring(ev)
+                ? recurrenceDaysLabel(ev)
+                : `Jour ${i + 1} sur ${total}`
+              : null,
+        })
+      })
+    }
+    out.sort((x, y) => x.starts_at.localeCompare(y.starts_at))
+    return out
   }
 
   // --- Calendrier mensuel ---
@@ -190,8 +233,9 @@ export async function viewCalendar() {
     // Les mois passés ne s'affichent jamais : pas de navigation avant le mois courant.
     prevBtn.disabled = monthCursor <= thisMonth
 
-    const eventDays = new Set()
-    for (const ev of filtered()) for (const k of eventDayKeys(ev)) eventDays.add(k)
+    // Les pastilles s'appuient sur les MÊMES occurrences que la liste : les deux
+    // ne peuvent donc pas se contredire.
+    const eventDays = new Set(occurrences().map((o) => o._dayKey))
 
     grid.innerHTML = ''
     for (const d of ['L', 'M', 'M', 'J', 'V', 'S', 'D']) {
@@ -225,12 +269,15 @@ export async function viewCalendar() {
 
   function repaintList() {
     list.innerHTML = ''
-    let shown = filtered()
+    let shown = occurrences()
     if (selectedDay) {
-      shown = shown.filter((ev) => eventDayKeys(ev).includes(selectedDay))
+      shown = shown.filter((o) => o._dayKey === selectedDay)
       sectionLabel.textContent = formatDateFull(selectedDay + 'T12:00:00')
     } else {
       sectionLabel.textContent = 'À venir'
+      // Garde-fou : une longue récurrence pourrait à elle seule produire des
+      // centaines de cartes. Le calendrier reste le moyen d'aller plus loin.
+      shown = shown.slice(0, 300)
     }
     if (!shown.length) {
       list.appendChild(
@@ -248,7 +295,19 @@ export async function viewCalendar() {
       list.appendChild(
         posterEventCard(ev, {
           gemmed: gemIds.has(ev.id),
-          onGemChange: (id, on) => (on ? gemIds.add(id) : gemIds.delete(id)),
+          onGemChange: (id, on) => {
+            if (on) gemIds.add(id)
+            else gemIds.delete(id)
+            // Le même événement peut être affiché à plusieurs dates : on
+            // synchronise tous ses cœurs, sinon la carte du lendemain
+            // paraîtrait ne pas avoir enregistré le favori.
+            for (const b of list.querySelectorAll(
+              `[data-event-id="${id}"] .poster-card__favorite`
+            )) {
+              b.classList.toggle('is-on', on)
+              b.querySelector('svg')?.setAttribute('fill', on ? 'currentColor' : 'none')
+            }
+          },
           index: posterIndex++,
           preview: Boolean(ev._studioPreview),
         })

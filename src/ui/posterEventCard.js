@@ -12,6 +12,9 @@ export function posterEventCard(ev, opts = {}) {
   const card = el('article', 'poster-card')
   const tones = ['yellow', 'red', 'green', 'blue']
   card.dataset.tone = tones[(opts.index ?? 0) % tones.length]
+  // Un événement sur plusieurs jours est affiché à chacune de ses dates : cet
+  // attribut permet de garder tous ses cœurs de favori synchronisés.
+  if (ev.id) card.dataset.eventId = ev.id
   card.tabIndex = 0
   card.setAttribute('aria-label', `Voir l’événement ${ev.title}`)
 
@@ -42,6 +45,9 @@ export function posterEventCard(ev, opts = {}) {
   // Titre COMPLET : le tronquer à la première virgule amputait « Fête votive,
   // feu d'artifice et bal » sans le moindre signe. Le CSS gère l'ellipse.
   info.appendChild(el('h3', 'poster-card__title', ev.title))
+  // « Jour 2 sur 3 » ou « Tous les vendredis » : dit pourquoi le même événement
+  // revient à plusieurs dates.
+  if (ev._occ) info.appendChild(el('span', 'poster-card__occ', ev._occ))
   if (ev.address) info.appendChild(el('p', 'poster-card__place', ev.address))
   info.appendChild(el('span', 'poster-card__price', formatPrice(ev)))
   card.appendChild(info)

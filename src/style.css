@@ -349,6 +349,17 @@ html, body {
 .date-echo { display: block; margin-top: 0.35rem; }
 .date-echo--warn { color: var(--danger); font-weight: 700; }
 
+/* « Jour 2 sur 3 » / « Tous les vendredis » sur une carte de l'agenda. */
+.poster-card__occ {
+  display: inline-block;
+  margin: 0.1rem 0 0.15rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
 /* Aides sous un champ de formulaire (span dans un label → doit passer bloc). */
 .form__field > .form__hint { display: block; margin-top: 0.35rem; }
 
