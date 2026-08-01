@@ -1,11 +1,10 @@
 // Armana — écran Paramètres : lignes compactes, ordre :
-// Ville par défaut → Publier → Mes événements → (Modération) → Thème,
-// et « Se déconnecter » tout en bas.
+// Publier → Mes événements → (administration) → Installer → Soutenir →
+// Nous contacter → compte, et le bouton de partage à côté du compte.
 import { el } from './components.js'
 import { icon } from './icons.js'
-import { navigate, refresh } from '../lib/router.js'
+import { navigate } from '../lib/router.js'
 import { isLoggedIn, isAdmin, getProfile, getUser, signOut } from '../lib/auth.js'
-import { getDefaultCity, setDefaultCity, resolveDefaultCity } from '../lib/geo.js'
 import { listPendingCount } from '../lib/events.js'
 import { countFeedback } from '../lib/feedback.js'
 import { currentBuild } from '../lib/update.js'
@@ -22,14 +21,15 @@ export async function viewSettings() {
     wrap.appendChild(el('p', 'settings-connected', 'Connecté : ' + who))
   }
 
-  // --- Groupe 1 : mes publications + ma ville ---
+  // --- Groupe 1 : mes publications ---
+  // Vide pour un visiteur non connecté : on n'ajoute alors pas le groupe, sans
+  // quoi un cadre bordé apparaîtrait sans rien dedans.
   const pub = el('div', 'settings-group')
   if (logged) {
     pub.appendChild(rowNav(icon('plus'), 'Publier un événement', '/publier'))
     pub.appendChild(rowNav(icon('ticket'), 'Mes événements', '/mes-evenements'))
+    wrap.appendChild(pub)
   }
-  // La ville reste utile même sans compte : c'est elle qui centre la carte.
-  wrap.appendChild(pub)
 
   // --- Groupe 2 : administration (admins uniquement) ---
   if (logged && isAdmin()) {
@@ -48,35 +48,6 @@ export async function viewSettings() {
     adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
     wrap.appendChild(adm)
   }
-
-  // Ville par défaut : placée sous « Mes événements », dans le même groupe.
-  const cityRow = rowValue(icon('pin'), 'Ville par défaut', getDefaultCity() || 'Non définie')
-  const cityValue = cityRow.querySelector('.settings-row__value')
-  cityRow.addEventListener('click', async () => {
-    const v = prompt('Votre ville (la carte s’ouvrira dessus) :', getDefaultCity() || '')
-    if (v === null) return
-    const city = v.trim()
-    if (!city) {
-      setDefaultCity('')
-      refresh()
-      return
-    }
-    // On géocode TOUT DE SUITE et on mémorise le point : la carte s'ouvrira sur
-    // cette ville même hors ligne, sans rappeler Nominatim à chaque fois.
-    setDefaultCity(city)
-    cityValue.textContent = 'Localisation…'
-    const pos = await resolveDefaultCity()
-    if (!pos) {
-      cityValue.textContent = city
-      alert(
-        'Ville enregistrée, mais introuvable sur la carte pour l’instant.\n' +
-          'Vérifiez l’orthographe : la carte se centrera dessus dès qu’elle sera reconnue.'
-      )
-      return
-    }
-    refresh()
-  })
-  pub.appendChild(cityRow)
 
   // --- Groupe du bas : soutien, contact, compte ---
   // (La recherche de mise à jour est automatique à chaque lancement + bannière ;
@@ -146,14 +117,6 @@ export async function viewSettings() {
   )
 
   return wrap
-}
-
-// Ligne avec valeur à droite (cliquable).
-function rowValue(iconEl, label, value) {
-  const r = el('button', 'settings-row')
-  r.appendChild(labelBlock(iconEl, label))
-  r.appendChild(el('span', 'settings-row__value', value))
-  return r
 }
 
 // Ligne d'action avec chevron.

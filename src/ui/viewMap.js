@@ -6,12 +6,7 @@ import '../lib/leafletIcons.js' // correctif icônes marqueur (Vite)
 import { el, formatDate, formatTime, formatPrice } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
-import {
-  DEFAULT_CENTER,
-  getUserLocation,
-  locationErrorMessage,
-  resolveStartLocation,
-} from '../lib/geo.js'
+import { DEFAULT_CENTER, getUserLocation, locationErrorMessage } from '../lib/geo.js'
 import { eventsWithinRadius } from '../lib/events.js'
 import { getCategory, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
@@ -199,9 +194,10 @@ export async function viewMap() {
       fillColor: accent,
       fillOpacity: 0.1,
     }).addTo(map)
-    // La carte s'ouvre SUR la zone de recherche (ville par défaut ou position),
-    // pas sur le département entier : sinon la ville choisie dans les réglages
-    // semblait ignorée.
+    // Les bornes de navigation dépendent du cercle : on les recalcule AVANT de
+    // cadrer, sinon d'anciennes limites trop serrées repousseraient la vue.
+    applyDepartmentLimits()
+    // La carte s'ouvre SUR la zone de recherche, pas sur le département entier.
     if (fit) map.fitBounds(radiusCircle.getBounds(), { padding: [16, 16], animate: false })
   }
 
@@ -220,7 +216,9 @@ export async function viewMap() {
 
   async function initMap() {
     departmentBoundary = await loadDepartment04Boundary()
-    center = await resolveStartLocation()
+    // Une seule source pour le point de départ : le GPS, avec repli sur
+    // Forcalquier. C'est aussi ce qu'utilise le bouton « ma position ».
+    center = await getUserLocation()
     if (!isInsideDepartment04(center, departmentBoundary)) center = { ...DEFAULT_CENTER, fallback: true }
     map = L.map(mapDiv, { zoomControl: true, maxBoundsViscosity: 1.0 }).setView(
       [center.lat, center.lng],
@@ -319,11 +317,25 @@ export async function viewMap() {
 
   /** Bornes de navigation : impossible de sortir du 04 ni de dézoomer au-delà. */
   function applyDepartmentLimits() {
+    if (!map || !departmentBounds) return
     const fitZoom = map.getBoundsZoom(departmentBounds, false, L.point(12, 12))
     // Deux niveaux de recul : l'extérieur reste masqué, mais on situe mieux la
     // silhouette du département.
     map.setMinZoom(Math.max(6, fitZoom - 2))
-    map.setMaxBounds(departmentBounds.pad(0.02))
+
+    // ⚠ Marge volontairement large (mesurée, pas devinée). Une fois cadrée sur
+    // un cercle de 20 km, la vue fait ~0,91° de haut pour 1,03° de bornes : il
+    // ne reste presque aucun jeu, et `maxBoundsViscosity: 1` repousse la vue
+    // dès que le point visé est près d'un bord. Sur Forcalquier, cela décalait
+    // l'ouverture de 0,146° vers le nord — soit ~16 km à côté.
+    // Déborder ne montre rien d'indésirable : le masque opaque couvre déjà tout
+    // ce qui est hors du département.
+    const limites = L.latLngBounds(
+      departmentBounds.getSouthWest(),
+      departmentBounds.getNorthEast()
+    )
+    if (radiusCircle) limites.extend(radiusCircle.getBounds())
+    map.setMaxBounds(limites.pad(0.25))
   }
 
   /** Rotation de l'écran, barre d'URL mobile qui se rétracte, clavier : la place
@@ -384,9 +396,6 @@ export async function viewMap() {
     if (!map) return
     geoMsg.textContent = 'Localisation en cours…'
     recenter.disabled = true
-    // ⚠ getUserLocation() et NON resolveStartLocation() : cette dernière donne
-    // la priorité à la ville par défaut, ce qui empêchait ce bouton de consulter
-    // le GPS dès qu'une ville était choisie — la localisation paraissait morte.
     const located = await getUserLocation()
     recenter.disabled = false
 
