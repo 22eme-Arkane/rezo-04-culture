@@ -24,6 +24,7 @@ import { viewMembers } from './ui/viewMembers.js'
 import { viewStats } from './ui/viewStats.js'
 import { viewFeedback } from './ui/viewFeedback.js'
 import { viewSupport } from './ui/viewSupport.js'
+import { viewInstall } from './ui/viewInstall.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 import { recordVisit } from './lib/admins.js'
 
@@ -118,6 +119,7 @@ defineRoutes(
     '/statistiques': viewStats,
     '/messages': viewFeedback,
     '/soutenir': viewSupport,
+    '/installer': viewInstall,
     '/connexion': viewAuth,
   },
   {

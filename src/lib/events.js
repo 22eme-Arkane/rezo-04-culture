@@ -255,9 +255,13 @@ export async function uploadEventPhoto(eventId, file, crop = null) {
   if (!uid) throw new Error('Non connecté')
 
   // `crop` = cadrage choisi par l'auteur dans l'aperçu ; appliqué à la vignette.
-  const { full, thumb } = await makePhotoVariants(file, { crop })
+  const { full, thumb, type } = await makePhotoVariants(file, { crop })
   const base = `${uid}/${eventId}`
-  const opts = { upsert: true, contentType: 'image/webp' }
+  // ⚠ Le nom de fichier reste `.webp` même quand l'appareil n'a su produire que
+  // du JPEG : toute l'application déduit le chemin de la vignette de ce suffixe
+  // (listes, suppression, purge mensuelle, RPC 0009). C'est le CONTENT-TYPE
+  // annoncé ici qui compte pour l'affichage, pas l'extension.
+  const opts = { upsert: true, contentType: type }
 
   const { error: e1 } = await supabase.storage
     .from('event-photos')

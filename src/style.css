@@ -1606,12 +1606,49 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   color: var(--muted); text-align: center;
 }
 
+/* --- Écran « Installer l'application » --- */
+.install-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.9rem 0 0.2rem; }
+.install-action {
+  flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+  gap: 0.4rem; min-width: 150px;
+}
+.install-action svg { width: 17px; height: 17px; }
+.install-block {
+  position: relative; margin-top: 1.1rem; padding: 0.9rem 1rem;
+  border-radius: 14px; background: var(--surface); border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(6, 43, 29, 0.07);
+}
+.install-block--current { border-color: var(--studio-green, var(--accent)); border-width: 2px; }
+.install-block__badge {
+  position: absolute; top: -0.6rem; right: 0.8rem;
+  padding: 0.12rem 0.5rem; border-radius: 999px;
+  background: var(--studio-green, var(--accent)); color: #fff;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.02em;
+}
+.install-block__title { margin: 0 0 0.55rem; font-size: 0.98rem; font-weight: 800; }
+.install-steps { margin: 0; padding-left: 1.15rem; }
+.install-step { margin-bottom: 0.5rem; font-size: 0.88rem; line-height: 1.5; }
+.install-step:last-child { margin-bottom: 0; }
+.install-note {
+  margin-top: 1.1rem; padding: 0.8rem 0.95rem; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.install-note--ok { border-left: 4px solid #2e7d32; }
+.install-note--warn { border-left: 4px solid #c9600a; }
+.install-note--info { border-left: 4px solid var(--accent); }
+.install-note__title { margin: 0 0 0.35rem; font-size: 0.9rem; font-weight: 800; }
+.install-note__text { margin: 0 0 0.4rem; font-size: 0.85rem; line-height: 1.5; }
+.install-note__text:last-child { margin-bottom: 0; }
+
 /* --- Aperçu cadrable dans « Publier » --- */
 .photo-preview { margin-top: 0.7rem; }
 .photo-preview .poster-card { cursor: default; }
 .photo-preview .poster-card__media { cursor: grab; }
 .photo-preview__hint { margin: 0.35rem 0 0; }
-.photo-preview__tools { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.45rem; }
+.photo-preview__tools {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 0.4rem; margin-top: 0.45rem;
+}
 .photo-preview__zoom {
   width: 38px; height: 38px; flex: 0 0 auto;
   border: 1px solid var(--border); border-radius: 50%;

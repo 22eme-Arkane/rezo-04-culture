@@ -159,10 +159,15 @@ export async function viewPublish({ query } = {}) {
   const frameTools = el('div', 'photo-preview__tools')
   const zoomOut = toolButton('−', 'Dézoomer')
   const zoomIn = toolButton('+', 'Zoomer')
+  // Bascule « photo entière ⇄ remplir la carte » : c'est elle qui débloque le
+  // déplacement latéral d'une affiche portrait (voir photoFramer.js).
+  const wholeToggle = el('button', 'btn btn--ghost btn--sm', 'Photo entière')
+  wholeToggle.type = 'button'
   const resetFrame = el('button', 'btn btn--ghost btn--sm', 'Recadrer')
   resetFrame.type = 'button'
   frameTools.appendChild(zoomOut)
   frameTools.appendChild(zoomIn)
+  frameTools.appendChild(wholeToggle)
   frameTools.appendChild(resetFrame)
   preview.appendChild(frameTools)
   fPhoto.appendChild(preview)
@@ -204,10 +209,31 @@ export async function viewPublish({ query } = {}) {
     setText('.poster-card__title', ev.title)
     setText('.poster-card__place', ev.address)
     setText('.poster-card__price', formatPrice(ev))
-    frameHint.textContent = framingEnabled
-      ? 'Glissez la photo pour la cadrer · pincez (ou molette) pour zoomer.'
-      : 'Choisissez une photo pour la cadrer ici.'
     frameTools.style.display = framingEnabled ? '' : 'none'
+    syncFrameUi()
+  }
+
+  /** Message d'aide et libellé de la bascule, selon le cadrage courant.
+   *  Une affiche portrait « qui remplit la carte » n'a AUCUN jeu horizontal :
+   *  plutôt que de laisser croire à un bug, on dit quoi faire pour l'obtenir. */
+  function syncFrameUi() {
+    if (!framingEnabled) {
+      frameHint.textContent = 'Choisissez une photo pour la cadrer ici.'
+      return
+    }
+    const { pannableX, pannableY, whole } = framer.info()
+    wholeToggle.textContent = whole ? 'Remplir la carte' : 'Photo entière'
+    if (pannableX && pannableY) {
+      frameHint.textContent = 'Glissez la photo dans tous les sens · pincez (ou molette) pour zoomer.'
+    } else if (pannableY) {
+      frameHint.textContent =
+        'Glissez la photo vers le haut ou le bas. Pour la déplacer aussi vers la ' +
+        'gauche ou la droite, touchez « Photo entière ».'
+    } else if (pannableX) {
+      frameHint.textContent = 'Glissez la photo vers la gauche ou la droite · pincez pour zoomer.'
+    } else {
+      frameHint.textContent = 'La photo tient entièrement dans la carte. Zoomez (+) pour la recadrer.'
+    }
   }
 
   function setText(sel, value) {
@@ -229,9 +255,25 @@ export async function viewPublish({ query } = {}) {
     }
   })
 
-  zoomIn.addEventListener('click', () => framer.zoomBy(1.2))
-  zoomOut.addEventListener('click', () => framer.zoomBy(1 / 1.2))
-  resetFrame.addEventListener('click', () => framer.reset())
+  zoomIn.addEventListener('click', () => {
+    framer.zoomBy(1.2)
+    syncFrameUi()
+  })
+  zoomOut.addEventListener('click', () => {
+    framer.zoomBy(1 / 1.2)
+    syncFrameUi()
+  })
+  wholeToggle.addEventListener('click', () => {
+    if (framer.info().whole) framer.fillCard()
+    else framer.fitWhole()
+    syncFrameUi()
+  })
+  resetFrame.addEventListener('click', () => {
+    framer.reset()
+    syncFrameUi()
+  })
+  // Le glissement change aussi le jeu disponible : on tient le message à jour.
+  previewMedia.addEventListener('pointerup', syncFrameUi)
 
   // Photo reçue par partage (WhatsApp) : on la charge d'emblée dans l'aperçu.
   if (sharedPhoto) {

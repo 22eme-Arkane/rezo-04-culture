@@ -82,6 +82,7 @@ export async function viewSettings() {
   //  un simple rafraîchissement de la page suffit à récupérer la dernière version.)
   const bottom = el('div', 'settings-group')
 
+  bottom.appendChild(rowNav(icon('plus'), 'Installer l’application', '/installer'))
   bottom.appendChild(rowNav(icon('heart'), 'Soutenir Armana', '/soutenir'))
   bottom.appendChild(rowNav(icon('message'), 'Nous contacter', '/contact'))
 
