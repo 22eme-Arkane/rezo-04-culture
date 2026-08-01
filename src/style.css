@@ -344,9 +344,10 @@ html, body {
 .settings-row--danger .settings-row__label { color: var(--danger); }
 .settings-row--danger .settings-row__label svg { color: var(--danger); }
 
-/* Ligne du compte + bouton rond de partage, côte à côte (dernière du groupe). */
-.settings-pair { display: flex; align-items: center; }
-.settings-pair > .settings-row { flex: 1 1 auto; min-width: 0; border-bottom: none; }
+/* Bandeau du haut du Profil : « Connecté : … » à gauche, partage à droite. */
+.settings-topbar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
+.settings-topbar .settings-connected { align-self: center; margin: 0; }
+.settings-topbar .settings-share { margin-left: auto; margin-right: 0; }
 .settings-share {
   flex: 0 0 auto; width: 40px; height: 40px; padding: 0; margin-right: 0.6rem;
   display: grid; place-items: center;
@@ -808,6 +809,13 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
   color: var(--studio-cream);
   background: var(--mask-green);
   font-weight: 750;
+}
+/* Dans le bandeau du haut, la pastille est un élément de la rangée : elle doit
+   s'aligner sur le bouton de partage. Règle placée ICI, après celle du dessus,
+   et plus spécifique — sinon `align-self: flex-start` l'emporterait. */
+.page--studio-profile .settings-topbar .settings-connected {
+  align-self: center;
+  margin: 0;
 }
 .page--studio-profile .settings-group {
   margin-bottom: 0.75rem;

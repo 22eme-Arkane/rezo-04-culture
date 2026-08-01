@@ -16,10 +16,37 @@ export async function viewSettings() {
   wrap.appendChild(studioHeader('Profil'))
 
   const logged = isLoggedIn()
+
+  // --- Bandeau du haut : qui est connecté, et le partage bien en vue ---
+  // Armana ne sert à rien sans utilisateurs : le bouton de partage est placé
+  // tout en haut, à hauteur du regard, plutôt qu'en bas de l'écran.
+  const share = el('button', 'settings-share')
+  share.type = 'button'
+  share.title = 'Partager Armana'
+  share.setAttribute('aria-label', 'Partager Armana')
+  share.appendChild(icon('share'))
+
+  const topbar = el('div', 'settings-topbar')
   if (logged) {
     const who = getProfile()?.display_name || getUser()?.email || 'Mon compte'
-    wrap.appendChild(el('p', 'settings-connected', 'Connecté : ' + who))
+    topbar.appendChild(el('p', 'settings-connected', 'Connecté : ' + who))
   }
+  topbar.appendChild(share) // toujours calé à droite (margin-left: auto)
+  wrap.appendChild(topbar)
+
+  // Sans feuille de partage native (ordinateur, navigateur ancien), le lien est
+  // copié : sans ce retour, le bouton semblerait ne rien faire.
+  const shareMsg = el('p', 'form__hint settings-share__msg')
+  wrap.appendChild(shareMsg)
+  share.addEventListener('click', async () => {
+    share.disabled = true
+    const r = await shareApp()
+    share.disabled = false
+    if (r === 'copied') shareMsg.textContent = '✅ Lien copié : ' + APP_URL
+    else if (r === 'failed') shareMsg.textContent = 'Copiez ce lien : ' + APP_URL
+    else shareMsg.textContent = ''
+    if (shareMsg.textContent) setTimeout(() => (shareMsg.textContent = ''), 4000)
+  })
 
   // --- Groupe 1 : mes publications ---
   // Vide pour un visiteur non connecté : on n'ajoute alors pas le groupe, sans
@@ -49,21 +76,28 @@ export async function viewSettings() {
     wrap.appendChild(adm)
   }
 
-  // --- Groupe du bas : soutien, contact, compte ---
+  // --- Trois groupes distincts en bas, volontairement séparés ---
   // (La recherche de mise à jour est automatique à chaque lancement + bannière ;
   //  un simple rafraîchissement de la page suffit à récupérer la dernière version.)
-  const bottom = el('div', 'settings-group')
 
-  bottom.appendChild(rowNav(icon('plus'), 'Installer l’application', '/installer'))
-  bottom.appendChild(rowNav(icon('heart'), 'Soutenir Armana', '/soutenir'))
-  bottom.appendChild(rowNav(icon('message'), 'Nous contacter', '/contact'))
+  // 3. Installer : action ponctuelle, isolée pour ne pas se noyer dans la liste.
+  const install = el('div', 'settings-group')
+  install.appendChild(rowNav(icon('plus'), 'Installer l’application', '/installer'))
+  wrap.appendChild(install)
 
-  // Ligne du compte…
-  let account
+  // 4. Soutenir et écrire : les deux façons d'aider le projet.
+  const help = el('div', 'settings-group')
+  help.appendChild(rowNav(icon('heart'), 'Soutenir Armana', '/soutenir'))
+  help.appendChild(rowNav(icon('message'), 'Nous contacter', '/contact'))
+  wrap.appendChild(help)
+
+  // 5. Le compte, seul : une déconnexion ne se clique pas par erreur en visant
+  //    la ligne du dessus.
+  const compte = el('div', 'settings-group')
   if (logged) {
-    account = rowButton(icon('logOut'), 'Se déconnecter')
-    account.classList.add('settings-row--danger')
-    account.addEventListener('click', async () => {
+    const out = rowButton(icon('logOut'), 'Se déconnecter')
+    out.classList.add('settings-row--danger')
+    out.addEventListener('click', async () => {
       try {
         await signOut()
         navigate('/')
@@ -71,39 +105,13 @@ export async function viewSettings() {
         alert('Déconnexion impossible : ' + e.message)
       }
     })
+    compte.appendChild(out)
   } else {
-    account = rowButton(icon('logIn'), 'Se connecter / S’inscrire')
-    account.addEventListener('click', () => navigate('/connexion'))
+    const login = rowButton(icon('logIn'), 'Se connecter / S’inscrire')
+    login.addEventListener('click', () => navigate('/connexion'))
+    compte.appendChild(login)
   }
-
-  // …et, juste à côté, le bouton rond de partage. Armana ne sert à rien sans
-  // utilisateurs : le partage doit être à portée de pouce, sans passer par un
-  // sous-écran, et qu'on soit connecté ou non.
-  const share = el('button', 'settings-share')
-  share.type = 'button'
-  share.title = 'Partager Armana'
-  share.setAttribute('aria-label', 'Partager Armana')
-  share.appendChild(icon('share'))
-
-  const pair = el('div', 'settings-pair')
-  pair.appendChild(account)
-  pair.appendChild(share)
-  bottom.appendChild(pair)
-  wrap.appendChild(bottom)
-
-  // Sans feuille de partage native (ordinateur, navigateur ancien), le lien est
-  // copié : sans ce retour, le bouton semblerait ne rien faire.
-  const shareMsg = el('p', 'form__hint settings-share__msg')
-  wrap.appendChild(shareMsg)
-  share.addEventListener('click', async () => {
-    share.disabled = true
-    const r = await shareApp()
-    share.disabled = false
-    if (r === 'copied') shareMsg.textContent = '✅ Lien copié : ' + APP_URL
-    else if (r === 'failed') shareMsg.textContent = 'Copiez ce lien : ' + APP_URL
-    else shareMsg.textContent = ''
-    if (shareMsg.textContent) setTimeout(() => (shareMsg.textContent = ''), 4000)
-  })
+  wrap.appendChild(compte)
 
   // Numéro de version : indispensable pour savoir, en cas de souci signalé, si
   // la personne a bien reçu la dernière mise à jour.
