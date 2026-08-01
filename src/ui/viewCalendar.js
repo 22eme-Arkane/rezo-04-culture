@@ -5,7 +5,8 @@ import { posterEventCard } from './posterEventCard.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
-import { listApprovedEvents, listGemEventIds } from '../lib/events.js'
+import { getCategory, setCategory } from '../lib/filter.js'
+import { CATEGORIES, listApprovedEvents, listGemEventIds } from '../lib/events.js'
 
 /** Clé locale AAAA-MM-JJ d'une date (fuseau du navigateur, pas UTC). */
 function dayKey(d) {
@@ -72,6 +73,34 @@ export async function viewCalendar() {
   head.appendChild(calendarToggle)
   head.appendChild(logo)
 
+  // --- Filtre par style, sous le titre et AU-DESSUS des filtres rapides ---
+  // On choisit d'abord le genre de sortie, puis le moment. Le filtre est celui
+  // de src/lib/filter.js : il est partagé avec la Carte, donc une catégorie
+  // choisie ici reste active en passant sur l'onglet Carte, et inversement.
+  const catRow = el('div', 'chips-row chips-row--studio chips-row--cats')
+  const catChips = []
+  const addCat = (label, value) => {
+    const c = el('button', 'chip', label)
+    c.dataset.value = value ?? ''
+    c.addEventListener('click', () => {
+      // Re-taper la catégorie active la retire : on revient à « Tous les styles ».
+      setCategory(getCategory() === value ? null : value)
+      paintCats()
+      repaintCalendar()
+      repaintList()
+    })
+    catChips.push(c)
+    catRow.appendChild(c)
+  }
+  addCat('Tous les styles', null)
+  for (const c of CATEGORIES) addCat(c, c)
+  const paintCats = () => {
+    const cur = getCategory() || ''
+    for (const c of catChips) c.classList.toggle('is-active', c.dataset.value === cur)
+  }
+  paintCats()
+  head.appendChild(catRow)
+
   // --- Filtres rapides, calqués sur la maquette Studio Affiche ---
   const chipsRow = el('div', 'chips-row chips-row--studio')
   const allChips = []
@@ -106,8 +135,11 @@ export async function viewCalendar() {
     isLoggedIn() ? listGemEventIds() : Promise.resolve(new Set()),
   ])
   const studioPreview = import.meta.env.DEV && new URLSearchParams(location.search).has('studio-preview')
-  const events = studioPreview ? studioPreviewEvents(approvedEvents[0]) : approvedEvents
+  const allEvents = studioPreview ? studioPreviewEvents(approvedEvents[0]) : approvedEvents
   const filtered = () => {
+    // Le style d'abord, le moment ensuite : les deux filtres se cumulent.
+    const cat = getCategory()
+    const events = cat ? allEvents.filter((event) => event.category === cat) : allEvents
     if (quickFilter === 'free') return events.filter((event) => !event.is_paid)
     if (quickFilter === 'today') {
       const todayKey = dayKey(new Date())
