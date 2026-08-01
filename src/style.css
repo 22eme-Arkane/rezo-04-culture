@@ -751,42 +751,10 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
   line-height: 1.5;
 }
 .screen--studio-map .leaflet-control-attribution a { color: var(--studio-blue); }
-.map-department-badge {
-  position: absolute;
-  z-index: 500;
-  top: 11px;
-  left: 11px;
-  display: flex;
-  align-items: center;
-  gap: 0.42rem;
-  max-width: 62%;
-  padding: 0.32rem 0.62rem 0.32rem 0.35rem;
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  border-radius: 999px;
-  color: var(--studio-cream);
-  background: rgba(6, 79, 54, 0.92);
-  box-shadow: 0 5px 12px rgba(6, 43, 29, 0.2);
-  pointer-events: none;
-}
-.map-department-badge strong {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  color: var(--studio-ink);
-  background: var(--mask-yellow);
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-.map-department-badge span {
-  overflow: hidden;
-  font-size: 0.66rem;
-  font-weight: 750;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* Retour de la géolocalisation : sans lui, un refus d'autorisation ne se
+   voyait nulle part et la carte semblait simplement ignorer le bouton. */
+.map-geo-msg { margin: 0.45rem 0 0; }
+.map-geo-msg:empty { display: none; }
 .department-mask { fill-opacity: 1; }
 .department-outline {
   filter: drop-shadow(0 2px 2px rgba(6, 43, 29, 0.55));

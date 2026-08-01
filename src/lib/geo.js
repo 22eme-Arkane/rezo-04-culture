@@ -14,11 +14,18 @@ export const DEFAULT_CENTER = { lat: 44.0921, lng: 6.2354 } // Digne-les-Bains
  * ⚠ Le `timeout` de l'API ne démarre qu'APRÈS la réponse à la demande
  * d'autorisation : si l'utilisateur ignore la fenêtre, la promesse ne se résout
  * jamais et la carte reste bloquée. D'où le garde-fou explicite.
+ *
+ * `reason` dit POURQUOI on est retombé sur le repli. Sans lui, un refus
+ * d'autorisation était indiscernable d'un succès et la carte se recentrait
+ * silencieusement sur Digne : la localisation paraissait « ne pas marcher »
+ * sans qu'on sache jamais que le navigateur l'avait bloquée.
+ * @returns {Promise<{lat:number, lng:number, fallback:boolean,
+ *                    reason:null|'unsupported'|'denied'|'timeout'|'unavailable'}>}
  */
 export function getUserLocation({ timeoutMs = 8000 } = {}) {
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) {
-      resolve({ ...DEFAULT_CENTER, fallback: true })
+      resolve({ ...DEFAULT_CENTER, fallback: true, reason: 'unsupported' })
       return
     }
     let done = false
@@ -28,13 +35,44 @@ export function getUserLocation({ timeoutMs = 8000 } = {}) {
       clearTimeout(timer)
       resolve(value)
     }
-    const timer = setTimeout(() => finish({ ...DEFAULT_CENTER, fallback: true }), timeoutMs)
+    const timer = setTimeout(
+      () => finish({ ...DEFAULT_CENTER, fallback: true, reason: 'timeout' }),
+      timeoutMs
+    )
     navigator.geolocation.getCurrentPosition(
-      (pos) => finish({ lat: pos.coords.latitude, lng: pos.coords.longitude, fallback: false }),
-      () => finish({ ...DEFAULT_CENTER, fallback: true }),
+      (pos) =>
+        finish({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          fallback: false,
+          reason: null,
+        }),
+      (err) =>
+        finish({
+          ...DEFAULT_CENTER,
+          fallback: true,
+          // 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+          reason: err?.code === 1 ? 'denied' : err?.code === 3 ? 'timeout' : 'unavailable',
+        }),
       { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 300000 }
     )
   })
+}
+
+/** Message lisible correspondant à un `reason` de `getUserLocation`. */
+export function locationErrorMessage(reason) {
+  switch (reason) {
+    case 'denied':
+      return 'Localisation refusée. Autorisez-la pour ce site dans les réglages de votre navigateur, puis réessayez.'
+    case 'unsupported':
+      return 'Votre navigateur ne propose pas la localisation.'
+    case 'timeout':
+      return 'La localisation met trop de temps. Réessayez, de préférence à l’extérieur.'
+    case 'unavailable':
+      return 'Position introuvable pour le moment. Vérifiez que la localisation est activée sur l’appareil.'
+    default:
+      return 'Localisation indisponible.'
+  }
 }
 
 /**

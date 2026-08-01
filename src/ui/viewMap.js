@@ -6,7 +6,12 @@ import '../lib/leafletIcons.js' // correctif icônes marqueur (Vite)
 import { el, formatDate, formatTime, formatPrice } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
-import { DEFAULT_CENTER, resolveStartLocation } from '../lib/geo.js'
+import {
+  DEFAULT_CENTER,
+  getUserLocation,
+  locationErrorMessage,
+  resolveStartLocation,
+} from '../lib/geo.js'
 import { eventsWithinRadius } from '../lib/events.js'
 import { getCategory, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
@@ -93,6 +98,10 @@ export async function viewMap() {
     return b
   })
   radiusControl.appendChild(radiusOptions)
+  // Retour de la géolocalisation : refus d'autorisation, position introuvable,
+  // ou hors département. Sans ce message, le bouton semblait ne rien faire.
+  const geoMsg = el('p', 'form__hint map-geo-msg')
+  radiusControl.appendChild(geoMsg)
   controls.appendChild(radiusControl)
 
   // Sélecteur de date : uniquement les événements actifs ce jour-là.
@@ -138,10 +147,6 @@ export async function viewMap() {
   })
 
   const mapFrame = el('div', 'map-frame-studio')
-  const departmentBadge = el('div', 'map-department-badge')
-  departmentBadge.appendChild(el('strong', null, '04'))
-  departmentBadge.appendChild(el('span', null, 'Alpes-de-Haute-Provence'))
-  mapFrame.appendChild(departmentBadge)
   mapFrame.appendChild(resultsBar)
   const mapDiv = el('div', 'map map--studio')
   mapFrame.appendChild(mapDiv)
@@ -376,15 +381,32 @@ export async function viewMap() {
   })
 
   recenter.addEventListener('click', async () => {
-    const located = await resolveStartLocation()
-    center = departmentBoundary && isInsideDepartment04(located, departmentBoundary)
-      ? located
-      : { ...DEFAULT_CENTER, fallback: true }
-    if (map) {
-      userMarker.setLatLng([center.lat, center.lng])
-      drawRadius()
-      await loadEvents()
+    if (!map) return
+    geoMsg.textContent = 'Localisation en cours…'
+    recenter.disabled = true
+    // ⚠ getUserLocation() et NON resolveStartLocation() : cette dernière donne
+    // la priorité à la ville par défaut, ce qui empêchait ce bouton de consulter
+    // le GPS dès qu'une ville était choisie — la localisation paraissait morte.
+    const located = await getUserLocation()
+    recenter.disabled = false
+
+    if (located.fallback) {
+      geoMsg.textContent = locationErrorMessage(located.reason)
+      return
     }
+    if (departmentBoundary && !isInsideDepartment04(located, departmentBoundary)) {
+      // On ne déplace PAS la carte vers Digne sans le dire : l'utilisateur
+      // croirait que sa position a été prise en compte.
+      geoMsg.textContent =
+        'Vous semblez être hors des Alpes-de-Haute-Provence : la carte reste sur le département.'
+      return
+    }
+
+    geoMsg.textContent = ''
+    center = located
+    userMarker.setLatLng([center.lat, center.lng])
+    drawRadius()
+    await loadEvents()
   })
 
   // setTimeout plutôt que requestAnimationFrame : rAF est gelé quand l'onglet
