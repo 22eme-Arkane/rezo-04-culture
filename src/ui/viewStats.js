@@ -6,7 +6,7 @@ import { el } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
-import { amIOwner, getAdminStats } from '../lib/admins.js'
+import { getAdminStats } from '../lib/admins.js'
 import { purgePastMonths } from '../lib/events.js'
 import { navigate } from '../lib/router.js'
 
@@ -133,33 +133,6 @@ export async function viewStats() {
   cont.appendChild(line('— dont bugs', stats.retours.bugs))
   cont.appendChild(line('— dont avis', stats.retours.avis))
   body.appendChild(cont)
-
-  // --- Journal des administrateurs (propriétaire uniquement) ---------------
-  // Réservé au propriétaire et non à tous les admins : ce journal sert
-  // précisément à départager les administrateurs entre eux. La restriction est
-  // imposée en base (RPC list_admin_actions) ; ceci ne fait que cacher l'entrée.
-  if (await amIOwner()) {
-    body.appendChild(section('Gestion des administrateurs'))
-    const grp = el('div', 'settings-group')
-    const lien = el('button', 'settings-row')
-    lien.type = 'button'
-    const lab = el('div', 'settings-row__label')
-    lab.appendChild(icon('shield'))
-    lab.appendChild(document.createTextNode('Journal des actions'))
-    lien.appendChild(lab)
-    lien.appendChild(icon('chevronRight'))
-    lien.addEventListener('click', () => navigate('/journal'))
-    grp.appendChild(lien)
-    body.appendChild(grp)
-    body.appendChild(
-      el(
-        'p',
-        'form__hint',
-        'Qui a modéré, supprimé un événement ou changé un rôle, et quand. ' +
-          'Visible de vous seul, et impossible à effacer depuis l’application.'
-      )
-    )
-  }
 
   // --- Entretien du stockage ----------------------------------------------
   body.appendChild(section('Entretien du stockage'))

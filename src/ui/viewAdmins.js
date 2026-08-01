@@ -3,8 +3,9 @@
 import { el, emptyState } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
+import { navigate } from '../lib/router.js'
 import { isAdmin, getUser } from '../lib/auth.js'
-import { listAdmins, setAdminByEmail } from '../lib/admins.js'
+import { amIOwner, listAdmins, setAdminByEmail } from '../lib/admins.js'
 
 export async function viewAdmins() {
   const wrap = el('section', 'page page--studio-sub')
@@ -115,5 +116,32 @@ export async function viewAdmins() {
   })
 
   await refresh()
+
+  // --- Journal des actions (propriétaire uniquement) -----------------------
+  // Réservé au propriétaire et non à tous les admins : ce journal sert
+  // précisément à départager les administrateurs entre eux. La restriction est
+  // imposée en base (RPC list_admin_actions) ; ceci ne fait que cacher l'entrée.
+  if (await amIOwner()) {
+    const grp = el('div', 'settings-group')
+    const lien = el('button', 'settings-row')
+    lien.type = 'button'
+    const lab = el('div', 'settings-row__label')
+    lab.appendChild(icon('shield'))
+    lab.appendChild(document.createTextNode('Journal des actions'))
+    lien.appendChild(lab)
+    lien.appendChild(icon('chevronRight'))
+    lien.addEventListener('click', () => navigate('/journal'))
+    grp.appendChild(lien)
+    wrap.appendChild(grp)
+    wrap.appendChild(
+      el(
+        'p',
+        'form__hint',
+        'Qui a modéré, supprimé un événement ou changé un rôle, et quand. ' +
+          'Visible de vous seul, et impossible à effacer depuis l’application.'
+      )
+    )
+  }
+
   return wrap
 }

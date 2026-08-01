@@ -66,13 +66,13 @@ export async function viewSettings() {
       listPendingCount().catch(() => 0),
       countFeedback().catch(() => 0),
     ])
-    adm.appendChild(rowNav(icon('shield'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
+    adm.appendChild(rowNav(icon('shield'), 'Gérer les administrateurs', '/admins'))
     adm.appendChild(
       rowNav(icon('message'), 'Messages reçus' + (messages ? ` (${messages})` : ''), '/messages')
     )
-    adm.appendChild(rowNav(icon('chart'), 'Statistiques', '/statistiques'))
-    adm.appendChild(rowNav(icon('user'), 'Gérer les administrateurs', '/admins'))
+    adm.appendChild(rowNav(icon('check'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
     adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
+    adm.appendChild(rowNav(icon('chart'), 'Statistiques', '/statistiques'))
     wrap.appendChild(adm)
   }
 

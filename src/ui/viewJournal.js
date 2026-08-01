@@ -48,7 +48,7 @@ function estSensible(a) {
 
 export async function viewJournal() {
   const wrap = el('section', 'page page--studio-sub')
-  wrap.appendChild(studioHeader('Journal', { backTo: '/statistiques', backLabel: 'Statistiques' }))
+  wrap.appendChild(studioHeader('Journal', { backTo: '/admins', backLabel: 'Administrateurs' }))
 
   if (!isLoggedIn() || !(await amIOwner())) {
     wrap.appendChild(emptyState('Réservé au propriétaire du projet.'))
