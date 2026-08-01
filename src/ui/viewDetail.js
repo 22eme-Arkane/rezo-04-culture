@@ -3,6 +3,7 @@ import { el, formatDateFull, formatTime, formatPrice, emptyState } from './compo
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn, getUser } from '../lib/auth.js'
+import { dayKey, describeRecurrence, isRecurring, nextOccurrence } from '../lib/recurrence.js'
 import { navigate } from '../lib/router.js'
 import { sendFeedback } from '../lib/feedback.js'
 import {
@@ -59,17 +60,63 @@ export async function viewDetail({ query } = {}) {
 
   const when = el('p', 'detail__meta')
   when.appendChild(icon('calendar'))
-  const dateTxt = ev.ends_at
-    ? `${formatDateFull(ev.starts_at)} · ${formatTime(ev.starts_at)} → ${formatTime(ev.ends_at)}`
-    : `${formatDateFull(ev.starts_at)} · ${formatTime(ev.starts_at)}`
+  const fin = ev.ends_at ? new Date(ev.ends_at) : null
+  const memeJour = fin && dayKey(fin) === dayKey(ev.starts_at)
+  let dateTxt
+  if (isRecurring(ev)) {
+    dateTxt = `${describeRecurrence(ev)} · ${formatTime(ev.starts_at)}`
+  } else if (fin && !memeJour) {
+    // ⚠ Multi-jours : afficher les DEUX dates. L'ancien format ne montrait que
+    // le premier jour et l'heure de fin du dernier — on croyait que tout se
+    // terminait le soir même.
+    dateTxt = `Du ${formatDateFull(ev.starts_at)} au ${formatDateFull(ev.ends_at)} · ${formatTime(ev.starts_at)}`
+  } else if (fin) {
+    dateTxt = `${formatDateFull(ev.starts_at)} · ${formatTime(ev.starts_at)} → ${formatTime(ev.ends_at)}`
+  } else {
+    dateTxt = `${formatDateFull(ev.starts_at)} · ${formatTime(ev.starts_at)}`
+  }
   when.appendChild(document.createTextNode(' ' + dateTxt))
   facts.appendChild(when)
+
+  if (isRecurring(ev)) {
+    const prochaine = el('p', 'detail__meta')
+    prochaine.appendChild(icon('clock'))
+    prochaine.appendChild(
+      document.createTextNode(' Prochaine fois : ' + formatDateFull(nextOccurrence(ev).toISOString()))
+    )
+    facts.appendChild(prochaine)
+  }
 
   if (ev.address) {
     const where = el('p', 'detail__meta')
     where.appendChild(icon('pin'))
     where.appendChild(document.createTextNode(' ' + ev.address))
     facts.appendChild(where)
+  }
+
+  if (ev.contact) {
+    const brut = String(ev.contact).trim()
+    const ligne = el('p', 'detail__meta')
+    ligne.appendChild(icon('message'))
+    ligne.appendChild(document.createTextNode(' '))
+    // ⚠ Contenu saisi par un utilisateur : on ne construit un lien que sur des
+    // schémas explicitement autorisés. Un « javascript: » ne correspond à aucun
+    // de ces motifs et reste donc affiché en texte brut.
+    const estMail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(brut)
+    const estLien = /^(https?:\/\/|www\.)\S+$/i.test(brut)
+    if (estMail || estLien) {
+      const a = el('a', 'detail__contact')
+      a.href = estMail ? 'mailto:' + brut : /^www\./i.test(brut) ? 'https://' + brut : brut
+      a.textContent = brut
+      if (!estMail) {
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+      }
+      ligne.appendChild(a)
+    } else {
+      ligne.appendChild(document.createTextNode(brut))
+    }
+    facts.appendChild(ligne)
   }
 
   const author = el('p', 'detail__meta')

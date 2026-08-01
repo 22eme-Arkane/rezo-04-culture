@@ -349,6 +349,27 @@ html, body {
 .date-echo { display: block; margin-top: 0.35rem; }
 .date-echo--warn { color: var(--danger); font-weight: 700; }
 
+/* Aides sous un champ de formulaire (span dans un label → doit passer bloc). */
+.form__field > .form__hint { display: block; margin-top: 0.35rem; }
+
+/* Répétition hebdomadaire — pastilles L M M J V S D. */
+.recur { margin-top: 0.6rem; }
+.recur__days { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.recur__day {
+  flex: 0 0 auto; width: 38px; height: 38px; padding: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--surface); color: var(--fg);
+  font-family: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+}
+.recur__day.is-active {
+  color: var(--studio-ink, #062b1d);
+  background: var(--mask-green-light, #7ac97f);
+  border-color: var(--mask-green-light, #7ac97f);
+}
+.recur__echo { margin-top: 0.5rem; }
+.detail__contact { color: inherit; word-break: break-word; }
+
 /* Journal des administrateurs (propriétaire seul). */
 .journal-item {
   display: flex; align-items: baseline; gap: 0.6rem;

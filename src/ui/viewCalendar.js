@@ -6,27 +6,11 @@ import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { getCategory, setCategory } from '../lib/filter.js'
+import { dayKey, eventDayKeys } from '../lib/recurrence.js'
 import { CATEGORIES, listApprovedEvents, listGemEventIds } from '../lib/events.js'
 
-/** Clé locale AAAA-MM-JJ d'une date (fuseau du navigateur, pas UTC). */
-function dayKey(d) {
-  const x = d instanceof Date ? d : new Date(d)
-  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
-}
-
-/** Tous les jours couverts par un événement (starts_at → ends_at, borné à 31 j). */
-function eventDayKeys(ev) {
-  const keys = []
-  const start = new Date(ev.starts_at)
-  const end = ev.ends_at ? new Date(ev.ends_at) : start
-  const cur = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-  for (let i = 0; i < 31 && cur <= end; i++) {
-    keys.push(dayKey(cur))
-    cur.setDate(cur.getDate() + 1)
-  }
-  if (!keys.length) keys.push(dayKey(start))
-  return keys
-}
+// Les jours couverts par un événement (multi-jours ET récurrence) sont calculés
+// dans un seul endroit, partagé avec la Carte : src/lib/recurrence.js.
 
 function studioPreviewEvents(seed = {}) {
   const samples = [

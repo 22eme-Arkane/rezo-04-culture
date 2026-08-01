@@ -19,6 +19,7 @@ export const CATEGORIES = [
   'Festival',
   'Conférence',
   'Marché',
+  'Vide-grenier',
   'Autre',
 ]
 
@@ -182,6 +183,9 @@ export async function createEvent(p) {
     p_lng: p.lng ?? null,
     p_address: p.address ?? '',
     p_category: p.category ?? '',
+    // Récurrence : tableau de jours (getDay) ou null pour un événement ponctuel.
+    p_recur_days: p.recur_days?.length ? p.recur_days : null,
+    p_contact: p.contact ?? '',
   })
   if (error) throw error
   return data
@@ -201,6 +205,9 @@ export async function updateEvent(id, p) {
     p_lng: p.lng ?? null,
     p_address: p.address ?? '',
     p_category: p.category ?? '',
+    // Récurrence : tableau de jours (getDay) ou null pour un événement ponctuel.
+    p_recur_days: p.recur_days?.length ? p.recur_days : null,
+    p_contact: p.contact ?? '',
   })
   if (error) throw error
   return data

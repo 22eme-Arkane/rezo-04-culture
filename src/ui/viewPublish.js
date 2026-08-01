@@ -11,6 +11,7 @@ import { studioHeader } from './studio.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { DEFAULT_CENTER, geocodeAddress } from '../lib/geo.js'
+import { JOURS, formatJourMois } from '../lib/recurrence.js'
 import { consumeDraft, consumeSharedFile } from '../lib/draft.js'
 import {
   CATEGORIES,
@@ -111,19 +112,51 @@ export async function viewPublish({ query } = {}) {
   const dateEcho = el('span', 'form__hint date-echo')
   fStart.wrap.appendChild(dateEcho)
 
+  // ⚠ Beaucoup de gens laissent « Fin » vide et recréent un SECOND événement
+  // pour le lendemain (cas réel : les 21 et 22 août saisis deux fois). Le
+  // mécanisme multi-jours existe pourtant déjà — c'est le champ qui ne disait
+  // pas à quoi il sert. On l'explique, et on montre l'étendue obtenue.
+  fEnd.wrap.appendChild(
+    el(
+      'span',
+      'form__hint',
+      'Sur plusieurs jours ? Indiquez ici la date de fin : l’événement apparaîtra ' +
+        'sur toutes les dates, sans avoir à le saisir deux fois.'
+    )
+  )
+  const finEcho = el('span', 'form__hint date-echo')
+  fEnd.wrap.appendChild(finEcho)
+
+  /** Confirme l'étendue réellement couverte par les deux dates. */
+  function majEtendue(debut) {
+    finEcho.textContent = ''
+    const vf = fEnd.input.value
+    if (!debut || !vf) return
+    const f = new Date(vf)
+    if (Number.isNaN(f.getTime())) return
+    const jour = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate())
+    const n = Math.round((jour(f) - jour(debut)) / 86400000) + 1
+    if (n > 1) {
+      finEcho.textContent = `→ ${n} jours : affiché du ${formatJourMois(debut)} au ${formatJourMois(f)}.`
+    }
+  }
+
   function majEchoDate() {
     const v = fStart.input.value
     if (!v) {
       dateEcho.textContent = ''
       dateEcho.classList.remove('date-echo--warn')
+      majEtendue(null)
       return
     }
     const d = new Date(v)
     if (Number.isNaN(d.getTime())) {
       dateEcho.textContent = ''
       dateEcho.classList.remove('date-echo--warn')
+      majEtendue(null)
       return
     }
+    majEtendue(d)
     const ecart = moisDEcart(d)
     let texte = '→ ' + DATE_LONGUE.format(d)
     let alerte = false
@@ -140,6 +173,81 @@ export async function viewPublish({ query } = {}) {
     dateEcho.textContent = texte
     dateEcho.classList.toggle('date-echo--warn', alerte)
   }
+
+  // --- Répétition -----------------------------------------------------------
+  // Le marché du vendredi, les food-trucks du mercredi : un seul événement,
+  // qui s'allume sur les bons jours de la période (migration 0013).
+  const recurWrap = el('div', 'form__field')
+  recurWrap.appendChild(el('span', 'form__label', 'Répétition'))
+  const recurToggle = el('label', 'switch')
+  const recurInput = el('input')
+  recurInput.type = 'checkbox'
+  recurToggle.appendChild(recurInput)
+  recurToggle.appendChild(el('span', 'switch__text', 'Cet événement se répète'))
+  recurWrap.appendChild(recurToggle)
+
+  const recurBox = el('div', 'recur')
+  const daysRow = el('div', 'recur__days')
+  const dayBtns = JOURS.map((j) => {
+    const b = el('button', 'recur__day', j.court)
+    b.type = 'button'
+    b.dataset.n = String(j.n)
+    b.title = j.long
+    b.setAttribute('aria-label', j.long)
+    b.addEventListener('click', () => {
+      b.classList.toggle('is-active')
+      refreshPreview()
+    })
+    daysRow.appendChild(b)
+    return b
+  })
+  recurBox.appendChild(daysRow)
+  const recurEcho = el('p', 'form__hint recur__echo')
+  recurBox.appendChild(recurEcho)
+  recurWrap.appendChild(recurBox)
+
+  const joursChoisis = () =>
+    dayBtns.filter((b) => b.classList.contains('is-active')).map((b) => Number(b.dataset.n))
+
+  function majRecurrence() {
+    const actif = recurInput.checked
+    recurBox.style.display = actif ? '' : 'none'
+    // Pour un événement récurrent, « Fin » borne la PÉRIODE et devient requis :
+    // sans borne, la répétition remplirait le calendrier indéfiniment.
+    const lbl = fEnd.wrap.querySelector('.form__label')
+    if (lbl) lbl.textContent = actif ? 'Fin de la période *' : 'Fin (optionnel)'
+    if (!actif) {
+      recurEcho.textContent = ''
+      return
+    }
+    const noms = JOURS.filter((j) => joursChoisis().includes(j.n)).map((j) => j.long)
+    recurEcho.textContent = noms.length
+      ? `Tous les ${noms.join('s, tous les ')}s, jusqu’à la date de fin.`
+      : 'Choisissez au moins un jour.'
+  }
+  recurInput.addEventListener('change', () => {
+    majRecurrence()
+    refreshPreview()
+  })
+
+  // Reprise d'un événement existant en édition.
+  const joursInit = Array.isArray(init.recur_days) ? init.recur_days.map(Number) : []
+  recurInput.checked = joursInit.length > 0
+  for (const b of dayBtns) {
+    if (joursInit.includes(Number(b.dataset.n))) b.classList.add('is-active')
+  }
+  majRecurrence()
+
+  // --- Contact de l'organisateur (facultatif) -------------------------------
+  const fContact = textField('Contact ou lien (facultatif)', 'text', init.contact || '')
+  fContact.input.placeholder = 'Site, page Facebook, téléphone, e-mail…'
+  fContact.wrap.appendChild(
+    el(
+      'span',
+      'form__hint',
+      'Affiché sur la fiche de l’événement, pour que le public puisse vous joindre.'
+    )
+  )
 
   // Gratuit / payant.
   const paidWrap = el('div', 'form__field')
@@ -258,6 +366,7 @@ export async function viewPublish({ query } = {}) {
    *  de la photo, lui, doit survivre à chaque frappe au clavier). */
   function refreshPreview() {
     majEchoDate()
+    majRecurrence()
     const ev = previewEventData()
     const d = new Date(ev.starts_at)
     setText('.poster-card__day', String(d.getDate()).padStart(2, '0'))
@@ -357,8 +466,10 @@ export async function viewPublish({ query } = {}) {
   // trop étroit sur mobile (« croupi »).
   form.appendChild(fStart.wrap)
   form.appendChild(fEnd.wrap)
+  form.appendChild(recurWrap)
   form.appendChild(paidWrap)
   form.appendChild(locWrap)
+  form.appendChild(fContact.wrap)
   form.appendChild(fPhoto)
   form.appendChild(submit)
   form.appendChild(msg)
@@ -545,6 +656,14 @@ export async function viewPublish({ query } = {}) {
       return fail('Placez le lieu sur la carte (adresse ou clic).')
     if (ends_at && ends_at < starts_at) return fail('La fin est avant le début.')
 
+    // Répétition : sans jour ni borne, elle n'a pas de sens (et remplirait le
+    // calendrier indéfiniment). La base refuse d'ailleurs les deux cas.
+    const recurrence = recurInput.checked ? joursChoisis() : []
+    if (recurInput.checked) {
+      if (!recurrence.length) return fail('Choisissez au moins un jour de répétition.')
+      if (!ends_at) return fail('Un événement qui se répète doit avoir une date de fin de période.')
+    }
+
     const payload = {
       title,
       description: fDesc.input.value.trim(),
@@ -556,6 +675,8 @@ export async function viewPublish({ query } = {}) {
       lng: state.lng,
       address: addrInput.value.trim(),
       category: fCategory.input.value,
+      recur_days: recurrence,
+      contact: fContact.input.value.trim(),
     }
 
     submit.disabled = true

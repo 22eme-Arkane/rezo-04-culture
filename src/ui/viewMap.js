@@ -8,6 +8,7 @@ import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { DEFAULT_CENTER, getUserLocation, locationErrorMessage } from '../lib/geo.js'
 import { eventsWithinRadius } from '../lib/events.js'
+import { dayKey, eventDayKeys } from '../lib/recurrence.js'
 import { getCategory, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
 import { studioHeader } from './studio.js'
@@ -23,15 +24,12 @@ const RADII = [
   { label: '50 km', m: 50000 },
 ]
 
-// Clé locale AAAA-MM-JJ ; un événement "couvre" un jour si start ≤ jour ≤ end.
-function ymd(d) {
-  const x = d instanceof Date ? d : new Date(d)
-  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
-}
+// ⚠ Un intervalle « start ≤ jour ≤ end » ne suffit plus : un événement récurrent
+// couvre une longue période mais seulement certains jours de la semaine. On
+// passe donc par le même calcul que l'Agenda (src/lib/recurrence.js).
+const ymd = dayKey
 function coversDay(ev, day) {
-  const s = ymd(ev.starts_at)
-  const e = ev.ends_at ? ymd(ev.ends_at) : s
-  return s <= day && day <= e
+  return eventDayKeys(ev).includes(day)
 }
 
 export async function viewMap() {
