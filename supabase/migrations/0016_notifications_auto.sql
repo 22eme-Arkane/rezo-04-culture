@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Armana — Migration 0016 : envoi automatique des notifications
 -- =============================================================================
--- ⚠ UNE SEULE LIGNE À MODIFIER AVANT D'EXÉCUTER : voir « À REMPLIR » ci-dessous.
+-- Rien à modifier : le fichier est prêt à être exécuté tel quel.
 --
 -- CE QUE FAIT CETTE MIGRATION
 -- Jusqu'ici, il fallait déclencher l'envoi à la main. Désormais la base regarde
@@ -42,15 +42,12 @@ alter table public.app_config enable row level security;
 -- depuis l'application, quel que soit son rôle.
 revoke all on public.app_config from anon, authenticated;
 
--- ⚠⚠ À REMPLIR ⚠⚠ ------------------------------------------------------------
--- Remplacez l'adresse ci-dessous par celle de VOTRE projet Supabase.
--- Où la trouver : Dashboard Supabase → Settings → API → « Project URL ».
--- Elle ressemble à https://abcdefghijkl.supabase.co
--- Gardez bien « /functions/v1/notify » à la fin.
+-- Adresse du projet. Ce n'est PAS un secret : elle figure déjà dans chaque
+-- requête que l'application envoie depuis le navigateur. Ce qui protège les
+-- données, ce sont la RLS et les clés — pas la discrétion de cette adresse.
 insert into public.app_config (key, value)
-values ('notify_url', 'https://VOTRE-PROJET.supabase.co/functions/v1/notify')
+values ('notify_url', 'https://vfehyyualizybqcoccwx.supabase.co/functions/v1/notify')
 on conflict (key) do update set value = excluded.value;
--- -----------------------------------------------------------------------------
 
 -- Secret partagé, généré automatiquement. Il n'est écrit nulle part ailleurs :
 -- la dernière requête de ce fichier vous l'affichera une fois, pour que vous le
@@ -82,8 +79,8 @@ begin
 
   select value into url from public.app_config where key = 'notify_url';
   select value into cle from public.app_config where key = 'notify_key';
-  if url is null or cle is null or url like '%VOTRE-PROJET%' then
-    raise notice 'Armana : notify_url non renseignée, envoi ignoré.';
+  if url is null or cle is null then
+    raise notice 'Armana : configuration d''envoi absente, notification laissée en file.';
     return;
   end if;
 
