@@ -32,9 +32,15 @@
 //      « Envoi pas encore en service ».
 //
 //   5. Après la migration 0016, qui génère un secret partagé et affiche sa
-//      valeur, déposer ce secret puis redéployer :
-//        npx supabase secrets set ARMANA_PUSH_KEY=<valeur affichee par 0016>
-//        npx supabase functions deploy notify
+//      valeur, déposer ce secret puis redéployer SANS vérification de jeton :
+//        npx supabase secrets set ARMANA_PUSH_KEY=la-valeur-affichee-par-0016
+//        npx supabase functions deploy notify --no-verify-jwt
+//
+//      ⚠ Le drapeau --no-verify-jwt est indispensable : l'appel automatique
+//      vient de la base via pg_net, qui n'envoie aucun jeton. Sans lui, la
+//      passerelle refuse l'appel avant qu'il n'arrive ici, et rien ne part.
+//      La protection ne disparaît pas pour autant — elle se déplace sur le
+//      secret ci-dessus, qui vaut mieux qu'un jeton public.
 // -----------------------------------------------------------------------------
 import webpush from 'npm:web-push@3.6.7'
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -62,10 +68,14 @@ const ECHECS_MAX = 5
 const LOT = 20
 
 Deno.serve(async (req) => {
-  // Si le secret n'est pas encore configuré, on n'exige rien : cela évite de se
-  // verrouiller dehors entre le déploiement de la fonction et la pose du
-  // secret. Dès qu'il est en place, tout appel sans lui est refusé.
-  if (PUSH_KEY && req.headers.get('x-armana-key') !== PUSH_KEY) {
+  // ⚠ Cette fonction est déployée avec --no-verify-jwt : la passerelle Supabase
+  // ne filtre plus rien, car l'appel venu de la base (pg_net) n'envoie aucun
+  // jeton et se faisait refuser avant même d'arriver ici.
+  // Le secret partagé est donc la SEULE barrière — et c'en est une meilleure :
+  // le jeton qu'exigeait la passerelle était la clé publique de l'application,
+  // lisible par tout le monde dans le bundle.
+  // D'où la sévérité : pas de secret configuré = on refuse tout.
+  if (!PUSH_KEY || req.headers.get('x-armana-key') !== PUSH_KEY) {
     return json({ erreur: 'Non autorisé' }, 401)
   }
 
