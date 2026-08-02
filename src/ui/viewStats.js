@@ -12,6 +12,7 @@ import { navigate } from '../lib/router.js'
 
 const MOIS = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: '2-digit' })
 const JOUR = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' })
+const JOUR_LONG = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
 export async function viewStats() {
   const wrap = el('section', 'page page--studio-sub')
@@ -66,23 +67,65 @@ export async function viewStats() {
   }
 
   // --- Fréquentation -------------------------------------------------------
-  body.appendChild(section('Fréquentation'))
+  // ⚠ Deux choses distinctes, autrefois mélangées dans un seul tableau :
+  //   * QUI VIENT — passages réellement observés, mesurés depuis peu ;
+  //   * L'ÉTAT DES COMPTES — historique d'authentification, qui remonte à la
+  //     création de chaque compte.
+  // Côte à côte sans explication, on lisait « 36 connectés sur 7 jours » sous
+  // « 26 visiteurs sur 30 jours » et l'on croyait le tableau faux.
+  const anon = stats.visites_anonymes ?? {}
+  body.appendChild(section('Qui vient'))
   const freq = el('div', 'settings-group')
-  freq.appendChild(line('Visiteurs uniques (7 jours)', stats.visites.uniques_7j))
-  freq.appendChild(line('Visiteurs uniques (30 jours)', stats.visites.uniques_30j))
-  freq.appendChild(line('Connectés dans les 24 h', stats.connexions.actifs_24h))
-  freq.appendChild(line('Connectés dans les 7 jours', stats.connexions.actifs_7j))
-  freq.appendChild(line('Connectés dans les 30 jours', stats.connexions.actifs_30j))
-  freq.appendChild(line('Jamais connectés', stats.connexions.jamais_connectes))
-  freq.appendChild(line('E-mails confirmés', stats.connexions.emails_confirmes))
+  freq.appendChild(line('Visiteurs sans compte (7 jours)', anon.uniques_7j ?? 0))
+  freq.appendChild(line('Visiteurs sans compte (30 jours)', anon.uniques_30j ?? 0))
+  freq.appendChild(line('Membres venus (7 jours)', stats.visites.uniques_7j))
+  freq.appendChild(line('Membres venus (30 jours)', stats.visites.uniques_30j))
   body.appendChild(freq)
 
-  const daily = (stats.visites.par_jour ?? []).map((d) => ({
-    label: JOUR.format(new Date(d.label + 'T12:00:00')),
-    n: d.n,
-  }))
+  const depuis = stats.visites.depuis || anon.depuis
+  body.appendChild(
+    el(
+      'p',
+      'form__hint',
+      depuis
+        ? 'Passages réellement observés, mesurés depuis le ' +
+          JOUR_LONG.format(new Date(depuis + 'T12:00:00')) +
+          '. Un « 30 jours » ne peut donc pas dépasser ce que la mesure a eu le temps de voir.'
+        : 'Aucun passage encore enregistré : la mesure démarre avec cette version.'
+    )
+  )
+
+  // --- État des comptes ----------------------------------------------------
+  body.appendChild(section('État des comptes'))
+  const comptes = el('div', 'settings-group')
+  comptes.appendChild(line('Session ouverte dans les 24 h', stats.connexions.actifs_24h))
+  comptes.appendChild(line('Session ouverte dans les 7 jours', stats.connexions.actifs_7j))
+  comptes.appendChild(line('Session ouverte dans les 30 jours', stats.connexions.actifs_30j))
+  comptes.appendChild(line('Jamais connectés', stats.connexions.jamais_connectes))
+  comptes.appendChild(line('E-mails confirmés', stats.connexions.emails_confirmes))
+  body.appendChild(comptes)
+  body.appendChild(
+    el(
+      'p',
+      'form__hint',
+      'Historique d’authentification, disponible depuis la création des comptes. ' +
+        'Ce n’est pas un nombre de visites : une session peut se rouvrir sans que ' +
+        'la personne ait ouvert l’application.'
+    )
+  )
+
+  // Courbe : les deux publics cumulés, c'est la fréquentation réelle.
+  const parJour = new Map()
+  for (const d of stats.visites.par_jour ?? []) parJour.set(d.label, d.n)
+  for (const d of anon.par_jour ?? []) parJour.set(d.label, (parJour.get(d.label) ?? 0) + d.n)
+  const daily = [...parJour.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([label, n]) => ({
+      label: JOUR.format(new Date(label + 'T12:00:00')),
+      n,
+    }))
   if (daily.length) {
-    body.appendChild(section('Visites par jour (30 derniers jours)'))
+    body.appendChild(section('Passages par jour, tous publics (30 jours)'))
     body.appendChild(barChart(daily))
   } else {
     body.appendChild(

@@ -93,6 +93,41 @@ export async function recordVisit() {
   }
 }
 
+// Identifiant de visiteur non inscrit. Nombre aléatoire tiré par le navigateur,
+// sans lien avec une personne : il sert uniquement à ne pas compter dix fois la
+// même visite dans la journée. Préfixe `rezo-` comme les autres clés locales.
+const VISITEUR_KEY = 'rezo-visitor'
+
+function idVisiteur() {
+  try {
+    let id = localStorage.getItem(VISITEUR_KEY)
+    if (!/^[0-9a-f]{32}$/.test(id || '')) {
+      id = (crypto.randomUUID?.() || '').replace(/-/g, '')
+      if (!/^[0-9a-f]{32}$/.test(id)) return null
+      localStorage.setItem(VISITEUR_KEY, id)
+    }
+    return id
+  } catch {
+    // Stockage refusé (navigation privée) : on ne compte pas plutôt que de
+    // compter faux à chaque ouverture.
+    return null
+  }
+}
+
+/**
+ * Passage d'un visiteur NON connecté. Sans cela, les statistiques ne voyaient
+ * que les inscrits — c'est-à-dire une minorité des passages.
+ */
+export async function recordAnonVisit() {
+  const id = idVisiteur()
+  if (!id) return
+  try {
+    await supabase.rpc('record_anon_visit', { p_visitor: id })
+  } catch {
+    /* purement statistique */
+  }
+}
+
 /** Statistiques complètes du tableau de bord (admin uniquement). */
 export async function getAdminStats() {
   const { data, error } = await supabase.rpc('admin_stats')

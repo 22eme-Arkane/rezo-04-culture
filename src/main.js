@@ -29,7 +29,7 @@ import { viewJournal } from './ui/viewJournal.js'
 import { viewMember } from './ui/viewMember.js'
 import { viewNotifications } from './ui/viewNotifications.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
-import { recordVisit, resetOwnerCache } from './lib/admins.js'
+import { recordAnonVisit, recordVisit, resetOwnerCache } from './lib/admins.js'
 
 // --- Service worker (offline shell) ---
 // UNIQUEMENT en production : en dev, un SW "cache-first" servirait des modules
@@ -157,7 +157,10 @@ defineRoutes(
 
   // Fréquentation : une ligne par utilisateur et par jour (statistiques admin).
   // Volontairement sans await : purement statistique, jamais bloquant.
+  // Les non-connectés sont la majorité des passages : les ignorer donnait des
+  // statistiques de fréquentation trompeuses.
   if (getUser()) recordVisit()
+  else recordAnonVisit()
 
   // Sur login/logout UNIQUEMENT : reconstruire la nav + re-rendre la vue courante.
   // ⚠ Supabase émet aussi des événements au simple retour dans l'app (rafraîchissement
