@@ -203,13 +203,6 @@ defineRoutes(
 
   startRouter(content)
 
-  // L'écran d'accueil s'efface une fois la première vue en place.
-  const boot = document.getElementById('boot')
-  if (boot) {
-    boot.classList.add('is-done')
-    setTimeout(() => boot.remove(), 300)
-  }
-
   // Recherche de mise à jour à CHAQUE lancement (silencieuse ; bannière si dispo).
   initUpdateCheck(showUpdateBanner)
 })()

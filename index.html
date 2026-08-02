@@ -18,53 +18,20 @@
       } catch (e) {
         document.documentElement.dataset.theme = 'soleil-or'
       }
-      // Filet de sécurité : si le démarrage échoue (réseau coupé, erreur JS),
-      // l'écran d'accueil ne doit JAMAIS rester à masquer l'application.
-      setTimeout(function () {
-        var b = document.getElementById('boot')
-        if (b) b.remove()
-      }, 8000)
     </script>
     <!--
-      Écran d'accueil de l'application. Android en génère déjà un depuis le
-      manifeste (fond jaune + icône) mais n'y écrit pas toujours le nom, et iOS
-      n'affiche qu'un fond vide. Celui-ci est sous notre contrôle : styles en
-      ligne pour qu'il s'affiche AVANT même le chargement de la feuille de
-      style, et il reste visible jusqu'à ce que la première vue soit prête.
+      Pas d'écran d'accueil maison : celui qu'Android génère depuis le manifeste
+      (fond jaune + grande icône) est bien plus net. Une version avec le logo
+      réduit et le nom écrit en dessous a été essayée puis retirée — le fichier
+      masks-logo.png est de trop faible définition, il piquait dès qu'on
+      l'agrandissait, et l'enchaînement des deux écrans faisait doublon.
     -->
-    <style>
-      #boot {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0.85rem;
-        background: #f9d44d;
-        font-family: 'Poppins', system-ui, sans-serif;
-      }
-      #boot img { width: 128px; height: 128px; object-fit: contain; }
-      #boot span {
-        font-size: 2.1rem;
-        font-weight: 800;
-        letter-spacing: 0.01em;
-        color: #064f36;
-      }
-      #boot.is-done { opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
-      @media (prefers-reduced-motion: reduce) { #boot.is-done { transition: none; } }
-    </style>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png?v=2" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png?v=2" />
     <title>Armana</title>
   </head>
   <body>
-    <div id="boot">
-      <img src="/assets/studio-affiche/masks-logo.png" alt="" />
-      <span>Armana</span>
-    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
