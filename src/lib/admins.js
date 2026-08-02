@@ -32,6 +32,17 @@ export async function setAdminById(id, makeAdmin) {
   return data?.[0] ?? null
 }
 
+/**
+ * Fiche complète d'un membre, e-mail compris (admin uniquement).
+ * L'adresse n'est volontairement PAS incluse dans `listMembers` : elle n'est
+ * lue que lorsqu'un administrateur ouvre délibérément une fiche.
+ */
+export async function getMemberProfile(id) {
+  const { data, error } = await supabase.rpc('member_profile', { p_id: id })
+  if (error) throw error
+  return data?.[0] ?? null
+}
+
 // --- Propriétaire du projet ---------------------------------------------------
 // Le drapeau `profiles.is_owner` n'est pas lisible directement (aucun GRANT sur
 // la colonne) : on passe par une RPC, dont le résultat ne change pas au cours

@@ -26,6 +26,7 @@ import { viewFeedback } from './ui/viewFeedback.js'
 import { viewSupport } from './ui/viewSupport.js'
 import { viewInstall } from './ui/viewInstall.js'
 import { viewJournal } from './ui/viewJournal.js'
+import { viewMember } from './ui/viewMember.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 import { recordVisit, resetOwnerCache } from './lib/admins.js'
 
@@ -122,6 +123,7 @@ defineRoutes(
     '/soutenir': viewSupport,
     '/installer': viewInstall,
     '/journal': viewJournal,
+    '/membre': viewMember,
     '/connexion': viewAuth,
   },
   {

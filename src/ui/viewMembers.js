@@ -3,8 +3,9 @@
 import { el, emptyState } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
+import { navigate } from '../lib/router.js'
 import { isAdmin, getUser } from '../lib/auth.js'
-import { listMembers, setAdminById } from '../lib/admins.js'
+import { listMembers } from '../lib/admins.js'
 
 const DTF = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -25,8 +26,8 @@ export async function viewMembers() {
     el(
       'p',
       'form__hint',
-      'Touchez un membre pour le nommer administrateur ou lui retirer ce rôle. ' +
-        'Un administrateur peut modifier et supprimer tous les événements.'
+      'Touchez un membre pour ouvrir sa fiche : son adresse pour lui écrire, ' +
+        'ses publications, et la désignation comme administrateur.'
     )
   )
 
@@ -48,9 +49,6 @@ export async function viewMembers() {
     for (const m of members) {
       const nom = m.display_name || 'Sans nom'
       const estAdmin = m.role === 'admin'
-      // Deux comptes qu'on ne peut pas toucher : le propriétaire (protégé en
-      // base, migration 0011) et soi-même (on se retirerait ses propres droits).
-      const verrouille = m.is_owner || m.id === myId
 
       const row = el('button', 'settings-row')
       row.type = 'button'
@@ -64,38 +62,11 @@ export async function viewMembers() {
         el(
           'span',
           'settings-row__value',
-          verrouille ? (m.is_owner ? 'protégé' : 'vous') : DTF.format(new Date(m.created_at))
+          m.id === myId ? 'vous' : DTF.format(new Date(m.created_at))
         )
       )
-
-      row.addEventListener('click', async () => {
-        if (m.is_owner) {
-          alert(
-            'Ce compte est le propriétaire du projet.\n\n' +
-              'Son rôle ne peut être modifié par personne depuis l’application, ' +
-              'y compris par un autre administrateur.'
-          )
-          return
-        }
-        if (m.id === myId) {
-          alert('Vous ne pouvez pas modifier votre propre rôle.')
-          return
-        }
-        const question = estAdmin
-          ? `Retirer le rôle d’administrateur à ${nom} ?`
-          : `Nommer ${nom} administrateur ?\n\nIl pourra modérer, modifier et supprimer tous les événements.`
-        if (!confirm(question)) return
-
-        row.disabled = true
-        try {
-          await setAdminById(m.id, !estAdmin)
-          await refresh()
-        } catch (e) {
-          alert('Action impossible : ' + e.message)
-          row.disabled = false
-        }
-      })
-
+      row.appendChild(icon('chevronRight'))
+      row.addEventListener('click', () => navigate('/membre?id=' + m.id))
       box.appendChild(row)
     }
   }

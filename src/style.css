@@ -349,6 +349,14 @@ html, body {
 .date-echo { display: block; margin-top: 0.35rem; }
 .date-echo--warn { color: var(--danger); font-weight: 700; }
 
+/* Fiche d'un membre (admin). */
+.member-head { margin-bottom: 0.9rem; }
+.member-head__name { margin: 0 0 0.45rem; font-size: 1.35rem; font-weight: 850; }
+.member-head__badges { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+/* La ligne d'e-mail est un lien : elle doit rester lisible et ne pas déborder. */
+a.settings-row { text-decoration: none; }
+a.settings-row .settings-row__label { word-break: break-all; }
+
 /* « Jour 2 sur 3 » / « Tous les vendredis » sur une carte de l'agenda. */
 .poster-card__occ {
   display: inline-block;
