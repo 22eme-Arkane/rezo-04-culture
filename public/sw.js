@@ -81,8 +81,13 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Armana', {
       body: data.body || '',
+      // Grande icône, dans le corps de la notification : en couleurs.
       icon: '/icons/icon-192.png?v=2',
-      badge: '/icons/icon-192.png?v=2',
+      // ⚠ Petite icône de la barre d'état : Android n'en garde QUE la
+      // transparence et peint le reste en blanc. L'icône de l'application étant
+      // un carré 100 % opaque, elle donnait un carré blanc. badge-96.png est
+      // une silhouette des masques découpée sur fond transparent.
+      badge: '/icons/badge-96.png',
       // Même `tag` = la nouvelle remplace la précédente au lieu d'empiler dix
       // fois « un événement à valider ».
       tag: data.kind || 'armana',
