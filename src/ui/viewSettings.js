@@ -83,6 +83,7 @@ export async function viewSettings() {
   // 3. Installer : action ponctuelle, isolée pour ne pas se noyer dans la liste.
   const install = el('div', 'settings-group')
   install.appendChild(rowNav(icon('plus'), 'Installer l’application', '/installer'))
+  install.appendChild(rowNav(icon('message'), 'Notifications', '/notifications'))
   wrap.appendChild(install)
 
   // 4. Soutenir et écrire : les deux façons d'aider le projet.

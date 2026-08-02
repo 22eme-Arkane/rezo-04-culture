@@ -27,6 +27,7 @@ import { viewSupport } from './ui/viewSupport.js'
 import { viewInstall } from './ui/viewInstall.js'
 import { viewJournal } from './ui/viewJournal.js'
 import { viewMember } from './ui/viewMember.js'
+import { viewNotifications } from './ui/viewNotifications.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 import { recordVisit, resetOwnerCache } from './lib/admins.js'
 
@@ -124,6 +125,7 @@ defineRoutes(
     '/installer': viewInstall,
     '/journal': viewJournal,
     '/membre': viewMember,
+    '/notifications': viewNotifications,
     '/connexion': viewAuth,
   },
   {

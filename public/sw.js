@@ -66,6 +66,49 @@ async function handleShare(request) {
   return Response.redirect('/?shared=1', 303)
 }
 
+// --- Notifications push -----------------------------------------------------
+// Reçues même application fermée. Tout est désactivé par défaut : rien n'arrive
+// ici tant que la personne n'a pas explicitement autorisé les notifications ET
+// choisi ce qu'elle veut recevoir (écran Profil → Notifications).
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch (e) {
+    // Charge utile non JSON : on affiche quand même quelque chose plutôt que rien.
+    data = { body: event.data ? event.data.text() : '' }
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Armana', {
+      body: data.body || '',
+      icon: '/icons/icon-192.png?v=2',
+      badge: '/icons/icon-192.png?v=2',
+      // Même `tag` = la nouvelle remplace la précédente au lieu d'empiler dix
+      // fois « un événement à valider ».
+      tag: data.kind || 'armana',
+      data: { url: data.url || '/' },
+    })
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const cible = (event.notification.data && event.notification.data.url) || '/'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((fenetres) => {
+      // Application déjà ouverte : on la remet devant et on l'aiguille, plutôt
+      // que d'ouvrir un second onglet.
+      for (const f of fenetres) {
+        if (f.url.startsWith(self.location.origin)) {
+          if (f.navigate) f.navigate(cible).catch(() => {})
+          return f.focus()
+        }
+      }
+      return self.clients.openWindow(cible)
+    })
+  )
+})
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)

@@ -349,6 +349,13 @@ html, body {
 .date-echo { display: block; margin-top: 0.35rem; }
 .date-echo--warn { color: var(--danger); font-weight: 700; }
 
+/* Écran Notifications : intitulé + explication sous chaque interrupteur. */
+.notif-type { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.notif-type__detail {
+  font-size: 0.74rem; font-weight: 500; line-height: 1.35; color: var(--muted);
+}
+.settings-row--static > .settings-row__label { align-items: flex-start; }
+
 /* Fiche d'un membre (admin). */
 .member-head { margin-bottom: 0.9rem; }
 .member-head__name { margin: 0 0 0.45rem; font-size: 1.35rem; font-weight: 850; }
