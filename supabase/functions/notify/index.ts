@@ -31,8 +31,10 @@
 //      puis redéployer le site, sinon l'écran Notifications restera en
 //      « Envoi pas encore en service ».
 //
-// La planification (appel automatique toutes les minutes) viendra ensuite, une
-// fois qu'on aura vérifié ensemble qu'un envoi manuel arrive bien.
+//   5. Après la migration 0016, qui génère un secret partagé et affiche sa
+//      valeur, déposer ce secret puis redéployer :
+//        npx supabase secrets set ARMANA_PUSH_KEY=<valeur affichee par 0016>
+//        npx supabase functions deploy notify
 // -----------------------------------------------------------------------------
 import webpush from 'npm:web-push@3.6.7'
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -42,6 +44,12 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY') ?? ''
 const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY') ?? ''
 const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:contact@armana04.vercel.app'
+
+// Secret partagé avec la base (migration 0016). Sans lui, la fonction était
+// déclenchable par quiconque disposait de la clé publique de l'application —
+// laquelle est dans le bundle, donc lisible par tous. Le risque n'était pas la
+// fuite de données mais l'épuisement du quota gratuit d'invocations.
+const PUSH_KEY = Deno.env.get('ARMANA_PUSH_KEY') ?? ''
 
 // Ces deux types ne concernent que les administrateurs : même si quelqu'un
 // forçait la préférence, il ne recevrait rien.
@@ -53,7 +61,14 @@ const ECHECS_MAX = 5
 // Nombre de notifications traitées par appel : borne la durée d'exécution.
 const LOT = 20
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  // Si le secret n'est pas encore configuré, on n'exige rien : cela évite de se
+  // verrouiller dehors entre le déploiement de la fonction et la pose du
+  // secret. Dès qu'il est en place, tout appel sans lui est refusé.
+  if (PUSH_KEY && req.headers.get('x-armana-key') !== PUSH_KEY) {
+    return json({ erreur: 'Non autorisé' }, 401)
+  }
+
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return json({ erreur: 'Clés VAPID absentes. Voir l’en-tête du fichier.' }, 500)
   }
