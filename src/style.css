@@ -1346,7 +1346,6 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   font-weight: 700;
   box-shadow: none;
 }
-.chips-row--studio .chip svg { width: 14px; height: 14px; }
 .chips-row--studio .chip.is-active {
   color: var(--studio-ink);
   background: var(--mask-green-light);

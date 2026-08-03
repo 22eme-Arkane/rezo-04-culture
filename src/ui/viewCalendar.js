@@ -92,7 +92,6 @@ export async function viewCalendar() {
   const addChip = (label, value) => {
     const c = el('button', 'chip', label)
     c.dataset.value = value
-    if (value === 'all') c.appendChild(icon('chevronDown'))
     c.addEventListener('click', () => {
       quickFilter = value
       // « Aujourd'hui » et « Ce week-end » désignent une date précise : on
