@@ -378,6 +378,14 @@ a.settings-row .settings-row__label { word-break: break-all; }
 /* Aides sous un champ de formulaire (span dans un label → doit passer bloc). */
 .form__field > .form__hint { display: block; margin-top: 0.35rem; }
 
+/* Emplacements photo : un par journée annoncée. */
+.photo-slots { display: flex; flex-direction: column; gap: 0.5rem; }
+.photo-slot { display: flex; flex-direction: column; gap: 0.22rem; }
+.photo-slot__jour {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em;
+  text-transform: uppercase; color: var(--muted);
+}
+
 /* Répétition hebdomadaire — pastilles L M M J V S D. */
 .recur { margin-top: 0.6rem; }
 .recur__days { display: flex; flex-wrap: wrap; gap: 0.35rem; }

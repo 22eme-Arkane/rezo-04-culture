@@ -189,9 +189,15 @@ export async function viewCalendar() {
         if (filtreJours && !filtreJours.has(k)) return
         const [a, m, j] = k.split('-').map(Number)
         const d = new Date(a, m - 1, j, debut.getHours(), debut.getMinutes(), 0, 0)
+        // Une affiche par journée quand l'auteur en a fourni plusieurs : la
+        // photo de position i illustre le jour i+1. Sinon, celle de
+        // l'événement sert pour toutes ses dates.
+        const photo = ev.photos?.[i] ?? null
         out.push({
           ...ev,
           starts_at: d.toISOString(),
+          photo_url: photo?.photo_url ?? ev.photo_url,
+          thumb_url: photo?.thumb_url ?? ev.thumb_url,
           _dayKey: k,
           // Étiquette seulement s'il y a plusieurs dates : inutile de surcharger
           // une carte d'événement ponctuel.

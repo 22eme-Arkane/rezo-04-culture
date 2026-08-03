@@ -17,7 +17,7 @@ import {
   CATEGORIES,
   createEvent,
   updateEvent,
-  uploadEventPhoto,
+  uploadEventPhotos,
   getEventById,
   isUpcoming,
 } from '../lib/events.js'
@@ -291,19 +291,93 @@ export async function viewPublish({ query } = {}) {
   const pickMap = el('div', 'map map--pick')
   locWrap.appendChild(pickMap)
 
-  // Photo.
+  // --- Photo(s) -------------------------------------------------------------
+  // Un événement sur plusieurs jours peut avoir une affiche par journée : on
+  // ouvre autant d'emplacements que de dates annoncées. La photo de
+  // l'emplacement N illustrera le jour N dans l'agenda.
   const fPhoto = el('div', 'form__field')
   fPhoto.appendChild(el('span', 'form__label', 'Photo (optionnel)'))
-  const photoInput = el('input', 'form__input')
-  photoInput.type = 'file'
-  photoInput.accept = 'image/*'
-  fPhoto.appendChild(photoInput)
+  const slotsBox = el('div', 'photo-slots')
+  fPhoto.appendChild(slotsBox)
+  const photoHint = el('p', 'form__hint')
+  fPhoto.appendChild(photoHint)
   if (sharedPhoto) {
     fPhoto.appendChild(
       el('p', 'form__hint', `📷 Photo importée depuis le partage. Choisissez un fichier pour la remplacer.`)
     )
   } else if (existing?.photo_url) {
-    fPhoto.appendChild(el('p', 'form__hint', 'Une photo existe déjà ; en choisir une nouvelle l’ajoute.'))
+    fPhoto.appendChild(el('p', 'form__hint', 'Une photo existe déjà ; en choisir une nouvelle la remplace.'))
+  }
+
+  /** Une entrée par jour : { file, crop }. Les trous sont permis. */
+  const photos = []
+  let slotActif = 0
+  let slots = []
+
+  /** Nombre d'affiches proposées = nombre de jours annoncés (borné). */
+  function joursAnnonces() {
+    // Un événement récurrent peut compter vingt occurrences : une affiche par
+    // occurrence n'aurait aucun sens, on en reste à une seule.
+    if (recurInput.checked) return 1
+    const d = fStart.input.value ? new Date(fStart.input.value) : null
+    const f = fEnd.input.value ? new Date(fEnd.input.value) : null
+    if (!d || !f || Number.isNaN(d.getTime()) || Number.isNaN(f.getTime())) return 1
+    const jour = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate())
+    const n = Math.round((jour(f) - jour(d)) / 86400000) + 1
+    // Garde-fou : au-delà, on enverrait des dizaines de photos pour un seul
+    // événement, ce que la règle de stockage du plan gratuit ne supporte pas.
+    return Math.min(Math.max(1, n), 10)
+  }
+
+  /** Le cadrage en cours appartient à l'emplacement affiché : le conserver. */
+  function memoriserCadrage() {
+    if (framingEnabled && photos[slotActif]) photos[slotActif].crop = framer.getCrop()
+  }
+
+  async function chargerDansApercu(i) {
+    slotActif = i
+    try {
+      await framer.setFile(photos[i].file)
+      framingEnabled = true
+      previewMedia.classList.remove('poster-card__media--empty')
+      refreshPreview()
+    } catch (e) {
+      framingEnabled = false
+      frameHint.textContent = 'Cette image n’a pas pu être lue : ' + e.message
+    }
+  }
+
+  function construireEmplacements() {
+    const n = joursAnnonces()
+    if (slots.length === n) return
+    slotsBox.innerHTML = ''
+    slots = []
+    const debut = fStart.input.value ? new Date(fStart.input.value) : null
+    for (let i = 0; i < n; i++) {
+      const slot = el('div', 'photo-slot')
+      if (n > 1 && debut) {
+        const d = new Date(debut)
+        d.setDate(d.getDate() + i)
+        slot.appendChild(el('span', 'photo-slot__jour', `Jour ${i + 1} · ${formatJourMois(d)}`))
+      }
+      const input = el('input', 'form__input')
+      input.type = 'file'
+      input.accept = 'image/*'
+      input.addEventListener('change', async () => {
+        const file = input.files?.[0]
+        if (!file) return
+        memoriserCadrage()
+        photos[i] = { file, crop: null }
+        await chargerDansApercu(i)
+      })
+      slot.appendChild(input)
+      slotsBox.appendChild(slot)
+      slots.push(input)
+    }
+    photoHint.textContent =
+      n > 1
+        ? `Une affiche par journée. Les jours laissés vides reprennent celle du premier jour.`
+        : ''
   }
 
   // --- Aperçu « tel qu'il apparaîtra dans l'agenda » ---
@@ -367,6 +441,9 @@ export async function viewPublish({ query } = {}) {
   function refreshPreview() {
     majEchoDate()
     majRecurrence()
+    // Le nombre d'emplacements suit les dates saisies : allonger l'événement
+    // d'un jour ouvre aussitôt un emplacement de plus.
+    construireEmplacements()
     const ev = previewEventData()
     const d = new Date(ev.starts_at)
     setText('.poster-card__day', String(d.getDate()).padStart(2, '0'))
@@ -408,19 +485,7 @@ export async function viewPublish({ query } = {}) {
     if (node) node.textContent = value
   }
 
-  photoInput.addEventListener('change', async () => {
-    const file = photoInput.files?.[0]
-    if (!file) return
-    try {
-      await framer.setFile(file)
-      framingEnabled = true
-      previewMedia.classList.remove('poster-card__media--empty')
-      refreshPreview()
-    } catch (e) {
-      framingEnabled = false
-      frameHint.textContent = 'Cette image n’a pas pu être lue : ' + e.message
-    }
-  })
+  // (Le choix d'un fichier est géré par emplacement, dans construireEmplacements.)
 
   zoomIn.addEventListener('click', () => {
     framer.zoomBy(1.2)
@@ -685,12 +750,24 @@ export async function viewPublish({ query } = {}) {
       const row = existing
         ? await updateEvent(existing.id, payload)
         : await createEvent(payload)
-      // Photo : choix manuel prioritaire, sinon la photo partagée (WhatsApp).
-      const file = photoInput.files?.[0] || sharedPhoto
-      if (file) {
+      // Photos : un emplacement par journée annoncée, plus la photo reçue par
+      // partage (WhatsApp) si aucun choix manuel n'a été fait.
+      memoriserCadrage()
+      const aEnvoyer = []
+      photos.forEach((p, i) => {
+        if (p?.file) aEnvoyer.push({ file: p.file, crop: p.crop, position: i })
+      })
+      if (!aEnvoyer.length && sharedPhoto) {
+        aEnvoyer.push({
+          file: sharedPhoto,
+          crop: framingEnabled ? framer.getCrop() : null,
+          position: 0,
+        })
+      }
+      if (aEnvoyer.length) {
         try {
           // Le cadrage choisi dans l'aperçu est appliqué à la vignette.
-          await uploadEventPhoto(row.id, file, framingEnabled ? framer.getCrop() : null)
+          await uploadEventPhotos(row.id, aEnvoyer)
         } catch (pe) {
           // Ne JAMAIS avaler cet échec en silence : l'auteur croyait sa photo
           // publiée, et un problème de droits sur le Storage passait inaperçu.

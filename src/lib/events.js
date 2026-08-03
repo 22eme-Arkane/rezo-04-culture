@@ -30,6 +30,21 @@ export function publicPhotoUrl(path) {
 }
 
 /**
+ * Chemin de la vignette déduit de celui de la photo pleine.
+ * Convention : {uid}/{eventId}/photo-{position}.webp → thumb-{position}.webp.
+ *
+ * ⚠ Le suffixe est FACULTATIF : les événements créés avant la gestion de
+ * plusieurs photos utilisent `photo.webp` / `thumb.webp` tout court. Les deux
+ * formes doivent continuer d'être reconnues, sinon la suppression et la purge
+ * mensuelle laisseraient des fichiers orphelins dans le stockage — ce qui
+ * remplit le quota gratuit sans que rien ne le signale.
+ */
+export function thumbPath(path) {
+  if (!path) return null
+  return path.replace(/photo(-\d+)?\.webp$/, (m, n) => 'thumb' + (n || '') + '.webp')
+}
+
+/**
  * Un événement est-il "à venir" (non terminé) ?
  * Fin effective = ends_at, sinon le début (compté jusqu'à la fin de sa journée).
  */
@@ -66,24 +81,29 @@ async function attachRelations(events) {
     supabase.from('profiles').select('id, display_name').in('id', creatorIds),
   ])
 
-  const firstPhoto = new Map()
+  // Toutes les photos, rangées par position : la position N correspond au
+  // JOUR N+1 d'un événement qui dure plusieurs jours (un festival peut avoir
+  // une affiche par journée).
+  const parEvenement = new Map()
   for (const p of photosRes.data ?? []) {
-    if (!firstPhoto.has(p.event_id)) firstPhoto.set(p.event_id, p.storage_path)
+    if (!parEvenement.has(p.event_id)) parEvenement.set(p.event_id, [])
+    parEvenement.get(p.event_id).push(p.storage_path)
   }
   const nameById = new Map((profilesRes.data ?? []).map((p) => [p.id, p.display_name]))
 
   return list.map((e) => {
-    const path = firstPhoto.get(e.id) ?? null
-    // Convention de stockage : {uid}/{eventId}/photo.webp + thumb.webp à côté.
-    // La vignette sert aux listes/cartes ; la pleine résolution au détail seul.
-    const thumbPath = path?.endsWith('photo.webp')
-      ? path.replace(/photo\.webp$/, 'thumb.webp')
-      : path
+    const paths = parEvenement.get(e.id) ?? []
+    const photos = paths.map((p) => ({
+      photo_url: publicPhotoUrl(p),
+      thumb_url: publicPhotoUrl(thumbPath(p)),
+    }))
     return {
       ...e,
       author_name: nameById.get(e.created_by) ?? 'Anonyme',
-      photo_url: path ? publicPhotoUrl(path) : null,
-      thumb_url: thumbPath ? publicPhotoUrl(thumbPath) : null,
+      photos,
+      // La première reste celle qui représente l'événement (carte, détail).
+      photo_url: photos[0]?.photo_url ?? null,
+      thumb_url: photos[0]?.thumb_url ?? null,
     }
   })
 }
@@ -230,9 +250,8 @@ export async function deleteEvent(id) {
     for (const p of photos ?? []) {
       if (!p.storage_path) continue
       files.push(p.storage_path)
-      if (p.storage_path.endsWith('photo.webp')) {
-        files.push(p.storage_path.replace(/photo\.webp$/, 'thumb.webp'))
-      }
+      const t = thumbPath(p.storage_path)
+      if (t && t !== p.storage_path) files.push(t)
     }
     if (files.length) await supabase.storage.from('event-photos').remove(files)
   } catch (e) {
@@ -252,40 +271,60 @@ export async function setEventStatus(id, status) {
 }
 
 /**
- * Téléverse une photo d'événement — RÈGLE DE STOCKAGE (plan gratuit) :
+ * Téléverse LES photos d'un événement — RÈGLE DE STOCKAGE (plan gratuit) :
  * compression WebP côté client AVANT envoi (max ~1600px) + vignette ~400px.
- * Chemins : {uid}/{eventId}/photo.webp (pleine) et thumb.webp (vignette).
- * La ligne event_photos ne référence que la pleine ; la vignette est dérivée.
+ *
+ * Un événement sur plusieurs jours peut avoir une affiche par journée : la
+ * photo de POSITION N illustre le JOUR N+1. Chemins :
+ * {uid}/{eventId}/photo-{position}.webp et thumb-{position}.webp.
+ *
+ * @param {Array<{file: File, crop?: object, position: number}>} entrees
  */
-export async function uploadEventPhoto(eventId, file, crop = null) {
+export async function uploadEventPhotos(eventId, entrees) {
   const uid = getUser()?.id
   if (!uid) throw new Error('Non connecté')
+  const valides = (entrees ?? []).filter((e) => e?.file)
+  if (!valides.length) return []
 
-  // `crop` = cadrage choisi par l'auteur dans l'aperçu ; appliqué à la vignette.
-  const { full, thumb, type } = await makePhotoVariants(file, { crop })
   const base = `${uid}/${eventId}`
-  // ⚠ Le nom de fichier reste `.webp` même quand l'appareil n'a su produire que
-  // du JPEG : toute l'application déduit le chemin de la vignette de ce suffixe
-  // (listes, suppression, purge mensuelle, RPC 0009). C'est le CONTENT-TYPE
-  // annoncé ici qui compte pour l'affichage, pas l'extension.
-  const opts = { upsert: true, contentType: type }
+  const lignes = []
 
-  const { error: e1 } = await supabase.storage
-    .from('event-photos')
-    .upload(`${base}/photo.webp`, full, opts)
-  if (e1) throw e1
-  const { error: e2 } = await supabase.storage
-    .from('event-photos')
-    .upload(`${base}/thumb.webp`, thumb, opts)
-  if (e2) throw e2
+  for (const { file, crop, position } of valides) {
+    // `crop` = cadrage choisi par l'auteur dans l'aperçu ; appliqué à la vignette.
+    const { full, thumb, type } = await makePhotoVariants(file, { crop: crop ?? null })
+    // ⚠ Le nom de fichier reste `.webp` même quand l'appareil n'a su produire
+    // que du JPEG : toute l'application déduit le chemin de la vignette de ce
+    // suffixe (listes, suppression, purge mensuelle). C'est le CONTENT-TYPE
+    // annoncé ici qui compte pour l'affichage, pas l'extension.
+    const opts = { upsert: true, contentType: type }
+    const chemin = `${base}/photo-${position}.webp`
 
-  // Une seule photo par événement pour l'instant : upsert de la ligne.
-  await supabase.from('event_photos').delete().eq('event_id', eventId)
-  const { error: insErr } = await supabase
+    const { error: e1 } = await supabase.storage.from('event-photos').upload(chemin, full, opts)
+    if (e1) throw e1
+    const { error: e2 } = await supabase.storage
+      .from('event-photos')
+      .upload(thumbPath(chemin), thumb, opts)
+    if (e2) throw e2
+
+    lignes.push({ event_id: eventId, storage_path: chemin, position })
+  }
+
+  // On remplace les lignes des positions concernées, sans toucher aux autres :
+  // remplacer la photo du jour 2 ne doit pas effacer celle du jour 1.
+  await supabase
     .from('event_photos')
-    .insert({ event_id: eventId, storage_path: `${base}/photo.webp`, position: 0 })
+    .delete()
+    .eq('event_id', eventId)
+    .in('position', lignes.map((l) => l.position))
+  const { error: insErr } = await supabase.from('event_photos').insert(lignes)
   if (insErr) throw insErr
-  return `${base}/photo.webp`
+  return lignes.map((l) => l.storage_path)
+}
+
+/** Compatibilité : une seule photo, en première position. */
+export async function uploadEventPhoto(eventId, file, crop = null) {
+  const [chemin] = await uploadEventPhotos(eventId, [{ file, crop, position: 0 }])
+  return chemin ?? null
 }
 
 /**
@@ -307,10 +346,9 @@ export async function purgePastMonths() {
   for (const r of rows) {
     if (!r.storage_path) continue
     files.push(r.storage_path)
-    // La vignette est déduite du chemin (convention {uid}/{eventId}/photo.webp).
-    if (r.storage_path.endsWith('photo.webp')) {
-      files.push(r.storage_path.replace(/photo\.webp$/, 'thumb.webp'))
-    }
+    // La vignette est déduite du chemin (voir thumbPath).
+    const t = thumbPath(r.storage_path)
+    if (t && t !== r.storage_path) files.push(t)
   }
 
   // 1) Fichiers, par paquets (l'API Storage n'aime pas les listes géantes).
