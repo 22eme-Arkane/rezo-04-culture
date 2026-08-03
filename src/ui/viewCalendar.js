@@ -92,6 +92,10 @@ export async function viewCalendar() {
   const addChip = (label, value) => {
     const c = el('button', 'chip', label)
     c.dataset.value = value
+    // Chevron décoratif sur « Tout » : sans lui, cette puce est bien plus
+    // étroite que les trois autres et la rangée paraît décalée. Retiré une
+    // fois, remis aussitôt pour cette raison.
+    if (value === 'all') c.appendChild(icon('chevronDown'))
     c.addEventListener('click', () => {
       quickFilter = value
       // « Aujourd'hui » et « Ce week-end » désignent une date précise : on
