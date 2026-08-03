@@ -18,11 +18,15 @@ import {
   loadDepartment04Boundary,
 } from '../lib/department04.js'
 
-const RADII = [
-  { label: '10 km', m: 10000 },
-  { label: '20 km', m: 20000 },
-  { label: '50 km', m: 50000 },
-]
+// Le sélecteur de rayon (10/20/50 km) a été retiré : Armana ne couvre que le
+// département 04, où un rayon n'apportait qu'un filtre de plus à comprendre
+// pour cacher des événements pourtant proches. On charge donc tout le
+// département — 200 km depuis n'importe quel point de celui-ci l'englobent
+// largement, sa plus grande diagonale faisant environ 150 km.
+const RAYON_M = 200000
+
+// Zoom d'ouverture, autrefois déduit du cercle de rayon.
+const ZOOM_DEPART = 9
 
 // ⚠ Un intervalle « start ≤ jour ≤ end » ne suffit plus : un événement récurrent
 // couvre une longue période mais seulement certains jours de la semaine. On
@@ -64,38 +68,27 @@ export async function viewMap() {
   const controls = el('section', 'map-search-panel')
   controls.setAttribute('aria-label', 'Filtres de la carte')
 
-  const radiusControl = el('div', 'map-search-control')
-  const radiusHeading = el('div', 'map-search-control__heading')
-  const radiusIcon = el('span', 'map-search-control__icon')
-  radiusIcon.appendChild(icon('pin'))
-  radiusHeading.appendChild(radiusIcon)
-  const radiusCopy = el('div', 'map-search-control__copy')
-  radiusCopy.appendChild(el('strong', null, 'Rayon'))
-  radiusCopy.appendChild(el('span', null, 'Choisissez votre rayon'))
-  radiusHeading.appendChild(radiusCopy)
+  const posControl = el('div', 'map-search-control')
+  const posHeading = el('div', 'map-search-control__heading')
+  const posIcon = el('span', 'map-search-control__icon')
+  posIcon.appendChild(icon('pin'))
+  posHeading.appendChild(posIcon)
+  const posCopy = el('div', 'map-search-control__copy')
+  posCopy.appendChild(el('strong', null, 'Ma position'))
+  posCopy.appendChild(el('span', null, 'Tout le département est affiché'))
+  posHeading.appendChild(posCopy)
   const recenter = el('button', 'map-search-control__recenter')
   recenter.type = 'button'
   recenter.title = 'Recentrer sur ma position'
   recenter.setAttribute('aria-label', 'Recentrer sur ma position')
   recenter.appendChild(icon('refresh'))
-  radiusHeading.appendChild(recenter)
-  radiusControl.appendChild(radiusHeading)
-
-  const radiusOptions = el('div', 'map-radius-options')
-  let radiusM = RADII[1].m
-  const radiusBtns = RADII.map((r, i) => {
-    const b = el('button', 'map-radius-option', r.label)
-    b.type = 'button'
-    if (i === 1) b.classList.add('is-active')
-    radiusOptions.appendChild(b)
-    return b
-  })
-  radiusControl.appendChild(radiusOptions)
+  posHeading.appendChild(recenter)
+  posControl.appendChild(posHeading)
   // Retour de la géolocalisation : refus d'autorisation, position introuvable,
   // ou hors département. Sans ce message, le bouton semblait ne rien faire.
   const geoMsg = el('p', 'form__hint map-geo-msg')
-  radiusControl.appendChild(geoMsg)
-  controls.appendChild(radiusControl)
+  posControl.appendChild(geoMsg)
+  controls.appendChild(posControl)
 
   // Sélecteur de date : uniquement les événements actifs ce jour-là.
   let selectedDate = null
@@ -148,7 +141,6 @@ export async function viewMap() {
   let map = null
   let center = null
   let userMarker = null
-  let radiusCircle = null
   let departmentBoundary = null
   let departmentBounds = null
   const markers = L.layerGroup()
@@ -157,7 +149,7 @@ export async function viewMap() {
     if (!map) return
     count.textContent = 'Recherche…'
     try {
-      let events = await eventsWithinRadius({ lat: center.lat, lng: center.lng, radiusM })
+      let events = await eventsWithinRadius({ lat: center.lat, lng: center.lng, radiusM: RAYON_M })
       const cat = getCategory()
       if (cat) events = events.filter((e) => e.category === cat)
       if (selectedDate) events = events.filter((e) => coversDay(e, selectedDate))
@@ -181,22 +173,10 @@ export async function viewMap() {
     }
   }
 
-  function drawRadius({ fit = true } = {}) {
-    if (radiusCircle) map.removeLayer(radiusCircle)
-    const styles = getComputedStyle(wrap)
-    const accent = styles.getPropertyValue('--mask-yellow').trim() || '#f4ca15'
-    radiusCircle = L.circle([center.lat, center.lng], {
-      radius: radiusM,
-      color: accent,
-      weight: 1,
-      fillColor: accent,
-      fillOpacity: 0.1,
-    }).addTo(map)
-    // Les bornes de navigation dépendent du cercle : on les recalcule AVANT de
-    // cadrer, sinon d'anciennes limites trop serrées repousseraient la vue.
+  /** Centre la carte sur la position retenue, au zoom d'ouverture. */
+  function cadrerSurPosition() {
     applyDepartmentLimits()
-    // La carte s'ouvre SUR la zone de recherche, pas sur le département entier.
-    if (fit) map.fitBounds(radiusCircle.getBounds(), { padding: [16, 16], animate: false })
+    map.setView([center.lat, center.lng], ZOOM_DEPART, { animate: false })
   }
 
   function popupContent(ev) {
@@ -274,8 +254,7 @@ export async function viewMap() {
     // n'est connue qu'APRÈS la mise en page. On cadre donc APRÈS mesure, sinon le
     // zoom est calculé sur un conteneur encore vide et l'affichage est décadré.
     fitToViewport()
-    drawRadius()
-    applyDepartmentLimits()
+    cadrerSurPosition()
     watchResize()
 
     await loadEvents()
@@ -321,18 +300,17 @@ export async function viewMap() {
     // silhouette du département.
     map.setMinZoom(Math.max(6, fitZoom - 2))
 
-    // ⚠ Marge volontairement large (mesurée, pas devinée). Une fois cadrée sur
-    // un cercle de 20 km, la vue fait ~0,91° de haut pour 1,03° de bornes : il
-    // ne reste presque aucun jeu, et `maxBoundsViscosity: 1` repousse la vue
-    // dès que le point visé est près d'un bord. Sur Forcalquier, cela décalait
-    // l'ouverture de 0,146° vers le nord — soit ~16 km à côté.
+    // ⚠ Marge volontairement large (mesurée, pas devinée). Au zoom d'ouverture,
+    // la vue fait ~0,91° de haut pour 1,03° de bornes : il ne reste presque
+    // aucun jeu, et `maxBoundsViscosity: 1` repousse la vue dès que le point
+    // visé est près d'un bord. Sur Forcalquier, cela décalait l'ouverture de
+    // 0,146° vers le nord — soit ~16 km à côté.
     // Déborder ne montre rien d'indésirable : le masque opaque couvre déjà tout
     // ce qui est hors du département.
     const limites = L.latLngBounds(
       departmentBounds.getSouthWest(),
       departmentBounds.getNorthEast()
     )
-    if (radiusCircle) limites.extend(radiusCircle.getBounds())
     map.setMaxBounds(limites.pad(0.25))
   }
 
@@ -378,18 +356,6 @@ export async function viewMap() {
     setTimeout(relayout, 250)
   }
 
-  radiusBtns.forEach((b, i) => {
-    b.addEventListener('click', async () => {
-      radiusBtns.forEach((x) => x.classList.remove('is-active'))
-      b.classList.add('is-active')
-      radiusM = RADII[i].m
-      if (map) {
-        drawRadius()
-        await loadEvents()
-      }
-    })
-  })
-
   recenter.addEventListener('click', async () => {
     if (!map) return
     geoMsg.textContent = 'Localisation en cours…'
@@ -412,7 +378,7 @@ export async function viewMap() {
     geoMsg.textContent = ''
     center = located
     userMarker.setLatLng([center.lat, center.lng])
-    drawRadius()
+    cadrerSurPosition()
     await loadEvents()
   })
 

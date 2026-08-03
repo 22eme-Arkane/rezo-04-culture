@@ -706,32 +706,6 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
   cursor: pointer;
 }
 .map-search-control__recenter svg { width: 14px; height: 14px; }
-.map-radius-options {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.18rem;
-  margin: 0;
-  padding: 0.14rem;
-  border-radius: 999px;
-  background: rgba(6, 79, 54, 0.1);
-}
-.map-radius-option {
-  min-height: 29px;
-  padding: 0.2rem 0.25rem;
-  border: 0;
-  border-radius: 999px;
-  color: var(--studio-green);
-  background: transparent;
-  font-family: inherit;
-  font-size: 0.66rem;
-  font-weight: 800;
-  cursor: pointer;
-}
-.map-radius-option.is-active {
-  color: var(--studio-ink);
-  background: var(--mask-yellow);
-  box-shadow: 0 4px 10px rgba(244, 202, 21, 0.3);
-}
 .map-date-picker {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
