@@ -95,6 +95,13 @@ export async function viewCalendar() {
     if (value === 'all') c.appendChild(icon('chevronDown'))
     c.addEventListener('click', () => {
       quickFilter = value
+      // « Aujourd'hui » et « Ce week-end » désignent une date précise : on
+      // ramène le calendrier sur le mois concerné, sinon les choisir depuis
+      // décembre afficherait une liste vide. « Gratuit » et « Tout » ne
+      // désignent aucune date : on laisse l'utilisateur là où il naviguait.
+      const mois = moisDuFiltre(value)
+      if (mois) monthCursor = mois
+      selectedDay = null
       paintChips()
       repaintCalendar()
       repaintList()
@@ -102,6 +109,18 @@ export async function viewCalendar() {
     allChips.push(c)
     chipsRow.appendChild(c)
   }
+  /** Mois sur lequel se placer quand un filtre de date est choisi, sinon null. */
+  function moisDuFiltre(value) {
+    const now = new Date()
+    if (value === 'today') return new Date(now.getFullYear(), now.getMonth(), 1)
+    if (value === 'weekend') {
+      const samedi = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      samedi.setDate(samedi.getDate() + ((6 - samedi.getDay() + 7) % 7))
+      return new Date(samedi.getFullYear(), samedi.getMonth(), 1)
+    }
+    return null
+  }
+
   addChip("Aujourd'hui", 'today')
   addChip('Ce week-end', 'weekend')
   addChip('Gratuit', 'free')
@@ -217,16 +236,23 @@ export async function viewCalendar() {
     calendarToggle.title = willOpen ? 'Fermer le calendrier' : 'Ouvrir le calendrier'
     calendarToggle.setAttribute('aria-label', calendarToggle.title)
     calendarToggle.setAttribute('aria-expanded', String(willOpen))
+    // Le calendrier commande la liste : ouvert, elle se limite au mois affiché ;
+    // fermé, elle s'ouvre à tout ce qui vient. Un jour resté sélectionné
+    // masquerait tout le reste sans qu'on puisse voir d'où ça vient.
+    selectedDay = null
+    repaintList()
   })
 
-  prevBtn.addEventListener('click', () => {
-    monthCursor = new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1)
+  // Changer de mois change la liste : un jour sélectionné dans le mois qu'on
+  // quitte n'aurait plus de sens.
+  const allerAuMois = (delta) => {
+    monthCursor = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + delta, 1)
+    selectedDay = null
     repaintCalendar()
-  })
-  nextBtn.addEventListener('click', () => {
-    monthCursor = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1)
-    repaintCalendar()
-  })
+    repaintList()
+  }
+  prevBtn.addEventListener('click', () => allerAuMois(-1))
+  nextBtn.addEventListener('click', () => allerAuMois(1))
 
   function repaintCalendar() {
     monthLabel.textContent = formatMonthLabel(monthCursor)
@@ -270,19 +296,30 @@ export async function viewCalendar() {
   function repaintList() {
     list.innerHTML = ''
     let shown = occurrences()
+    let vide = 'Aucun événement à venir.'
+
     if (selectedDay) {
       shown = shown.filter((o) => o._dayKey === selectedDay)
       sectionLabel.textContent = formatDateFull(selectedDay + 'T12:00:00')
+      vide = 'Aucun événement ce jour-là.'
+    } else if (!cal.hidden) {
+      // Calendrier OUVERT : la liste suit le mois affiché. Le calendrier et ce
+      // qu'on lit dessous racontent alors la même chose ; sans cela, on
+      // feuilletait les mois sans que la liste bouge.
+      const mois = `${monthCursor.getFullYear()}-${String(monthCursor.getMonth() + 1).padStart(2, '0')}`
+      shown = shown.filter((o) => o._dayKey.startsWith(mois))
+      sectionLabel.textContent = formatMonthLabel(monthCursor)
+      vide = 'Aucun événement ce mois-ci.'
     } else {
+      // Calendrier FERMÉ : plus de mois affiché, donc plus de raison de borner.
       sectionLabel.textContent = 'À venir'
       // Garde-fou : une longue récurrence pourrait à elle seule produire des
       // centaines de cartes. Le calendrier reste le moyen d'aller plus loin.
       shown = shown.slice(0, 300)
     }
+
     if (!shown.length) {
-      list.appendChild(
-        emptyState(selectedDay ? 'Aucun événement ce jour-là.' : 'Aucun événement à venir.')
-      )
+      list.appendChild(emptyState(vide))
       return
     }
     if (shown.some((ev) => ev.title.includes('[DÉMO]'))) {
