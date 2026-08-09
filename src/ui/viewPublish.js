@@ -12,6 +12,7 @@ import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { DEFAULT_CENTER, geocodeAddress } from '../lib/geo.js'
 import { JOURS, formatJourMois } from '../lib/recurrence.js'
+import { toDisplayableFile } from '../lib/heic.js'
 import { consumeDraft, consumeSharedFile } from '../lib/draft.js'
 import {
   CATEGORIES,
@@ -364,11 +365,22 @@ export async function viewPublish({ query } = {}) {
       input.type = 'file'
       input.accept = 'image/*'
       input.addEventListener('change', async () => {
-        const file = input.files?.[0]
-        if (!file) return
+        const brut = input.files?.[0]
+        if (!brut) return
         memoriserCadrage()
-        photos[i] = { file, crop: null }
-        await chargerDansApercu(i)
+        try {
+          // ⚠ Convertir AVANT de toucher au cadreur : celui-ci affiche le
+          // fichier tel quel et échoue sur un HEIC, format qu'aucun navigateur
+          // ne décode hors Safari.
+          const file = await toDisplayableFile(brut, (etape) => {
+            frameHint.textContent = etape
+          })
+          photos[i] = { file, crop: null }
+          await chargerDansApercu(i)
+        } catch (e) {
+          framingEnabled = false
+          frameHint.textContent = 'Photo non utilisable : ' + e.message
+        }
       })
       slot.appendChild(input)
       slotsBox.appendChild(slot)
@@ -507,16 +519,20 @@ export async function viewPublish({ query } = {}) {
   // Le glissement change aussi le jeu disponible : on tient le message à jour.
   previewMedia.addEventListener('pointerup', syncFrameUi)
 
-  // Photo reçue par partage (WhatsApp) : on la charge d'emblée dans l'aperçu.
+  // Photo reçue par partage (WhatsApp) : on la charge d'emblée dans l'aperçu,
+  // en la convertissant au besoin — un partage depuis un iPhone arrive en HEIC.
+  // Elle rejoint le premier emplacement, donc le chemin normal d'envoi.
   if (sharedPhoto) {
-    framer
-      .setFile(sharedPhoto)
-      .then(() => {
-        framingEnabled = true
-        previewMedia.classList.remove('poster-card__media--empty')
-        refreshPreview()
+    toDisplayableFile(sharedPhoto, (etape) => {
+      frameHint.textContent = etape
+    })
+      .then(async (f) => {
+        photos[0] = { file: f, crop: null }
+        await chargerDansApercu(0)
       })
-      .catch(() => {})
+      .catch((e) => {
+        frameHint.textContent = 'Photo non utilisable : ' + e.message
+      })
   }
 
   const submit = el('button', 'btn btn--primary btn--block')
@@ -757,13 +773,9 @@ export async function viewPublish({ query } = {}) {
       photos.forEach((p, i) => {
         if (p?.file) aEnvoyer.push({ file: p.file, crop: p.crop, position: i })
       })
-      if (!aEnvoyer.length && sharedPhoto) {
-        aEnvoyer.push({
-          file: sharedPhoto,
-          crop: framingEnabled ? framer.getCrop() : null,
-          position: 0,
-        })
-      }
+      // (La photo reçue par partage a déjà rejoint le premier emplacement, une
+      // fois convertie : inutile de la reprendre ici, et surtout on ne veut pas
+      // envoyer le fichier BRUT si la conversion a échoué.)
       if (aEnvoyer.length) {
         try {
           // Le cadrage choisi dans l'aperçu est appliqué à la vignette.
