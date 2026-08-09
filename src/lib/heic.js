@@ -3,21 +3,40 @@
 // LE PROBLÈME
 // Les iPhone, et désormais beaucoup de Samsung, enregistrent en HEIC. Aucun
 // navigateur ne sait décoder ce format, sauf Safari. Sur Android, choisir une
-// telle photo échouait donc sur « Image illisible » — sans dire pourquoi, ni
-// que passer par un JPEG aurait marché. Signalé par une utilisatrice, et
-// probablement subi en silence par d'autres.
+// telle photo échouait donc — signalé par une utilisatrice, et probablement
+// subi en silence par d'autres.
 //
-// LE CHOIX
-// Décodage LOCAL (bibliothèque libheif compilée), jamais un service en ligne :
-// la contrainte du projet est le gratuit total, et une photo d'affiche n'a rien
-// à faire chez un tiers.
+// ⚠ POURQUOI LA PREMIÈRE TENTATIVE RESTAIT BLOQUÉE
+// Le décodeur employé (heic2any) fait trois `new Function` et lance ses Workers
+// depuis des URL `blob:`. Notre politique de sécurité en production
+// (`script-src 'self' 'unsafe-inline'`, sans `worker-src`) interdisait les
+// deux : le Worker ne démarrait jamais, sa promesse ne se résolvait jamais, et
+// l'écran restait indéfiniment sur « Conversion… ». Ce n'était donc pas de la
+// lenteur mais un blocage franc — invisible en développement, où le serveur
+// Vite n'applique aucune de ces règles.
 //
-// Le décodeur pèse 1,35 Mo. Il est donc chargé À LA DEMANDE, et uniquement
-// après avoir constaté que le navigateur ne sait pas lire le fichier : celui
-// qui envoie un JPEG — l'immense majorité — ne télécharge rien de plus, et
-// Safari, qui lit le HEIC nativement, non plus.
+// Corrigé sur trois fronts :
+//   1. `worker-src 'self' blob:` ajouté à la politique (vercel.json) ;
+//   2. décodeur remplacé par la variante SANS `eval` de heic-to (libheif
+//      compilé, pas d'asm.js) ;
+//   3. délai de garde ici — quoi qu'il arrive en dessous, l'interface ne peut
+//      plus rester figée.
+//
+// Le décodage reste LOCAL, jamais un service en ligne : la contrainte du projet
+// est le gratuit total, et une affiche n'a rien à faire chez un tiers.
 
 const EXT_HEIC = /\.(heic|heif)$/i
+
+// Une photo de 12 Mpx sur un téléphone modeste prend une dizaine de secondes.
+// Au-delà d'une minute, quelque chose ne va pas : mieux vaut l'admettre et
+// proposer une porte de sortie que laisser tourner indéfiniment.
+const DELAI_MAX_MS = 60000
+
+class EchecConversion extends Error {}
+
+function nomJpeg(file) {
+  return (file?.name || 'photo').replace(EXT_HEIC, '') + '.jpg'
+}
 
 /** Le navigateur sait-il afficher ce fichier tel quel ? */
 function lisibleParLeNavigateur(file) {
@@ -41,12 +60,64 @@ function ressembleAduHeic(file) {
   return type.includes('heic') || type.includes('heif') || EXT_HEIC.test(file?.name || '')
 }
 
+/** Aucune promesse ne doit pouvoir rester en suspens pour toujours. */
+function avecDelai(promesse, ms) {
+  let minuteur
+  const garde = new Promise((_, ko) => {
+    minuteur = setTimeout(
+      () => ko(new EchecConversion('la conversion a pris trop de temps')),
+      ms
+    )
+  })
+  return Promise.race([promesse, garde]).finally(() => clearTimeout(minuteur))
+}
+
+/**
+ * Raccourci gratuit : certains appareils décodent le HEIC nativement, via les
+ * codecs du système. Quand c'est le cas, c'est instantané et rien n'est
+ * téléchargé. Sinon on renvoie null sans faire d'histoires.
+ */
+async function viaDecodeurNatif(file) {
+  if (typeof ImageDecoder === 'undefined') return null
+  const type = file.type && file.type !== '' ? file.type : 'image/heic'
+  try {
+    if (!(await ImageDecoder.isTypeSupported(type))) return null
+  } catch {
+    return null
+  }
+  try {
+    const decodeur = new ImageDecoder({ data: await file.arrayBuffer(), type })
+    const { image } = await decodeur.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.displayWidth
+    canvas.height = image.displayHeight
+    canvas.getContext('2d').drawImage(image, 0, 0)
+    image.close?.()
+    decodeur.close?.()
+    const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.92))
+    return blob ? new File([blob], nomJpeg(file), { type: 'image/jpeg' }) : null
+  } catch {
+    return null
+  }
+}
+
+/** Décodage par bibliothèque, chargée seulement à cet instant. */
+async function viaBibliotheque(file) {
+  // ⚠ Variante « csp » IMPÉRATIVE : la version standard emploie `new Function`,
+  // que notre politique de sécurité interdit — elle échouerait en production
+  // tout en marchant en développement.
+  const { heicTo } = await import('heic-to/csp')
+  const blob = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 })
+  if (!blob) throw new EchecConversion('conversion sans résultat')
+  return new File([blob], nomJpeg(file), { type: 'image/jpeg' })
+}
+
 /**
  * Renvoie un fichier que le navigateur sait afficher, en convertissant si
- * nécessaire. Lève une erreur explicite si le format reste inexploitable.
+ * nécessaire. Lève une erreur explicite — jamais de blocage silencieux.
  * @param {File} file
- * @param {(etape: string) => void} [onProgres] pour prévenir l'utilisateur —
- *        la conversion d'une photo de 12 Mpx prend plusieurs secondes.
+ * @param {(etape: string) => void} [onProgres] la conversion prend plusieurs
+ *        secondes : il faut le dire, sinon l'écran paraît figé.
  * @returns {Promise<File>}
  */
 export async function toDisplayableFile(file, onProgres) {
@@ -60,18 +131,18 @@ export async function toDisplayableFile(file, onProgres) {
   }
 
   onProgres?.('Conversion de la photo…')
-  let converti
+
+  const natif = await viaDecodeurNatif(file).catch(() => null)
+  if (natif) return natif
+
   try {
-    const { default: heic2any } = await import('heic2any')
-    converti = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 })
+    return await avecDelai(viaBibliotheque(file), DELAI_MAX_MS)
   } catch (e) {
+    const cause = e instanceof EchecConversion ? ` (${e.message})` : ''
     throw new Error(
-      'cette photo est au format HEIC et n’a pas pu être convertie. ' +
-        'Depuis votre téléphone, partagez-la ou enregistrez-la en JPEG, puis réessayez.'
+      `cette photo au format HEIC n’a pas pu être convertie${cause}. ` +
+        'Sur votre téléphone, ouvrez-la dans la galerie et partagez-la vers Armana, ' +
+        'ou enregistrez-la en JPEG, puis réessayez.'
     )
   }
-  // heic2any renvoie un tableau pour les fichiers à plusieurs images (rafales).
-  const blob = Array.isArray(converti) ? converti[0] : converti
-  const nom = (file.name || 'photo').replace(EXT_HEIC, '') + '.jpg'
-  return new File([blob], nom, { type: 'image/jpeg' })
 }
