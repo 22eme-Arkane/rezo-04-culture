@@ -7,6 +7,8 @@ import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { getCategory, setCategory } from '../lib/filter.js'
 import { dayKey, eventDayKeys, isRecurring, recurrenceDaysLabel } from '../lib/recurrence.js'
+import { estDansLeTerritoire, loadDepartements } from '../lib/departements.js'
+import { getMesDepartements, toutLeTerritoire } from '../lib/mesDepartements.js'
 import { CATEGORIES, listApprovedEvents, listGemEventIds } from '../lib/events.js'
 
 // Les jours couverts par un événement (multi-jours ET récurrence) sont calculés
@@ -136,16 +138,35 @@ export async function viewCalendar() {
   wrap.appendChild(head)
 
   // --- Données ---
-  const [approvedEvents, gemIds] = await Promise.all([
+  const [approvedEvents, gemIds, contours] = await Promise.all([
     listApprovedEvents(),
     isLoggedIn() ? listGemEventIds() : Promise.resolve(new Set()),
+    // Contours des départements, uniquement pour situer chaque événement.
+    // ⚠ Tolérant à l'échec : hors ligne ou fichier indisponible, on préfère
+    // afficher l'agenda entier plutôt qu'un agenda vide sans explication.
+    toutLeTerritoire() ? Promise.resolve(null) : loadDepartements().catch(() => null),
   ])
   const studioPreview = import.meta.env.DEV && new URLSearchParams(location.search).has('studio-preview')
   const allEvents = studioPreview ? studioPreviewEvents(approvedEvents[0]) : approvedEvents
   /** Filtres portant sur l'ÉVÉNEMENT lui-même (style, gratuité). */
   const filtered = () => {
     const cat = getCategory()
-    const events = cat ? allEvents.filter((event) => event.category === cat) : allEvents
+    let events = cat ? allEvents.filter((event) => event.category === cat) : allEvents
+
+    // Départements retenus dans le Profil. Rien n'est filtré quand ils le sont
+    // tous : inutile de calculer, et le fichier de contours n'est alors même
+    // pas téléchargé.
+    if (contours && !toutLeTerritoire()) {
+      const codes = getMesDepartements()
+      events = events.filter((event) => {
+        const p = { lat: Number(event.lat), lng: Number(event.lng) }
+        // Un événement sans coordonnées ne peut pas être situé : on le garde
+        // plutôt que de le faire disparaître sans raison visible.
+        if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return true
+        return estDansLeTerritoire(p, contours, codes)
+      })
+    }
+
     return quickFilter === 'free' ? events.filter((event) => !event.is_paid) : events
   }
 

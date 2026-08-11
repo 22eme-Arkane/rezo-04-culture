@@ -58,6 +58,12 @@ export async function viewSettings() {
     wrap.appendChild(pub)
   }
 
+  // Territoire affiché : utile même sans compte, puisque c'est un filtre de
+  // lecture de l'agenda et de la carte.
+  const terr = el('div', 'settings-group')
+  terr.appendChild(rowNav(icon('map'), 'Mes départements', '/mes-departements'))
+  wrap.appendChild(terr)
+
   // --- Groupe 2 : administration (admins uniquement) ---
   if (logged && isAdmin()) {
     const adm = el('div', 'settings-group')

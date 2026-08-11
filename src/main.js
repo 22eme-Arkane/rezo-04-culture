@@ -28,6 +28,7 @@ import { viewInstall } from './ui/viewInstall.js'
 import { viewJournal } from './ui/viewJournal.js'
 import { viewMember } from './ui/viewMember.js'
 import { viewNotifications } from './ui/viewNotifications.js'
+import { viewDepartements } from './ui/viewDepartements.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 import { recordAnonVisit, recordVisit, resetOwnerCache } from './lib/admins.js'
 
@@ -126,6 +127,7 @@ defineRoutes(
     '/journal': viewJournal,
     '/membre': viewMember,
     '/notifications': viewNotifications,
+    '/mes-departements': viewDepartements,
     '/connexion': viewAuth,
   },
   {

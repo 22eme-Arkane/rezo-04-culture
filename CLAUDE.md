@@ -2,13 +2,22 @@
 
 ## Identité du projet
 
-**Armana** est une **PWA d'agenda culturel régional** pour le département 04
-(Alpes-de-Haute-Provence), multi-utilisateur, adossée à **Supabase**. Elle remplace un
-groupe WhatsApp de 1000+ personnes : à l'ouverture, l'utilisateur voit les événements
-culturels de sa région sur un **calendrier** + une **carte** interactive filtrable par
-**rayon** (10/20/50 km autour de sa ville, façon Leboncoin). Les inscrits publient des
-événements (photo, description, date(s), gratuit/payant + prix) et « **Gemment** » leurs
-favoris.
+**Armana** est une **PWA d'agenda culturel régional**, multi-utilisateur, adossée à
+**Supabase**. Elle remplace un groupe WhatsApp de 1000+ personnes : à l'ouverture,
+l'utilisateur voit les événements culturels de sa région sur un **calendrier** + une
+**carte** interactive. Les inscrits publient des événements (photo, description,
+date(s), gratuit/payant + prix) et « **Gemment** » leurs favoris.
+
+**Territoire couvert : 04 (Alpes-de-Haute-Provence), 05 (Hautes-Alpes) et 84
+(Vaucluse).** Les contours officiels sont embarqués dans
+`public/data/departements.geojson` (jeu Etalab NON simplifié — deux départements
+voisins doivent partager exactement les mêmes sommets, sinon un liseré de masque
+apparaît entre eux). Chacun choisit les départements qu'il veut voir dans
+**Profil → Mes départements** ; le filtre agit sur l'agenda ET sur la carte, où un
+département décoché repasse sous le masque.
+
+> Le sélecteur de rayon (10/20/50 km) a été retiré : il ne faisait que cacher des
+> événements proches. Tout le territoire est chargé d'un coup.
 
 > ⚠ **Projet strictement isolé.** À NE PAS confondre avec **PANDORA**, **ORAKLE**,
 > **Arkanyx** : repo séparé, aucune dépendance croisée, aucun fichier partagé. Ce dépôt

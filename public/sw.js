@@ -18,7 +18,7 @@ const SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/data/alpes-de-haute-provence.geojson',
+  '/data/departements.geojson',
 ]
 
 self.addEventListener('install', (event) => {

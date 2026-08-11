@@ -13,17 +13,20 @@ import { getCategory, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
 import { studioHeader } from './studio.js'
 import {
-  departmentOuterRings,
-  isInsideDepartment04,
-  loadDepartment04Boundary,
-} from '../lib/department04.js'
+  anneauxExterieurs,
+  departementDuPoint,
+  estDansLeTerritoire,
+  loadDepartements,
+  nomDepartement,
+  CODES_DEPARTEMENTS,
+} from '../lib/departements.js'
+import { getMesDepartements } from '../lib/mesDepartements.js'
 
-// Le sélecteur de rayon (10/20/50 km) a été retiré : Armana ne couvre que le
-// département 04, où un rayon n'apportait qu'un filtre de plus à comprendre
-// pour cacher des événements pourtant proches. On charge donc tout le
-// département — 200 km depuis n'importe quel point de celui-ci l'englobent
-// largement, sa plus grande diagonale faisant environ 150 km.
-const RAYON_M = 200000
+// Le sélecteur de rayon (10/20/50 km) a été retiré : un rayon n'apportait
+// qu'un filtre de plus à comprendre, dont le seul effet était de cacher des
+// événements pourtant proches. On charge donc tout le territoire — 300 km
+// depuis n'importe quel point englobent largement les trois départements.
+const RAYON_M = 300000
 
 // Zoom d'ouverture, autrefois déduit du cercle de rayon.
 const ZOOM_DEPART = 9
@@ -75,7 +78,16 @@ export async function viewMap() {
   posHeading.appendChild(posIcon)
   const posCopy = el('div', 'map-search-control__copy')
   posCopy.appendChild(el('strong', null, 'Ma position'))
-  posCopy.appendChild(el('span', null, 'Tout le département est affiché'))
+  const codesAffiches = getMesDepartements()
+  posCopy.appendChild(
+    el(
+      'span',
+      null,
+      codesAffiches.length === CODES_DEPARTEMENTS.length
+        ? 'Tout le territoire est affiché'
+        : 'Départements affichés : ' + codesAffiches.join(', ')
+    )
+  )
   posHeading.appendChild(posCopy)
   const recenter = el('button', 'map-search-control__recenter')
   recenter.type = 'button'
@@ -141,8 +153,11 @@ export async function viewMap() {
   let map = null
   let center = null
   let userMarker = null
-  let departmentBoundary = null
+  let contours = null
   let departmentBounds = null
+  // Relue à chaque rendu : l'utilisateur peut changer ses départements dans le
+  // Profil et revenir sur la carte sans que celle-ci soit reconstruite.
+  const mesCodes = () => getMesDepartements()
   const markers = L.layerGroup()
 
   async function loadEvents() {
@@ -153,9 +168,11 @@ export async function viewMap() {
       const cat = getCategory()
       if (cat) events = events.filter((e) => e.category === cat)
       if (selectedDate) events = events.filter((e) => coversDay(e, selectedDate))
-      if (departmentBoundary) {
+      if (contours) {
+        // Hors territoire, ou dans un département que l'utilisateur a décoché.
+        const codes = mesCodes()
         events = events.filter((e) =>
-          isInsideDepartment04({ lat: Number(e.lat), lng: Number(e.lng) }, departmentBoundary)
+          estDansLeTerritoire({ lat: Number(e.lat), lng: Number(e.lng) }, contours, codes)
         )
       }
       markers.clearLayers()
@@ -193,11 +210,15 @@ export async function viewMap() {
   }
 
   async function initMap() {
-    departmentBoundary = await loadDepartment04Boundary()
+    contours = await loadDepartements()
     // Une seule source pour le point de départ : le GPS, avec repli sur
     // Forcalquier. C'est aussi ce qu'utilise le bouton « ma position ».
     center = await getUserLocation()
-    if (!isInsideDepartment04(center, departmentBoundary)) center = { ...DEFAULT_CENTER, fallback: true }
+    // Hors des départements retenus, on part du repli plutôt que d'ouvrir sur
+    // une zone entièrement masquée.
+    if (!estDansLeTerritoire(center, contours, mesCodes())) {
+      center = { ...DEFAULT_CENTER, fallback: true }
+    }
     map = L.map(mapDiv, { zoomControl: true, maxBoundsViscosity: 1.0 }).setView(
       [center.lat, center.lng],
       11
@@ -210,15 +231,24 @@ export async function viewMap() {
         '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · contour Etalab',
     }).addTo(map)
 
-    // Frontière exacte du 04. Un masque 100 % opaque recouvre le monde entier,
-    // avec le département comme « trou » : aucun territoire voisin n'est visible.
-    const boundaryLayer = L.geoJSON(departmentBoundary)
+    // Frontières exactes des départements RETENUS. Un masque 100 % opaque
+    // recouvre le monde entier, avec ces départements comme « trous » : rien
+    // d'autre n'est visible. Décocher un département le fait donc disparaître
+    // de la carte, pas seulement de la liste.
+    const codesActifs = mesCodes()
+    const contoursActifs = {
+      type: 'FeatureCollection',
+      features: (contours.features ?? []).filter((f) =>
+        codesActifs.includes(f?.properties?.code)
+      ),
+    }
+    const boundaryLayer = L.geoJSON(contoursActifs)
     departmentBounds = boundaryLayer.getBounds()
     map.createPane('departmentMask')
     map.getPane('departmentMask').style.zIndex = '430'
     map.getPane('departmentMask').style.pointerEvents = 'none'
     const world = [[-90, -180], [-90, 180], [90, 180], [90, -180]]
-    const departmentMask = L.polygon([world, ...departmentOuterRings(departmentBoundary)], {
+    const departmentMask = L.polygon([world, ...anneauxExterieurs(contoursActifs)], {
       pane: 'departmentMask',
       stroke: false,
       fillColor: '#fff4df',
@@ -228,7 +258,7 @@ export async function viewMap() {
       className: 'department-mask',
     }).addTo(map)
     applyDepartmentMaskPattern(departmentMask)
-    L.geoJSON(departmentBoundary, {
+    L.geoJSON(contoursActifs, {
       pane: 'departmentMask',
       interactive: false,
       style: {
@@ -367,11 +397,14 @@ export async function viewMap() {
       geoMsg.textContent = locationErrorMessage(located.reason)
       return
     }
-    if (departmentBoundary && !isInsideDepartment04(located, departmentBoundary)) {
-      // On ne déplace PAS la carte vers Digne sans le dire : l'utilisateur
-      // croirait que sa position a été prise en compte.
-      geoMsg.textContent =
-        'Vous semblez être hors des Alpes-de-Haute-Provence : la carte reste sur le département.'
+    if (contours && !estDansLeTerritoire(located, contours, mesCodes())) {
+      // On ne déplace PAS la carte sans le dire : l'utilisateur croirait que sa
+      // position a été prise en compte.
+      const dept = departementDuPoint(located, contours)
+      geoMsg.textContent = dept
+        ? `Vous êtes dans un département que vous n’affichez pas (${nomDepartement(dept)}). ` +
+          'Ajoutez-le depuis Profil → Mes départements.'
+        : 'Vous semblez être hors du territoire couvert : la carte n’a pas bougé.'
       return
     }
 

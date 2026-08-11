@@ -80,37 +80,57 @@ export function locationErrorMessage(reason) {
   }
 }
 
+// Rectangle englobant les départements couverts, avec une marge : sert à
+// orienter la recherche d'adresse.
+// ⚠ Sans ce cadrage, Nominatim choisissait le premier homonyme de France. Cas
+// réel : « Les Mées » a été résolu dans l'Orne, à 650 km du village du 04, et
+// l'événement s'est retrouvé invisible sur la carte sans que personne ne
+// comprenne pourquoi. Beaucoup de villages du Sud ont un homonyme au Nord.
+const CADRE_RECHERCHE = '4.499,45.277,7.227,43.509' // ouest,nord,est,sud
+
+function urlNominatim(q, cadre) {
+  const base =
+    'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q=' +
+    encodeURIComponent(q)
+  // `bounded=1` REJETTE tout résultat hors du cadre, au lieu de simplement le
+  // classer plus bas — c'est ce qui empêche l'homonyme lointain de gagner.
+  return cadre ? `${base}&viewbox=${CADRE_RECHERCHE}&bounded=1` : base
+}
+
 /**
- * Géocode une adresse texte via Nominatim (biais sur la France).
+ * Géocode une adresse texte via Nominatim, en cherchant D'ABORD dans les
+ * départements couverts, puis dans toute la France si rien n'y correspond.
  * @returns {Promise<{lat:number, lng:number, label:string}|null>}
  */
 export async function geocodeAddress(query) {
   const q = (query || '').trim()
   if (!q) return null
-  const url =
-    'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q=' +
-    encodeURIComponent(q)
 
   // Nominatim est un service bénévole plafonné à ~1 requête/seconde POUR TOUTE
   // l'application : si plusieurs personnes publient en même temps, certaines
   // reçoivent un 429/503. Une seule nouvelle tentative après une pause suffit
   // dans l'immense majorité des cas ; au-delà, l'utilisateur place son marqueur
   // à la main sur la carte (chemin qui ne dépend d'aucun service tiers).
-  let res = await fetch(url, { headers: { 'Accept-Language': 'fr' } }).catch(() => null)
-  if (!res || res.status === 429 || res.status === 503) {
-    await new Promise((r) => setTimeout(r, 1200))
-    res = await fetch(url, { headers: { 'Accept-Language': 'fr' } }).catch(() => null)
+  async function interroger(url) {
+    let res = await fetch(url, { headers: { 'Accept-Language': 'fr' } }).catch(() => null)
+    if (!res || res.status === 429 || res.status === 503) {
+      await new Promise((r) => setTimeout(r, 1200))
+      res = await fetch(url, { headers: { 'Accept-Language': 'fr' } }).catch(() => null)
+    }
+    if (!res) throw new Error('service de recherche d’adresse injoignable')
+    if (res.status === 429 || res.status === 503) {
+      throw new Error('service de recherche d’adresse saturé, placez le marqueur à la main')
+    }
+    if (!res.ok) throw new Error('géocodage indisponible (' + res.status + ')')
+    const results = await res.json()
+    if (!results.length) return null
+    const r = results[0]
+    return { lat: parseFloat(r.lat), lng: parseFloat(r.lon), label: r.display_name }
   }
-  if (!res) throw new Error('service de recherche d’adresse injoignable')
-  if (res.status === 429 || res.status === 503) {
-    throw new Error('service de recherche d’adresse saturé, placez le marqueur à la main')
-  }
-  if (!res.ok) throw new Error('géocodage indisponible (' + res.status + ')')
 
-  const results = await res.json()
-  if (!results.length) return null
-  const r = results[0]
-  return { lat: parseFloat(r.lat), lng: parseFloat(r.lon), label: r.display_name }
+  // Le repli hors cadre reste utile : une salle juste de l'autre côté d'une
+  // limite départementale doit continuer de se trouver.
+  return (await interroger(urlNominatim(q, true))) ?? (await interroger(urlNominatim(q, false)))
 }
 
 // Note : la « ville par défaut » a été retirée. Les clés `rezo-city` et
