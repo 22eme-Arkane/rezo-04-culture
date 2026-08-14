@@ -78,11 +78,13 @@ export async function viewStats() {
   const freq = el('div', 'settings-group')
   freq.appendChild(line('Visiteurs sans compte (7 jours)', anon.uniques_7j ?? 0))
   freq.appendChild(line('Visiteurs sans compte (30 jours)', anon.uniques_30j ?? 0))
-  freq.appendChild(line('Membres venus (7 jours)', stats.visites.uniques_7j))
-  freq.appendChild(line('Membres venus (30 jours)', stats.visites.uniques_30j))
+  // Cumul depuis le début de la mesure, inscrits et non-inscrits réunis.
+  const totalVisiteurs = (stats.visites.uniques_total ?? 0) + (anon.uniques_total ?? 0)
+  freq.appendChild(line('Visiteurs au total', totalVisiteurs))
   body.appendChild(freq)
 
-  const depuis = stats.visites.depuis || anon.depuis
+  // La date la plus ancienne des deux mesures : c'est de là que part le cumul.
+  const depuis = [stats.visites.depuis, anon.depuis].filter(Boolean).sort()[0]
   body.appendChild(
     el(
       'p',
@@ -94,6 +96,15 @@ export async function viewStats() {
         : 'Aucun passage encore enregistré : la mesure démarre avec cette version.'
     )
   )
+  body.appendChild(
+    el(
+      'p',
+      'form__hint',
+      '« Visiteurs au total » additionne les membres et les visiteurs sans compte vus ' +
+        'au moins une fois. Quelqu’un venu d’abord sans compte puis inscrit y compte ' +
+        'deux fois : c’est un ordre de grandeur, pas un décompte de personnes.'
+    )
+  )
 
   // --- État des comptes ----------------------------------------------------
   body.appendChild(section('État des comptes'))
@@ -101,7 +112,6 @@ export async function viewStats() {
   comptes.appendChild(line('Session ouverte dans les 24 h', stats.connexions.actifs_24h))
   comptes.appendChild(line('Session ouverte dans les 7 jours', stats.connexions.actifs_7j))
   comptes.appendChild(line('Session ouverte dans les 30 jours', stats.connexions.actifs_30j))
-  comptes.appendChild(line('Jamais connectés', stats.connexions.jamais_connectes))
   comptes.appendChild(line('E-mails confirmés', stats.connexions.emails_confirmes))
   body.appendChild(comptes)
   body.appendChild(
