@@ -84,12 +84,21 @@ export async function listMembers() {
   return data ?? []
 }
 
-/** Enregistre le passage du jour (statistiques de fréquentation). Silencieux. */
+/**
+ * Enregistre le passage du jour (statistiques de fréquentation).
+ * Ne bloque jamais l'utilisateur, mais LAISSE UNE TRACE en cas d'échec.
+ *
+ * ⚠ Le `try/catch` seul ne servait à rien : supabase-js ne lève pas, il
+ * renvoie `{ error }`. Une erreur de droits ou de contrainte passait donc
+ * totalement inaperçue, et un comptage défaillant était indiagnostiquable
+ * depuis le navigateur.
+ */
 export async function recordVisit() {
   try {
-    await supabase.rpc('record_visit')
-  } catch {
-    /* purement statistique : ne doit jamais gêner l'utilisateur */
+    const { error } = await supabase.rpc('record_visit')
+    if (error) console.warn('[Armana] Visite non enregistrée :', error.code, error.message)
+  } catch (e) {
+    console.warn('[Armana] Visite non enregistrée :', e.message)
   }
 }
 
@@ -120,11 +129,17 @@ function idVisiteur() {
  */
 export async function recordAnonVisit() {
   const id = idVisiteur()
-  if (!id) return
+  if (!id) {
+    // Navigation privée, ou navigateur sans générateur aléatoire : on préfère
+    // ne pas compter plutôt que compter faux. Mais on le dit.
+    console.warn('[Armana] Passage anonyme non compté : identifiant indisponible.')
+    return
+  }
   try {
-    await supabase.rpc('record_anon_visit', { p_visitor: id })
-  } catch {
-    /* purement statistique */
+    const { error } = await supabase.rpc('record_anon_visit', { p_visitor: id })
+    if (error) console.warn('[Armana] Passage non enregistré :', error.code, error.message)
+  } catch (e) {
+    console.warn('[Armana] Passage non enregistré :', e.message)
   }
 }
 

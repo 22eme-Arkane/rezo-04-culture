@@ -45,11 +45,23 @@ export async function viewStats() {
 
   body.innerHTML = ''
 
+  // ⚠ Déclaré ICI et non plus bas : la tuile ci-dessous s'en sert, et un
+  // `const` lu avant sa déclaration lèverait une erreur.
+  const anon = stats.visites_anonymes ?? {}
+
   // --- Chiffres clés -------------------------------------------------------
   const kpis = el('div', 'stats-grid')
-  kpis.appendChild(kpi('Membres', stats.membres.total, `+${stats.membres.new_7j} cette semaine`))
+  kpis.appendChild(kpi('Membres', stats.membres.total, `+${stats.membres.new_7j} en 7 jours`))
   kpis.appendChild(
-    kpi('Visites aujourd’hui', stats.visites.aujourdhui, `${stats.visites.hier} hier`)
+    // ⚠ Cette tuile ne comptait QUE les membres, alors que les visiteurs sans
+    // compte sont la majorité des passages : elle affichait donc un chiffre
+    // bien plus bas que la réalité, et contredisait le graphique de la même
+    // page, qui lui additionne déjà les deux publics.
+    kpi(
+      'Visiteurs aujourd’hui',
+      (stats.visites.aujourdhui ?? 0) + (anon.aujourdhui ?? 0),
+      `${(stats.visites.hier ?? 0) + (anon.hier ?? 0)} hier`
+    )
   )
   kpis.appendChild(
     kpi('Événements à venir', stats.evenements.a_venir, `${stats.evenements.total} au total`)
@@ -73,7 +85,6 @@ export async function viewStats() {
   //     création de chaque compte.
   // Côte à côte sans explication, on lisait « 36 connectés sur 7 jours » sous
   // « 26 visiteurs sur 30 jours » et l'on croyait le tableau faux.
-  const anon = stats.visites_anonymes ?? {}
   body.appendChild(section('Qui vient'))
   const freq = el('div', 'settings-group')
   freq.appendChild(line('Visiteurs sans compte (7 jours)', anon.uniques_7j ?? 0))
@@ -154,8 +165,10 @@ export async function viewStats() {
   evs.appendChild(line('En attente', stats.evenements.en_attente))
   evs.appendChild(line('Rejetés', stats.evenements.rejetes))
   evs.appendChild(line('Payants', stats.evenements.payants))
-  evs.appendChild(line('Créés cette semaine', stats.evenements.new_7j))
-  evs.appendChild(line('Créés ce mois-ci', stats.evenements.new_30j))
+  // ⚠ Fenêtres GLISSANTES, pas semaine ni mois calendaires : le 3 du mois,
+  // « ce mois-ci » remontait jusqu'au mois précédent sans le dire.
+  evs.appendChild(line('Créés ces 7 jours', stats.evenements.new_7j))
+  evs.appendChild(line('Créés ces 30 jours', stats.evenements.new_30j))
   body.appendChild(evs)
 
   const parMois = (stats.par_mois ?? []).map((m) => ({

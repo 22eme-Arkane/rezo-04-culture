@@ -161,8 +161,15 @@ defineRoutes(
   // Volontairement sans await : purement statistique, jamais bloquant.
   // Les non-connectés sont la majorité des passages : les ignorer donnait des
   // statistiques de fréquentation trompeuses.
-  if (getUser()) recordVisit()
-  else recordAnonVisit()
+  const noterPassage = () => {
+    if (getUser()) recordVisit()
+    else recordAnonVisit()
+  }
+  // ⚠ CET APPEL DOIT RESTER, même si l'écouteur ci-dessous en fait autant :
+  // initAuth() a déjà émis son événement AVANT qu'on ne s'abonne (auth.js:48),
+  // et la garde `uid === lastUid` neutralise celui qui suit. Sans cette ligne,
+  // une session restaurée ne serait jamais comptée du tout.
+  noterPassage()
 
   // Sur login/logout UNIQUEMENT : reconstruire la nav + re-rendre la vue courante.
   // ⚠ Supabase émet aussi des événements au simple retour dans l'app (rafraîchissement
@@ -173,6 +180,13 @@ defineRoutes(
     const uid = getUser()?.id ?? null
     if (uid === lastUid) return
     lastUid = uid
+    // ⚠ Se connecter ne recharge PAS la page : sans cet appel, la visite du
+    // membre n'était jamais enregistrée. La personne n'était comptée que comme
+    // passage anonyme, noté avant sa connexion — d'où un compteur qui semblait
+    // ignorer les connexions.
+    // Rien à rejouer à la DÉCONNEXION : le passage a déjà été noté à
+    // l'ouverture, le recompter en anonyme gonflerait le chiffre.
+    if (uid) recordVisit()
     resetOwnerCache() // sinon le compte suivant hériterait du drapeau du précédent
     renderNav()
     refresh()
