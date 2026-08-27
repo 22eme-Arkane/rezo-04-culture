@@ -27,10 +27,13 @@ export async function viewSettings() {
   // qui n'auraient nulle part où mener).
   wrap.appendChild(ruban('Créer & gérer', 'jaune'))
   const pub = el('div', 'settings-group settings-group--jaune')
-  if (logged) {
-    pub.appendChild(rowNav(icon('plus'), 'Publier un événement', '/publier'))
-    pub.appendChild(rowNav(icon('ticket'), 'Mes événements', '/mes-evenements'))
-  }
+  // « Publier un événement » reste visible même déconnecté : c'est la raison
+  // d'être de l'application, la cacher revenait à ne jamais la proposer à
+  // quelqu'un qui n'a pas encore de compte. L'écran de publication invite
+  // alors à se connecter — la porte est visible, elle demande juste une clé.
+  pub.appendChild(rowNav(icon('plus'), 'Publier un événement', '/publier'))
+  // « Mes événements », en revanche, n'aurait rien à montrer sans compte.
+  if (logged) pub.appendChild(rowNav(icon('ticket'), 'Mes événements', '/mes-evenements'))
   pub.appendChild(rowNav(icon('map'), 'Mes départements', '/mes-departements'))
   const terr = pub
   wrap.appendChild(pub)
