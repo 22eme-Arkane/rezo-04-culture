@@ -523,7 +523,13 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .page--studio-sub,
 .photo-preview {
   --studio-blue: #0b55c5;
-  --studio-green: #064f36;
+  /* ⚠ VERT DU LOGO, pas un vert bouteille inventé. Relevé sur le masque de
+     icon-512.png : c'est la teinte moyenne du masque (150 px), assez sombre
+     pour porter du texte — 4,25:1 sur le crème, 4,4:1 en blanc dessus —
+     et franchement plus verte que l'ancien #064f36.
+     La barre d'onglets et ses icônes gardent volontairement le vert sombre :
+     elles l'écrivent en dur (#064f36), ce jeton ne les touche pas. */
+  --studio-green: #26784c;
   --studio-yellow: #ffc400;
   --studio-red: #f04b2f;
   --studio-cream: #fff4df;
@@ -538,6 +544,9 @@ a.settings-row .settings-row__label { word-break: break-all; }
      dominante : 1 465 pixels sur #409860). C'est celui-ci, et pas une
      approximation, qui habille les pastilles et les rubans du Profil. */
   --logo-green: #409860;
+  /* Bleu éclairci pour les pastilles et le drapeau du Profil : le bleu de la
+     barre de titre (#0b55c5) est trop sombre pour qu'un pictogramme s'y lise. */
+  --logo-blue: #1f6fe0;
 }
 
 /* Police d'affichage : grotesque CONDENSÉE, comme les maquettes. Elle ne sert
@@ -576,9 +585,14 @@ a.settings-row .settings-row__label { word-break: break-all; }
   min-height: 100%;
 }
 .page--studio-blue .studio-head { margin-left: 0; margin-right: 0; }
+/* ⚠ `.page--studio-blue.page--studio-sub` : deux classes sur le MÊME élément,
+   pour battre `.page--studio-sub .page__subtitle` défini plus bas. Sans cela
+   le sous-titre restait vert sur le bleu — donc invisible. */
 .page--studio-blue .page__subtitle,
+.page--studio-blue.page--studio-sub .page__subtitle,
+.page--studio-blue.page--studio-sub .form__hint,
 .page--studio-blue .form__hint,
-.page--studio-blue .form__label { color: rgba(255, 255, 255, 0.88); }
+.page--studio-blue .form__label { color: rgba(255, 255, 255, 0.9); }
 .page--studio-blue .empty-state { color: #fff; }
 /* Les cartes crème posées sur le bleu : c'est le motif visuel des maquettes. */
 .page--studio-blue .settings-group,
@@ -672,7 +686,7 @@ a.settings-row .settings-row__label { word-break: break-all; }
   clip-path: polygon(0 0, 100% 0, calc(100% - 0.7rem) 50%, 100% 100%, 0 100%);
 }
 .studio-ruban--jaune { background: var(--mask-yellow); color: var(--studio-ink); }
-.studio-ruban--bleu { background: var(--studio-blue); color: #fff; }
+.studio-ruban--bleu { background: var(--logo-blue); color: #fff; }
 /* Le vert du logo est clair : c'est l'ENCRE SOMBRE qui s'y pose, pas du blanc
    — blanc sur #409860 tombe à 3,3:1, sous le seuil lisible à cette taille. */
 .studio-ruban--vert { background: var(--logo-green); color: var(--studio-ink); }
@@ -716,9 +730,13 @@ a.settings-row .settings-row__label { word-break: break-all; }
   background: var(--mask-yellow);
   color: var(--studio-ink);
 }
+/* ⚠ Bleu ÉCLAIRCI et icône forcée en blanc. Le bleu de la charte (#0b55c5)
+   était si sombre que les pictogrammes s'y noyaient. Le `!important` n'est pas
+   un caprice : une règle générique plus bas repeint tout svg de ligne en vert
+   du masque, et c'est elle qui gagnait ici. */
 .page--studio-profile .settings-group--bleu .settings-row__label > svg {
-  background: var(--studio-blue);
-  color: #fff;
+  background: var(--logo-blue) !important;
+  color: #fff !important;
 }
 .page--studio-profile .settings-group--vert .settings-row__label > svg {
   background: var(--logo-green);
@@ -810,6 +828,37 @@ a.settings-row .settings-row__label { word-break: break-all; }
   flex: 0 0 auto;
 }
 .don-banner__fleche svg { width: 17px; height: 17px; }
+
+/* --- Statistiques : fond bleu ------------------------------------------- */
+/* Sur le bleu, le vert de la charte devient illisible (2,1:1). Tout ce qui
+   n'est PAS posé sur une carte blanche passe donc au jaune ou au blanc.
+   Les cartes crème, elles, gardent leur encre sombre : le `:not()` sépare les
+   deux mondes sans avoir à ajouter une classe sur chaque élément. */
+.page--studio-stats .stats-section,
+.page--studio-stats > .form__hint,
+.page--studio-stats > .form__msg,
+.page--studio-stats .stats-body > .form__hint,
+.page--studio-stats .stats-body > .stats-section {
+  color: var(--mask-yellow);
+}
+.page--studio-stats .stats-section svg { color: var(--mask-yellow); }
+.page--studio-stats .stats-body > p:not([class*='form__msg--err']) { color: rgba(255, 255, 255, 0.9); }
+/* Les tuiles de chiffres et les cartes de détail restent claires. */
+.page--studio-stats .stat-tile,
+.page--studio-stats .settings-group,
+.page--studio-stats .chart {
+  background: var(--studio-cream);
+  color: var(--studio-ink);
+  border-color: rgba(6, 43, 29, 0.12);
+}
+.page--studio-stats .stat-tile__value { color: var(--studio-blue); }
+.page--studio-stats .stat-tile__label,
+.page--studio-stats .stat-tile__hint,
+.page--studio-stats .settings-row,
+.page--studio-stats .settings-row__label { color: var(--studio-ink); }
+.page--studio-stats .settings-row__value { color: var(--studio-blue); }
+/* Le bouton de nettoyage, seul élément destructeur, reste bien visible. */
+.page--studio-stats .btn--block { color: var(--studio-ink); }
 
 /* --- Statistiques : les trois chiffres en tête --------------------------- */
 .stats-hero { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 1rem; }
@@ -968,11 +1017,12 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .map-pill svg { width: 15px; height: 15px; flex: 0 0 auto; }
 .map-pill__texte { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .map-pill.is-active { background: var(--mask-yellow); border-color: var(--mask-yellow); }
+/* Posé sur le cadre de la carte, pas dans la barre de pastilles — celle-ci
+   défile horizontalement et découperait le menu (voir viewMap.js). */
 .map-menu {
   position: absolute;
-  top: calc(100% - 0.2rem);
-  left: 0;
-  right: 0;
+  width: 240px;
+  max-width: calc(100% - 16px);
   z-index: 500;
   max-height: 58vh;
   overflow-y: auto;
@@ -1253,6 +1303,14 @@ a.settings-row .settings-row__label { word-break: break-all; }
   font-weight: 650;
   color: var(--studio-blue);
 }
+/* Rôle en pictogramme : bouclier pour qui modère, personnage sinon. */
+.liste-compacte__role {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--studio-ink) 42%, #fff);
+}
+.liste-compacte__role svg { width: 19px; height: 19px; }
+.liste-compacte__role--moderateur { color: var(--logo-green); }
 
 /* --- Numéro de département, en gros chiffres condensés ------------------- */
 .dept-num {
@@ -1788,6 +1846,9 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
 .page--studio-sub .page__subtitle {
   margin: 0.05rem 0 0.1rem;
   padding: 0 0.35rem;
+  /* ⚠ Sur les écrans à fond bleu, c'est le blanc qui s'applique — la règle
+     .page--studio-blue plus haut avait la même spécificité et perdait, faute
+     d'être plus tardive. D'où le sélecteur négatif ici. */
   color: var(--studio-green);
   font-size: 0.78rem;
   font-weight: 700;
@@ -2010,7 +2071,13 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
 
 .screen--studio-calendar {
   --studio-blue: #0b55c5;
-  --studio-green: #064f36;
+  /* ⚠ VERT DU LOGO, pas un vert bouteille inventé. Relevé sur le masque de
+     icon-512.png : c'est la teinte moyenne du masque (150 px), assez sombre
+     pour porter du texte — 4,25:1 sur le crème, 4,4:1 en blanc dessus —
+     et franchement plus verte que l'ancien #064f36.
+     La barre d'onglets et ses icônes gardent volontairement le vert sombre :
+     elles l'écrivent en dur (#064f36), ce jeton ne les touche pas. */
+  --studio-green: #26784c;
   --studio-yellow: #ffc400;
   --studio-red: #f04b2f;
   --studio-cream: #fff4df;
@@ -2171,7 +2238,11 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   gap: 0.25rem;
   padding: 0.36rem 0.72rem;
   color: var(--studio-cream);
-  background: var(--studio-green);
+  /* ⚠ Vert SOMBRE conservé ici, à la demande de Matthieu : une chip non
+     sélectionnée doit rester en retrait de celle qui l'est. Au vert clair du
+     logo, les deux états se ressemblaient trop — et le crème dessus tombait
+     à 4,2:1. En vert bouteille il monte à 8,7:1. */
+  background: #064f36;
   border-color: rgba(255, 244, 223, 0.28);
   font-size: 0.72rem;
   font-weight: 700;

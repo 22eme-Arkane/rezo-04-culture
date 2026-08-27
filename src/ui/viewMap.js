@@ -106,9 +106,18 @@ export async function viewMap() {
       e.stopPropagation()
       if (menuOuvert?.pastille === p) return fermerMenu()
       fermerMenu()
+      // ⚠ Le panneau est posé sur le CADRE DE LA CARTE, jamais dans la barre
+      // de pastilles : celle-ci défile horizontalement (`overflow-x: auto`),
+      // ce qui découpe aussi ce qui dépasse en hauteur. Le menu s'y réduisait
+      // à un trait sous les pastilles, et rien n'était sélectionnable.
       const panneau = el('div', 'map-menu')
       remplir(panneau)
-      barre.appendChild(panneau)
+      mapFrame.appendChild(panneau)
+      // Aligné sous SA pastille, dans les limites de la carte.
+      const r = p.getBoundingClientRect()
+      const cadre = mapFrame.getBoundingClientRect()
+      panneau.style.left = Math.max(8, Math.min(r.left - cadre.left, cadre.width - 248)) + 'px'
+      panneau.style.top = r.bottom - cadre.top + 6 + 'px'
       p.setAttribute('aria-expanded', 'true')
       menuOuvert = { pastille: p, panneau }
     })

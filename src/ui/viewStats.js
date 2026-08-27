@@ -16,7 +16,7 @@ const JOUR = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit'
 const JOUR_LONG = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
 export async function viewStats() {
-  const wrap = el('section', 'page page--studio-sub')
+  const wrap = el('section', 'page page--studio-sub page--studio-blue page--studio-stats')
   wrap.appendChild(studioHeader('Statistiques', { backTo: '/parametres' }))
 
   if (!isLoggedIn() || !isAdmin()) {

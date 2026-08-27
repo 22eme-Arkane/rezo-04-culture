@@ -70,13 +70,14 @@ export async function viewMembers() {
       )
       row.appendChild(corps)
 
-      row.appendChild(
-        el(
-          'span',
-          'liste-compacte__fin',
-          m.is_owner ? 'Propriétaire' : estAdmin ? 'Modérateur' : 'Membre'
-        )
-      )
+      // Un pictogramme plutôt qu'un mot : « Membre » répété sur trois cents
+      // lignes n'apprenait rien et mangeait la place du nom.
+      const role = el('span', 'liste-compacte__role')
+      role.appendChild(icon(m.is_owner || estAdmin ? 'shield' : 'user'))
+      role.title = m.is_owner ? 'Propriétaire' : estAdmin ? 'Modérateur' : 'Membre'
+      role.setAttribute('aria-label', role.title)
+      if (m.is_owner || estAdmin) role.classList.add('liste-compacte__role--moderateur')
+      row.appendChild(role)
       row.addEventListener('click', () => navigate('/membre?id=' + m.id))
       liste.appendChild(row)
     }

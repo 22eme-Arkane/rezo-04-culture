@@ -204,7 +204,8 @@ export async function viewAdmins() {
   }
 
   // --- Désigner par e-mail (dépannage : le chemin normal est Membres ou les
-  // candidatures). La personne est rattachée au 04, à ajuster ensuite. ---
+  // candidatures). La ZONE se choisit ici même : rattacher d'office au 04 puis
+  // corriger dans la liste était un détour inutile, et facile à oublier. ---
   wrap.appendChild(el('h3', 'support-wall__title', 'Désigner par e-mail'))
   const form = el('div', 'form')
   const field = el('label', 'form__field')
@@ -215,11 +216,28 @@ export async function viewAdmins() {
   field.appendChild(emailInput)
   form.appendChild(field)
 
+  form.appendChild(el('span', 'form__label', 'Sa zone de modération'))
+  const zoneNouveau = el('div', 'moderateur__zone moderateur__zone--choix')
+  const choisis = new Set()
+  for (const d of DEPARTEMENTS) {
+    const b = el('button', 'recur__day', d.code)
+    b.type = 'button'
+    b.title = d.nom
+    b.setAttribute('aria-label', d.nom)
+    b.addEventListener('click', () => {
+      if (choisis.has(d.code)) choisis.delete(d.code)
+      else choisis.add(d.code)
+      b.classList.toggle('is-active', choisis.has(d.code))
+    })
+    zoneNouveau.appendChild(b)
+  }
+  form.appendChild(zoneNouveau)
+
   const msg = el('p', 'form__msg')
   const addBtn = el('button', 'btn btn--primary btn--block')
   addBtn.type = 'button'
   addBtn.appendChild(icon('shield'))
-  addBtn.appendChild(document.createTextNode(' Désigner modérateur (zone : 04)'))
+  addBtn.appendChild(document.createTextNode(' Désigner modérateur'))
   addBtn.addEventListener('click', async () => {
     const email = emailInput.value.trim()
     msg.className = 'form__msg'
@@ -228,13 +246,25 @@ export async function viewAdmins() {
       msg.textContent = 'Entrez un e-mail.'
       return
     }
+    if (!choisis.size) {
+      msg.classList.add('form__msg--err')
+      msg.textContent = 'Choisissez au moins un département.'
+      return
+    }
     addBtn.disabled = true
     msg.textContent = 'Traitement…'
     try {
+      // Deux temps : la RPC par e-mail retrouve le compte et donne le rôle,
+      // puis on pose la zone demandée. C'est la seule voie — set_moderator
+      // travaille sur un identifiant, pas sur une adresse.
       const res = await setAdminByEmail(email, true)
+      const depts = [...choisis].sort()
+      if (res?.id) await setModerator(res.id, depts)
       msg.className = 'form__msg form__msg--ok'
-      msg.textContent = `${res?.display_name || email} est désormais modérateur du 04 — ajustez sa zone ci-dessus.`
+      msg.textContent = `${res?.display_name || email} modère désormais : ${depts.join(', ')}.`
       emailInput.value = ''
+      choisis.clear()
+      for (const b of zoneNouveau.children) b.classList.remove('is-active')
       await refresh()
     } catch (e) {
       msg.className = 'form__msg form__msg--err'
