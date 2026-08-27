@@ -652,39 +652,20 @@ a.settings-row .settings-row__label { word-break: break-all; }
   color: color-mix(in srgb, var(--studio-ink) 62%, #fff);
 }
 
-/* --- Rubans de section du Profil ---------------------------------------- */
-/* Petit fanion en capitales, encoché à droite comme sur la maquette. */
-.studio-ruban {
-  margin: 1.1rem 0 0;
-  padding: 0.32rem 1.6rem 0.32rem 0.8rem;
-  width: fit-content;
-  max-width: 100%;
-  font-family: var(--font-display);
-  /* Corps et graisse relevés : l'encre sombre sur le vert du logo plafonne à
-     4,29:1, un cheveu sous le seuil AA. En capitales grasses de cette taille,
-     la lecture reste franche — et c'est le vert du logo que Matthieu veut. */
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 0.7rem) 50%, 100% 100%, 0 100%);
-}
-.studio-ruban--jaune { background: var(--mask-yellow); color: var(--studio-ink); }
-.studio-ruban--bleu { background: var(--studio-blue); color: #fff; }
-/* Le vert du logo est clair : c'est l'ENCRE SOMBRE qui s'y pose, pas du blanc
-   — blanc sur #409860 tombe à 3,3:1, sous le seuil lisible à cette taille. */
-.studio-ruban--vert { background: var(--logo-green); color: var(--studio-ink); }
-.page--studio-profile .settings-group + .studio-ruban { margin-top: 1.3rem; }
+/* (Les rubans de section — CRÉER & GÉRER, PRATIQUE, ASSISTANCE… — ont été
+   retirés : les groupes se lisent d'eux-mêmes, les intitulés n'apportaient
+   plus rien.) */
 
 /* Pastille ronde autour de l'icône de chaque ligne, reliée par un filet
    vertical : c'est ce qui donne l'allure de « chemin » de la maquette. */
+/* Sans les rubans, ce sont les marges qui séparent les groupes. */
 .page--studio-profile .settings-group--jaune,
 .page--studio-profile .settings-group--bleu,
 .page--studio-profile .settings-group--vert {
   position: relative;
-  margin-top: 0;
+  margin: 1.15rem 0 0;
   border: none;
-  border-radius: 0 0 14px 14px;
+  border-radius: 14px;
   background: transparent;
 }
 .page--studio-profile .settings-group--jaune::before,
@@ -753,11 +734,13 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .page--studio-profile .settings-group--nu { border: none; background: transparent; }
 /* Connexion / déconnexion : le libellé est CENTRÉ, contrairement aux lignes
    de navigation. Ce ne sont pas des entrées de menu mais des actions. */
+/* Vert CLAIR du logo, pas le vert bouteille : c'est le bouton d'accueil de
+   quelqu'un qui n'a pas encore de compte, il doit inviter. */
 .page--studio-profile .settings-group--nu .settings-row {
   border-radius: 12px;
   border-bottom: none;
   justify-content: center;
-  background: var(--studio-green);
+  background: var(--logo-green);
   color: #fff;
 }
 .page--studio-profile .settings-group--nu .settings-row__label {
@@ -1135,6 +1118,8 @@ a.settings-row .settings-row__label { word-break: break-all; }
 /* --- Illustrations SVG en tête d'écran ---------------------------------- */
 .illu { display: flex; justify-content: center; margin: 0.3rem 0 0.9rem; }
 .illu__svg { display: block; width: min(170px, 44vw); height: auto; }
+/* Source de 288 px : à 170 px d'affichage, 1,7x — net sur écran fin. */
+.illu__img { display: block; width: min(170px, 44vw); height: auto; }
 .support-text--centre { text-align: center; }
 
 /* --- Connexion : le logo accueille, le formulaire suit ------------------- */
@@ -2500,7 +2485,12 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   font-size: 0.86rem; line-height: 1.5;
   border: 2px dashed var(--border); background: var(--surface);
 }
-.support-list { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+/* Le mur des soutiens est CENTRÉ : quand une seule personne y figure, sa
+   pastille collée au bord gauche donnait l'impression d'une liste tronquée
+   plutôt que d'un remerciement. */
+.support-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.45rem; }
+.support-wall { text-align: center; }
+.support-wall .support-wall__title { text-align: center; }
 .support-badge {
   display: flex; align-items: center; gap: 0.4rem;
   padding: 0.4rem 0.75rem 0.4rem 0.5rem; border-radius: 999px;

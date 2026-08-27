@@ -9,7 +9,6 @@
 import { el } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
-import { illustrationDon } from './illustrations.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
 import {
   listSupporters,
@@ -38,7 +37,16 @@ export async function viewSupport() {
   const wrap = el('section', 'page page--studio-sub')
   wrap.appendChild(studioHeader('Faire un don', { backTo: '/parametres' }))
 
-  wrap.appendChild(illustrationDon())
+  // L'illustration fournie par Matthieu (assets/Faire un Don.png), recadrée et
+  // réduite à 288 px. J'avais d'abord tenté de la redessiner en SVG pour
+  // économiser le téléchargement : le rendu ne lui allait pas, on garde donc
+  // l'originale. Elle ne se charge que sur cet écran.
+  const illu = el('div', 'illu')
+  const imgDon = el('img', 'illu__img')
+  imgDon.src = '/icons/armana-don.png'
+  imgDon.alt = 'Un cœur tenu à deux mains'
+  illu.appendChild(imgDon)
+  wrap.appendChild(illu)
 
   // ⚠ Explications COMPLÈTES, volontairement. J'avais coupé au plus court ;
   // Matthieu l'a corrigé : c'est justement l'endroit où les gens ont besoin de

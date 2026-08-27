@@ -9,7 +9,6 @@ import { amIOwner } from '../lib/admins.js'
 import { listModeratorRequests, myPendingCount } from '../lib/moderation.js'
 import { countFeedback } from '../lib/feedback.js'
 import { currentBuild } from '../lib/update.js'
-import { APP_URL, shareApp } from '../lib/share.js'
 import { studioHeader, boutonPartage } from './studio.js'
 
 export async function viewSettings() {
@@ -26,7 +25,6 @@ export async function viewSettings() {
   // « Mes départements » est un filtre de lecture : il reste utile sans compte,
   // d'où un groupe visible même déconnecté (mais sans les lignes de publication,
   // qui n'auraient nulle part où mener).
-  wrap.appendChild(ruban('Créer & gérer', 'jaune'))
   const pub = el('div', 'settings-group settings-group--jaune')
   if (logged) {
     pub.appendChild(rowNav(icon('plus'), 'Publier un événement', '/publier'))
@@ -43,7 +41,6 @@ export async function viewSettings() {
   // afficher des portes qui seraient fermées.
   if (logged && isAdmin()) {
     const owner = await amIOwner()
-    wrap.appendChild(ruban('Communauté & administration', 'bleu'))
     const adm = el('div', 'settings-group settings-group--bleu')
     // Tous les compteurs en parallèle : inutile d'attendre l'un puis l'autre.
     const [pending, messages, demandes] = await Promise.all([
@@ -82,7 +79,6 @@ export async function viewSettings() {
   }
 
   // 3. Pratique : installer et régler, deux actions ponctuelles.
-  wrap.appendChild(ruban('Pratique', 'vert'))
   const install = el('div', 'settings-group settings-group--vert')
   install.appendChild(rowNav(icon('download'), 'Installer l’application', '/installer'))
   install.appendChild(rowNav(icon('bell'), 'Notifications', '/notifications'))
@@ -103,7 +99,6 @@ export async function viewSettings() {
   wrap.appendChild(don)
 
   // 5. Assistance.
-  wrap.appendChild(ruban('Assistance', 'vert'))
   const help = el('div', 'settings-group settings-group--vert')
   help.appendChild(rowNav(icon('message'), 'Nous contacter', '/contact'))
   wrap.appendChild(help)
@@ -149,15 +144,6 @@ export async function viewSettings() {
   wrap.appendChild(pied)
 
   return wrap
-}
-
-/**
- * Bandeau de section en forme de ruban (maquette). Purement décoratif pour
- * l'œil, mais c'est un vrai titre pour un lecteur d'écran : la liste qui suit
- * n'aurait sinon aucun intitulé.
- */
-function ruban(titre, ton) {
-  return el('h2', `studio-ruban studio-ruban--${ton}`, titre)
 }
 
 // Ligne d'action avec chevron.
