@@ -1375,9 +1375,12 @@ a.settings-row .settings-row__label { word-break: break-all; }
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 .studio-head:not(.studio-head--sub) .studio-head__slot:first-child { display: none; }
+/* Même échelle que l'Agenda : les quatre onglets racines portent des titres
+   de la même taille, sinon passer de l'un à l'autre fait « sauter » le titre. */
 .studio-head:not(.studio-head--sub) .studio-head__title {
   text-align: left;
-  font-size: clamp(1.7rem, 8vw, 2.3rem);
+  font-size: clamp(2.7rem, 12.8vw, 3.25rem);
+  line-height: 1;
 }
 .studio-head__logo {
   display: block;
@@ -2065,14 +2068,19 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    Poppins 850 tandis que Profil, Notifications et tout le reste passaient en
    Oswald : deux titres côte à côte n'avaient pas la même allure. Un seul
    jeton, --font-display, gouverne désormais tous les titres de l'application. */
+/* ⚠ TAILLE D'ORIGINE CONSERVÉE (52 px au maximum, mesurés en production).
+   En unifiant la police j'avais aussi rétréci ce titre à 36,8 px — Matthieu
+   l'a vu tout de suite. La police change, la taille non. */
 .screen-title--studio {
   justify-content: flex-start;
   color: #fff;
   font-family: var(--font-display);
-  font-size: clamp(1.7rem, 8vw, 2.3rem);
+  font-size: clamp(2.7rem, 12.8vw, 3.25rem);
   font-weight: 700;
-  letter-spacing: 0.005em;
-  line-height: 1.1;
+  /* Oswald est déjà condensée : le resserrement de -0,055em, qui servait à
+     tasser Poppins, collerait les lettres les unes aux autres. */
+  letter-spacing: 0;
+  line-height: 1;
 }
 .studio-calendar-toggle {
   grid-column: 2;
