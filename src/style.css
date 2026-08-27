@@ -830,19 +830,22 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .don-banner__fleche svg { width: 17px; height: 17px; }
 
 /* --- Statistiques : fond bleu ------------------------------------------- */
-/* Sur le bleu, le vert de la charte devient illisible (2,1:1). Tout ce qui
-   n'est PAS posé sur une carte blanche passe donc au jaune ou au blanc.
-   Les cartes crème, elles, gardent leur encre sombre : le `:not()` sépare les
-   deux mondes sans avoir à ajouter une classe sur chaque élément. */
-.page--studio-stats .stats-section,
-.page--studio-stats > .form__hint,
-.page--studio-stats > .form__msg,
-.page--studio-stats .stats-body > .form__hint,
-.page--studio-stats .stats-body > .stats-section {
+/* ⚠ CONTRASTE FRANC EXIGÉ. Matthieu est légèrement daltonien : sur ce fond
+   bleu, tout vert lui devient illisible. Rien de vert ne subsiste donc hors
+   des cartes claires — uniquement du blanc et du jaune, jamais de nuance
+   intermédiaire, et jamais d'opacité réduite qui rognerait le contraste.
+   Les cartes crème, elles, gardent leur encre sombre. */
+.page--studio-stats .stats-section {
   color: var(--mask-yellow);
 }
 .page--studio-stats .stats-section svg { color: var(--mask-yellow); }
-.page--studio-stats .stats-body > p:not([class*='form__msg--err']) { color: rgba(255, 255, 255, 0.9); }
+.page--studio-stats .form__hint,
+.page--studio-stats .form__msg { color: #fff; }
+/* Graphiques posés à même le bleu : étiquettes et valeurs en blanc pur. */
+.page--studio-stats .bars__label { color: #fff; }
+.page--studio-stats .bars__value { color: var(--mask-yellow); }
+.page--studio-stats .bars__track { background: rgba(255, 255, 255, 0.22); }
+.page--studio-stats .bars__fill { background: var(--mask-yellow); }
 /* Les tuiles de chiffres et les cartes de détail restent claires. */
 .page--studio-stats .stat-tile,
 .page--studio-stats .settings-group,
@@ -876,6 +879,12 @@ a.settings-row .settings-row__label { word-break: break-all; }
   font-size: clamp(0.95rem, 4.2vw, 1.2rem);
   font-weight: 500;
   color: var(--studio-green);
+}
+/* Sur le bleu : blanc pur. Le vert y était invisible (2,1:1). */
+.page--studio-stats .stats-hero__mot { color: #fff; }
+.page--studio-stats .stats-hero__valeur {
+  color: var(--mask-yellow);
+  -webkit-text-stroke: 0;
 }
 
 /* --- Fiche membre : carte de visite compacte ----------------------------- */
@@ -949,6 +958,49 @@ a.settings-row .settings-row__label { word-break: break-all; }
   font-size: 0.85rem;
   line-height: 1.45;
   color: var(--studio-ink);
+}
+
+/* --- Publier sur fond bleu ---------------------------------------------- */
+/* ⚠ Tout ce qui n'est pas DANS un champ passe en blanc ou en jaune : sur le
+   bleu, le vert et l'encre sombre deviennent illisibles. Les champs de saisie
+   gardent un fond clair — on doit lire ce qu'on tape. */
+/* ⚠ DOUBLE CLASSE sur le même élément (`.page--studio-publish.page--studio-sub`).
+   Les règles génériques `.page--studio-sub .form__label` sont définies PLUS BAS
+   avec la même spécificité : à égalité, la dernière gagne, et le libellé restait
+   vert sur bleu — mesuré à 1,24:1, soit invisible. */
+.page--studio-publish.page--studio-sub .form__label,
+.page--studio-publish .switch__text,
+.page--studio-publish .recur__echo,
+.page--studio-publish .photo-slot__jour { color: #fff; }
+.page--studio-publish.page--studio-sub .form__hint,
+.page--studio-publish .photo-preview__hint { color: rgba(255, 255, 255, 0.9); }
+.page--studio-publish .etape__titre { color: var(--mask-yellow); }
+.page--studio-publish .form__input,
+.page--studio-publish .form__textarea,
+.page--studio-publish select.form__input {
+  background: var(--studio-cream);
+  color: var(--studio-ink);
+  border-color: rgba(6, 43, 29, 0.2);
+}
+.page--studio-publish .form__input::placeholder { color: rgba(6, 43, 29, 0.5); }
+/* Jours de répétition : la pastille éteinte doit rester visible sur le bleu. */
+/* Fond OPAQUE, pas un blanc translucide : sur une superposition semi-transparente
+   le contraste réel devient impossible à garantir d'un thème à l'autre. */
+.page--studio-publish .recur__day {
+  background: #1b62cf;
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+}
+.page--studio-publish .recur__day.is-active {
+  background: var(--mask-yellow);
+  border-color: var(--mask-yellow);
+  color: var(--studio-ink);
+}
+/* Le message d'erreur reste rouge, mais sur une pastille claire pour ressortir. */
+.page--studio-publish .form__msg--err {
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  background: #fff;
 }
 
 /* --- Publier : parcours en étapes ---------------------------------------- */

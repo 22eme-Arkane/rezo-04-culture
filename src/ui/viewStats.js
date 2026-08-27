@@ -13,7 +13,6 @@ import { navigate } from '../lib/router.js'
 
 const MOIS = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: '2-digit' })
 const JOUR = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' })
-const JOUR_LONG = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
 export async function viewStats() {
   const wrap = el('section', 'page page--studio-sub page--studio-blue page--studio-stats')
@@ -113,29 +112,6 @@ export async function viewStats() {
   freq.appendChild(line('Visiteurs au total', totalVisiteurs))
   body.appendChild(freq)
 
-  // La date la plus ancienne des deux mesures : c'est de là que part le cumul.
-  const depuis = [stats.visites.depuis, anon.depuis].filter(Boolean).sort()[0]
-  body.appendChild(
-    el(
-      'p',
-      'form__hint',
-      depuis
-        ? 'Passages réellement observés, mesurés depuis le ' +
-          JOUR_LONG.format(new Date(depuis + 'T12:00:00')) +
-          '. Un « 30 jours » ne peut donc pas dépasser ce que la mesure a eu le temps de voir.'
-        : 'Aucun passage encore enregistré : la mesure démarre avec cette version.'
-    )
-  )
-  body.appendChild(
-    el(
-      'p',
-      'form__hint',
-      '« Visiteurs au total » additionne les membres et les visiteurs sans compte vus ' +
-        'au moins une fois. Quelqu’un venu d’abord sans compte puis inscrit y compte ' +
-        'deux fois : c’est un ordre de grandeur, pas un décompte de personnes.'
-    )
-  )
-
   // --- État des comptes ----------------------------------------------------
   body.appendChild(section('État des comptes'))
   const comptes = el('div', 'settings-group')
@@ -144,15 +120,6 @@ export async function viewStats() {
   comptes.appendChild(line('Session ouverte dans les 30 jours', stats.connexions.actifs_30j))
   comptes.appendChild(line('E-mails confirmés', stats.connexions.emails_confirmes))
   body.appendChild(comptes)
-  body.appendChild(
-    el(
-      'p',
-      'form__hint',
-      'Historique d’authentification, disponible depuis la création des comptes. ' +
-        'Ce n’est pas un nombre de visites : une session peut se rouvrir sans que ' +
-        'la personne ait ouvert l’application.'
-    )
-  )
 
   // Courbe : les deux publics cumulés, c'est la fréquentation réelle.
   const parJour = new Map()
@@ -173,14 +140,6 @@ export async function viewStats() {
   if (parDept.length) {
     body.appendChild(section('Passages par département (30 jours)'))
     body.appendChild(barChart(parDept))
-    body.appendChild(
-      el(
-        'p',
-        'form__hint',
-        '« Non renseigné » : localisation refusée ou carte jamais ouverte ce jour-là. ' +
-          'Seul le département est enregistré, jamais la position.'
-      )
-    )
   }
 
   // Où se passe l'activité : les événements à venir, par département.
@@ -196,14 +155,6 @@ export async function viewStats() {
   if (daily.length) {
     body.appendChild(section('Passages par jour, tous publics (30 jours)'))
     body.appendChild(barChart(daily))
-  } else {
-    body.appendChild(
-      el(
-        'p',
-        'form__hint',
-        'Aucune visite enregistrée pour l’instant : le comptage démarre avec cette version.'
-      )
-    )
   }
 
   // --- Événements ----------------------------------------------------------
@@ -256,13 +207,6 @@ export async function viewStats() {
     const maint = el('div', 'settings-group')
     maint.appendChild(line('Événements des mois passés', stats.evenements.a_purger))
     body.appendChild(maint)
-    body.appendChild(
-      el(
-        'p',
-        'form__hint',
-        'Le mois en cours et les mois à venir sont conservés. Les mois révolus peuvent être supprimés — photos comprises — pour libérer de l’espace.'
-      )
-    )
 
     const purgeBtn = el('button', 'btn btn--block', 'Nettoyer les mois passés')
     purgeBtn.type = 'button'
