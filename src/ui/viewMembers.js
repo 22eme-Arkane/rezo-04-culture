@@ -13,14 +13,15 @@ export async function viewMembers() {
   const wrap = el('section', 'page page--studio-sub')
   wrap.appendChild(studioHeader('Membres', { backTo: '/parametres' }))
 
-  // Depuis la 0020 la liste des membres est réservée au propriétaire : la
-  // garde du client doit dire la même chose que la base, sinon un modérateur
-  // arrivant par l'historique verrait une erreur de chargement au lieu d'un
-  // refus propre.
-  if (!isAdmin() || !(await amIOwner().catch(() => false))) {
-    wrap.appendChild(emptyState('Réservé au propriétaire du projet.'))
+  // La LISTE est ouverte aux modérateurs (migration 0022) : elle ne contient
+  // aucune adresse e-mail. La FICHE d'un membre, elle, en expose une et reste
+  // réservée au propriétaire — d'où le `owner` ci-dessous, qui décide si les
+  // lignes sont cliquables.
+  if (!isAdmin()) {
+    wrap.appendChild(emptyState('Réservé aux modérateurs.'))
     return wrap
   }
+  const owner = await amIOwner().catch(() => false)
 
   const intro = el('p', 'page__subtitle', '')
   wrap.appendChild(intro)
@@ -30,8 +31,11 @@ export async function viewMembers() {
     el(
       'p',
       'form__hint',
-      'Touchez un membre pour ouvrir sa fiche : son adresse pour lui écrire, ' +
-        'ses publications, et la zone de modération.'
+      owner
+        ? 'Touchez un membre pour ouvrir sa fiche : son adresse pour lui écrire, ' +
+          'ses publications, et la zone de modération.'
+        : 'Les fiches individuelles, qui portent les adresses e-mail, sont ' +
+          'réservées au propriétaire du projet.'
     )
   )
 
@@ -55,8 +59,12 @@ export async function viewMembers() {
       const nom = m.display_name || 'Sans nom'
       const estAdmin = m.role === 'admin'
 
-      const row = el('button', 'liste-compacte__ligne')
-      row.type = 'button'
+      // Un modérateur consulte la liste ; seul le propriétaire ouvre la fiche.
+      // On rend donc la ligne inerte plutôt que de la laisser cliquable vers
+      // une erreur — la base refuserait de toute façon (member_profile).
+      const row = el(owner ? 'button' : 'div', 'liste-compacte__ligne')
+      if (owner) row.type = 'button'
+      else row.classList.add('liste-compacte__ligne--statique')
       row.appendChild(el('span', 'liste-compacte__pastille', initiales(nom)))
 
       const corps = el('div', 'liste-compacte__corps')
@@ -78,7 +86,7 @@ export async function viewMembers() {
       role.setAttribute('aria-label', role.title)
       if (m.is_owner || estAdmin) role.classList.add('liste-compacte__role--moderateur')
       row.appendChild(role)
-      row.addEventListener('click', () => navigate('/membre?id=' + m.id))
+      if (owner) row.addEventListener('click', () => navigate('/membre?id=' + m.id))
       liste.appendChild(row)
     }
     box.appendChild(liste)

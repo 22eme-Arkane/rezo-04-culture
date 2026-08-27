@@ -85,7 +85,9 @@ export async function viewSettings() {
       )
     }
     adm.appendChild(rowNav(icon('check'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
-    if (owner) adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
+    // La LISTE des membres est ouverte aux modérateurs (migration 0022) ;
+    // seule la FICHE, qui porte l'adresse e-mail, reste au propriétaire.
+    adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
     adm.appendChild(rowNav(icon('chart'), 'Statistiques', '/statistiques'))
   }
   wrap.appendChild(adm)
