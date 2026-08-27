@@ -10,6 +10,7 @@ import { DEFAULT_CENTER, getUserLocation, locationErrorMessage } from '../lib/ge
 import { eventsWithinRadius } from '../lib/events.js'
 import { dayKey, eventDayKeys } from '../lib/recurrence.js'
 import { tagVisitDept } from '../lib/admins.js'
+import { isLoggedIn } from '../lib/auth.js'
 import { getCategory, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
 import { studioHeader, boutonPartage } from './studio.js'
@@ -128,6 +129,26 @@ export async function viewMap() {
 
   // 1. Territoire — les mêmes départements que le Profil, réglés ici aussi.
   const pDepts = pastilleMenu('pin', (panneau) => {
+    // ⚠ Même règle que l'écran « Mes départements » : choisir son territoire
+    // demande un compte. Sans ce garde-fou, la carte offrait une seconde porte
+    // vers le même réglage, et la règle se contournait d'un geste.
+    if (!isLoggedIn()) {
+      panneau.appendChild(
+        el(
+          'p',
+          'map-menu__note',
+          'Créez votre compte pour choisir les départements que vous suivez.'
+        )
+      )
+      const b = el('button', 'map-menu__item map-menu__item--action', 'Se connecter / S’inscrire')
+      b.type = 'button'
+      b.addEventListener('click', () => {
+        fermerMenu()
+        navigate('/connexion')
+      })
+      panneau.appendChild(b)
+      return
+    }
     for (const d of DEPARTEMENTS) {
       const ligne = toggleRow(d.nom, {
         prefix: el('span', 'dept-num', d.code),

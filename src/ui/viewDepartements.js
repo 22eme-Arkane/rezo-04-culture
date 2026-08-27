@@ -7,7 +7,7 @@
 // Préférence locale à l'appareil, pas au compte : quelqu'un peut vouloir voir
 // les trois départements sur son ordinateur et seulement le sien sur son
 // téléphone.
-import { el, toggleRow } from './components.js'
+import { el, loginPrompt, toggleRow } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
@@ -28,6 +28,27 @@ export async function viewDepartements() {
         'Le choix s’applique à l’agenda comme à la carte.'
     )
   )
+
+  // ⚠ Choisir son territoire demande désormais un compte (décision de
+  // Matthieu). L'explication reste visible AVANT l'invitation : on doit
+  // comprendre ce qu'on gagne à s'inscrire. Sans compte, l'agenda et la carte
+  // continuent d'afficher tout le territoire — rien n'est caché, c'est le
+  // réglage qui est réservé.
+  if (!isLoggedIn()) {
+    wrap.appendChild(
+      el(
+        'p',
+        'form__hint',
+        'En attendant, l’agenda et la carte vous montrent l’ensemble du ' +
+          'territoire couvert : ' +
+          DEPARTEMENTS.map((d) => `${d.code} ${d.nom}`).join(', ') + '.'
+      )
+    )
+    wrap.appendChild(
+      loginPrompt('Créez votre compte pour choisir les départements que vous suivez.')
+    )
+    return wrap
+  }
 
   let choisis = getMesDepartements()
   const groupe = el('div', 'settings-group')
