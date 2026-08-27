@@ -1,6 +1,7 @@
 import { el } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
+import { APP_URL, shareApp } from '../lib/share.js'
 
 /** En-tête commun aux écrans du thème « Studio Affiche ». */
 export function studioHeader(
@@ -48,6 +49,32 @@ export function studioHeader(
   head.appendChild(droite)
 
   return head
+}
+
+/**
+ * Bouton de partage de la barre de titre — pastille jaune, pictogramme vert.
+ * Présent sur Profil, Carte et Favoris : Armana ne sert à rien sans monde, et
+ * ce bouton doit rester à portée de pouce partout où l'on flâne.
+ *
+ * Sans feuille de partage native (ordinateur, navigateur ancien), le lien est
+ * copié ; un message éphémère le dit, sans quoi le bouton semblerait mort.
+ */
+export function boutonPartage() {
+  const b = el('button', 'settings-share')
+  b.type = 'button'
+  b.title = 'Partager Armana'
+  b.setAttribute('aria-label', 'Partager Armana')
+  b.appendChild(icon('share'))
+  b.addEventListener('click', async () => {
+    b.disabled = true
+    const r = await shareApp()
+    b.disabled = false
+    if (r === 'shared') return
+    const bulle = el('p', 'share-bulle', r === 'copied' ? '✅ Lien copié' : 'Copiez : ' + APP_URL)
+    b.closest('header')?.appendChild(bulle)
+    setTimeout(() => bulle.remove(), 3500)
+  })
+  return b
 }
 
 /** Carte-affiche avec une zone d'actions séparée (édition, modération…). */

@@ -1,13 +1,13 @@
 // Armana — écran Favoris : événements mis en favori par l'utilisateur.
 import { el, emptyState, loginPrompt } from './components.js'
 import { posterEventCard } from './posterEventCard.js'
-import { studioHeader } from './studio.js'
+import { studioHeader, boutonPartage } from './studio.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { listGemmedEvents } from '../lib/events.js'
 
 export async function viewGems() {
   const wrap = el('section', 'screen screen--studio-favorites')
-  wrap.appendChild(studioHeader('Favoris'))
+  wrap.appendChild(studioHeader('Favoris', { actions: [boutonPartage()] }))
 
   if (!isLoggedIn()) {
     wrap.appendChild(loginPrompt('Connectez-vous pour retrouver vos favoris.'))
@@ -25,8 +25,12 @@ export async function viewGems() {
     return wrap
   }
 
-  for (const ev of events) {
+  for (const [rang, ev] of events.entries()) {
     const card = posterEventCard(ev, {
+      // ⚠ SANS cet index, toutes les cartes retombaient sur le premier ton et
+      // le bandeau de date était jaune partout — alors qu'il alterne dans
+      // l'Agenda. Les favoris ressemblaient à une liste morte.
+      index: rang,
       gemmed: true,
       onGemChange: (id, on) => {
         if (!on) {

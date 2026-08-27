@@ -12,7 +12,7 @@ import { dayKey, eventDayKeys } from '../lib/recurrence.js'
 import { tagVisitDept } from '../lib/admins.js'
 import { getCategory, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
-import { studioHeader } from './studio.js'
+import { studioHeader, boutonPartage } from './studio.js'
 import {
   anneauxExterieurs,
   departementDuPoint,
@@ -42,9 +42,29 @@ function coversDay(ev, day) {
   return eventDayKeys(ev).includes(day)
 }
 
+// Marqueur aux couleurs d'Armana : la goutte jaune cerclée de vert, avec les
+// masques au centre. Plus gros que le marqueur bleu de Leaflet, qu'on
+// distinguait mal du fond de carte (demande de Matthieu).
+// `divIcon` plutôt qu'une image : le SVG reste net sur tous les écrans et ne
+// coûte aucun téléchargement.
+const MARQUEUR_ARMANA = L.divIcon({
+  className: 'marqueur-armana',
+  html: `
+    <svg viewBox="0 0 44 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M22 55C22 55 41 33.6 41 21A19 19 0 1 0 3 21C3 33.6 22 55 22 55Z"
+            fill="#f4ca15" stroke="#064f36" stroke-width="3.5" stroke-linejoin="round"/>
+      <image href="/assets/studio-affiche/masks-logo.png" x="9" y="8" width="26" height="26"/>
+    </svg>`,
+  iconSize: [44, 56],
+  // La POINTE de la goutte doit toucher le lieu, pas son centre : sinon tous
+  // les événements paraissent décalés de 28 px vers le nord.
+  iconAnchor: [22, 55],
+  popupAnchor: [0, -48],
+})
+
 export async function viewMap() {
   const wrap = el('section', 'screen screen--studio-map')
-  const head = studioHeader('Carte', { tone: 'blue' })
+  const head = studioHeader('Carte', { tone: 'blue', actions: [boutonPartage()] })
 
   wrap.appendChild(head)
 
@@ -55,7 +75,6 @@ export async function viewMap() {
   // filtre qui existait et qui sert.)
   const barre = el('section', 'map-pills')
   barre.setAttribute('aria-label', 'Filtres de la carte')
-  wrap.appendChild(barre)
 
   let selectedDate = null
   let menuOuvert = null
@@ -200,12 +219,15 @@ export async function viewMap() {
   recenter.setAttribute('aria-label', 'Recentrer sur ma position')
   recenter.appendChild(icon('pin'))
 
+  // Tout est POSÉ SUR la carte : les filtres en haut, le compteur en bas à
+  // gauche, le recentrage et les zooms en bas à droite. Rien ne lui prend de
+  // hauteur, elle occupe tout l'espace disponible.
   const mapFrame = el('div', 'map-frame-studio')
-  mapFrame.appendChild(resultsBar)
-  mapFrame.appendChild(geoMsg)
-  mapFrame.appendChild(recenter)
   const mapDiv = el('div', 'map map--studio')
   mapFrame.appendChild(mapDiv)
+  mapFrame.appendChild(barre)
+  mapFrame.appendChild(resultsBar)
+  mapFrame.appendChild(geoMsg)
   wrap.appendChild(mapFrame)
 
   let map = null
@@ -237,7 +259,7 @@ export async function viewMap() {
       let plotted = 0
       for (const ev of events) {
         if (ev.lat == null || ev.lng == null) continue
-        const m = L.marker([ev.lat, ev.lng])
+        const m = L.marker([ev.lat, ev.lng], { icon: MARQUEUR_ARMANA })
         m.bindPopup(() => popupContent(ev))
         markers.addLayer(m)
         plotted++
@@ -268,30 +290,90 @@ export async function viewMap() {
   }
 
   async function initMap() {
-    contours = await loadDepartements()
-    // Une seule source pour le point de départ : le GPS, avec repli sur
-    // Forcalquier. C'est aussi ce qu'utilise le bouton « ma position ».
-    center = await getUserLocation()
+    // ⚠ ORDRE CRITIQUE POUR LA VITESSE RESSENTIE.
+    // Avant, on écrivait : `await loadDepartements()` PUIS `await
+    // getUserLocation()` PUIS on créait la carte. Résultat mesuré : quand le
+    // GPS ne répond pas — le cas ordinaire quand on ouvre l'app depuis chez
+    // soi — l'écran restait VIDE 8 secondes, le temps du délai de garde.
+    // Désormais la carte s'affiche IMMÉDIATEMENT sur le repli, et le
+    // territoire puis la position viennent la compléter quand ils arrivent.
+    // Personne n'attend plus rien pour voir quelque chose.
+    center = { ...DEFAULT_CENTER, fallback: true }
+    map = L.map(mapDiv, {
+      // Les zooms sont replacés en bas à droite (demande de Matthieu) : en
+      // haut à gauche ils tombaient sous les filtres.
+      zoomControl: false,
+      maxBoundsViscosity: 1.0,
+      // Les contours des départements font près de 5 000 sommets : sur un
+      // téléphone modeste, le canevas les redessine bien plus vite que le SVG.
+      preferCanvas: true,
+    }).setView([center.lat, center.lng], 11)
+    L.control.zoom({ position: 'bottomright' }).addTo(map)
+    // Le recentrage vient se ranger à GAUCHE des zooms, dans le même coin.
+    mapFrame.appendChild(recenter)
+
+    // ⚠ PAS de `{s}` : OpenStreetMap a abandonné les sous-domaines a/b/c. En
+    // HTTP/2 ils sont même NUISIBLES — trois connexions à ouvrir au lieu d'une
+    // seule qui multiplexe toutes les tuiles.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      // Garde une couronne de tuiles autour de l'écran : le déplacement ne
+      // découvre plus de carrés gris.
+      keepBuffer: 3,
+      // Crédit OSM : OBLIGATOIRE (c'est la condition qui rend les tuiles
+      // gratuites), donc conservé. En revanche la mention « Leaflet », elle,
+      // ne l'est pas — on la retire pour alléger le coin de la carte.
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · Etalab',
+    }).addTo(map)
+    map.attributionControl.setPrefix(false)
+
+    markers.addTo(map)
+    userMarker = L.circleMarker([center.lat, center.lng], {
+      radius: 6,
+      color: '#fff',
+      weight: 2,
+      fillColor: '#f04b2f',
+      fillOpacity: 1,
+    }).addTo(map)
+    userMarker.bindPopup('Vous êtes ici')
+    fitToViewport()
+    watchResize()
+
+    // Le territoire et la position arrivent chacun de leur côté : ni l'un ni
+    // l'autre ne fait attendre l'affichage.
+    const pTerritoire = loadDepartements().then((geo) => {
+      contours = geo
+      dessinerTerritoire()
+      return geo
+    })
+    const pPosition = getUserLocation()
+
+    // Les événements partent SANS attendre le GPS : la requête couvre tout le
+    // territoire de toute façon, la position ne sert qu'au cadrage.
+    const pEvenements = loadEvents()
+
+    const [, located] = await Promise.all([pTerritoire, pPosition, pEvenements])
+
     // Position réelle obtenue → on complète la visite du jour avec le
     // DÉPARTEMENT (jamais la position). Le repli Forcalquier ne compte pas :
     // ce serait inventer une provenance.
-    if (!center.fallback) tagVisitDept(departementDuPoint(center, contours))
-    // Hors des départements retenus, on part du repli plutôt que d'ouvrir sur
-    // une zone entièrement masquée.
-    if (!estDansLeTerritoire(center, contours, mesCodes())) {
-      center = { ...DEFAULT_CENTER, fallback: true }
+    if (!located.fallback && contours) {
+      tagVisitDept(departementDuPoint(located, contours))
+      // Hors des départements retenus, on reste sur le repli plutôt que de
+      // sauter dans une zone entièrement masquée.
+      if (estDansLeTerritoire(located, contours, mesCodes())) {
+        center = located
+        userMarker.setLatLng([center.lat, center.lng])
+      }
     }
-    map = L.map(mapDiv, { zoomControl: true, maxBoundsViscosity: 1.0 }).setView(
-      [center.lat, center.lng],
-      11
-    )
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      // Crédit obligatoire des tuiles OSM (c'est ce qui rend la carte gratuite) :
-      // le lien vers la page de copyright fait partie des conditions d'usage.
-      attribution:
-        '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · contour Etalab',
-    }).addTo(map)
+    cadrerSurPosition()
+    await loadEvents()
+  }
+
+  /** Le masque et les contours, posés dès que le territoire est chargé. */
+  function dessinerTerritoire() {
+    if (!map || !contours) return
 
     // Frontières exactes des départements RETENUS. Un masque 100 % opaque
     // recouvre le monde entier, avec ces départements comme « trous » : rien
@@ -304,13 +386,18 @@ export async function viewMap() {
         codesActifs.includes(f?.properties?.code)
       ),
     }
-    const boundaryLayer = L.geoJSON(contoursActifs)
-    departmentBounds = boundaryLayer.getBounds()
+    // Les anneaux servent DEUX FOIS : au masque et au calcul des limites. On
+    // les construit donc une seule fois. (Avant, un L.geoJSON complet était
+    // instancié uniquement pour lire ses limites, puis jeté — 5 000 sommets
+    // convertis en couches Leaflet pour rien.)
+    const anneaux = anneauxExterieurs(contoursActifs)
+    departmentBounds = L.latLngBounds(anneaux.flat())
+
     map.createPane('departmentMask')
     map.getPane('departmentMask').style.zIndex = '430'
     map.getPane('departmentMask').style.pointerEvents = 'none'
     const world = [[-90, -180], [-90, 180], [90, 180], [90, -180]]
-    const departmentMask = L.polygon([world, ...anneauxExterieurs(contoursActifs)], {
+    const departmentMask = L.polygon([world, ...anneaux], {
       pane: 'departmentMask',
       stroke: false,
       fillColor: '#fff4df',
@@ -332,24 +419,11 @@ export async function viewMap() {
       },
     }).addTo(map)
 
-    markers.addTo(map)
-    userMarker = L.circleMarker([center.lat, center.lng], {
-      radius: 6,
-      color: '#fff',
-      weight: 2,
-      fillColor: '#f04b2f',
-      fillOpacity: 1,
-    }).addTo(map)
-    userMarker.bindPopup(center.city ? `Ville choisie : ${center.city}` : 'Vous êtes ici')
-
-    // La carte occupe désormais la place restante (flex) : sa taille définitive
-    // n'est connue qu'APRÈS la mise en page. On cadre donc APRÈS mesure, sinon le
+    // La carte occupe la place restante (flex) : sa taille définitive n'est
+    // connue qu'APRÈS la mise en page. On cadre donc APRÈS mesure, sinon le
     // zoom est calculé sur un conteneur encore vide et l'affichage est décadré.
     fitToViewport()
     cadrerSurPosition()
-    watchResize()
-
-    await loadEvents()
   }
 
   /**

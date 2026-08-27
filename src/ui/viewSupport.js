@@ -40,19 +40,37 @@ export async function viewSupport() {
 
   wrap.appendChild(illustrationDon())
 
-  // Écran volontairement bref : quand on a envie de donner, il ne faut pas se
-  // noyer dans un flot d'explications. Armana RESTERA gratuite — on n'a donc
-  // pas à faire croire que le don la sauve, seulement qu'il aide.
+  // ⚠ Explications COMPLÈTES, volontairement. J'avais coupé au plus court ;
+  // Matthieu l'a corrigé : c'est justement l'endroit où les gens ont besoin de
+  // tout savoir avant de sortir leur carte bancaire.
   wrap.appendChild(
     el(
       'p',
-      'support-text support-text--centre',
-      'Vos dons couvrent l’hébergement, le nom de domaine et le stockage des photos.'
+      'page__subtitle',
+      'Armana est et restera gratuite, sans publicité et sans revente de données.'
     )
   )
-  wrap.appendChild(
-    el('p', 'support-text support-text--muted support-text--centre', 'C’est entièrement facultatif.')
+
+  const card = el('div', 'support-card')
+  card.appendChild(
+    el(
+      'p',
+      'support-text',
+      'L’application est développée et hébergée par 22eme Arkane. Les frais sont ' +
+        'modestes mais réels : hébergement, nom de domaine, stockage des photos. ' +
+        'Un coup de pouce, même très petit, aide à la garder en ligne et à continuer ' +
+        'de l’améliorer.'
+    )
   )
+  card.appendChild(
+    el(
+      'p',
+      'support-text support-text--muted',
+      'C’est totalement facultatif : rien n’est bloqué, rien n’est limité, et vous ' +
+        'ne serez jamais relancé.'
+    )
+  )
+  wrap.appendChild(card)
 
   const btn = el('a', 'btn btn--primary btn--block support-btn')
   btn.href = PAYPAL_URL
@@ -95,7 +113,9 @@ export async function viewSupport() {
 
 async function renderWall(wall) {
   wall.innerHTML = ''
-  wall.appendChild(el('h2', 'support-wall__title', '💛 Merci à celles et ceux qui soutiennent Armana'))
+  wall.appendChild(
+    el('h2', 'support-wall__title', '💛 Merci à celles et ceux qui ont fait un don à Armana')
+  )
 
   let list = []
   try {
@@ -127,14 +147,8 @@ async function renderWall(wall) {
     grid.appendChild(item)
   })
   wall.appendChild(grid)
-
-  wall.appendChild(
-    el(
-      'p',
-      'form__hint',
-      `${list.length} personne${list.length > 1 ? 's' : ''} soutien${list.length > 1 ? 'nent' : 't'} Armana. Merci ! 🙏`
-    )
-  )
+  // (Le décompte « N personnes soutiennent Armana. Merci ! » a été retiré :
+  //  le titre remercie déjà, et les noms parlent d'eux-mêmes.)
 }
 
 async function renderVisibility(wrap) {

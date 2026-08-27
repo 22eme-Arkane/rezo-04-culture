@@ -10,35 +10,17 @@ import { listModeratorRequests, myPendingCount } from '../lib/moderation.js'
 import { countFeedback } from '../lib/feedback.js'
 import { currentBuild } from '../lib/update.js'
 import { APP_URL, shareApp } from '../lib/share.js'
-import { studioHeader } from './studio.js'
+import { studioHeader, boutonPartage } from './studio.js'
 
 export async function viewSettings() {
   // Armana ne sert à rien sans utilisateurs : le bouton de partage est logé
-  // dans la barre de titre, à hauteur du regard, comme sur la maquette.
-  const share = el('button', 'settings-share')
-  share.type = 'button'
-  share.title = 'Partager Armana'
-  share.setAttribute('aria-label', 'Partager Armana')
-  share.appendChild(icon('share'))
-
+  // dans la barre de titre, à hauteur du regard, comme sur la maquette. Le
+  // composant est partagé avec la Carte et les Favoris — une seule définition,
+  // donc une seule apparence et un seul comportement.
   const wrap = el('section', 'page page--studio-profile')
-  wrap.appendChild(studioHeader('Profil', { actions: [share] }))
+  wrap.appendChild(studioHeader('Profil', { actions: [boutonPartage()] }))
 
   const logged = isLoggedIn()
-
-  // Sans feuille de partage native (ordinateur, navigateur ancien), le lien est
-  // copié : sans ce retour, le bouton semblerait ne rien faire.
-  const shareMsg = el('p', 'form__hint settings-share__msg')
-  wrap.appendChild(shareMsg)
-  share.addEventListener('click', async () => {
-    share.disabled = true
-    const r = await shareApp()
-    share.disabled = false
-    if (r === 'copied') shareMsg.textContent = '✅ Lien copié : ' + APP_URL
-    else if (r === 'failed') shareMsg.textContent = 'Copiez ce lien : ' + APP_URL
-    else shareMsg.textContent = ''
-    if (shareMsg.textContent) setTimeout(() => (shareMsg.textContent = ''), 4000)
-  })
 
   // --- Groupe 1 : créer et gérer ---
   // « Mes départements » est un filtre de lecture : il reste utile sans compte,
@@ -112,7 +94,11 @@ export async function viewSettings() {
   don.type = 'button'
   don.appendChild(icon('heart'))
   don.appendChild(el('span', 'don-banner__texte', 'Faire un don'))
-  don.appendChild(el('span', 'don-banner__fleche', '→'))
+  // Le MÊME chevron que les autres lignes : une flèche différente ici donnait
+  // l'impression d'un bouton d'une autre nature.
+  const rond = el('span', 'don-banner__fleche')
+  rond.appendChild(icon('chevronRight'))
+  don.appendChild(rond)
   don.addEventListener('click', () => navigate('/soutenir'))
   wrap.appendChild(don)
 

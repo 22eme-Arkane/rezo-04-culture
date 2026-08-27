@@ -5,6 +5,62 @@ import { navigate, currentRoute } from '../lib/router.js'
 import { isAdmin } from '../lib/auth.js'
 import { myPendingCount } from '../lib/moderation.js'
 
+/**
+ * Balayage au pouce d'un onglet à l'autre.
+ *
+ * Posé UNE SEULE FOIS sur le document (la nav est reconstruite à chaque
+ * changement de route : y attacher l'écouteur en empilerait un par navigation).
+ *
+ * Trois garde-fous, sans lesquels le geste se retournerait contre l'utilisateur :
+ *  - on ignore tout geste parti d'une CARTE Leaflet, d'un curseur ou d'une zone
+ *    qui défile horizontalement — sinon déplacer la carte changerait d'onglet ;
+ *  - le mouvement doit être franchement horizontal (deux fois plus que
+ *    vertical), pour ne pas déclencher pendant un défilement de liste ;
+ *  - on n'agit que sur les quatre onglets racines, jamais dans un sous-écran :
+ *    balayer en pleine saisie d'un formulaire ferait perdre le travail.
+ */
+let balayageInstalle = false
+function activerBalayage() {
+  if (balayageInstalle) return
+  balayageInstalle = true
+
+  let x0 = 0
+  let y0 = 0
+  let valide = false
+
+  document.addEventListener(
+    'touchstart',
+    (e) => {
+      if (e.touches.length !== 1) return (valide = false)
+      const cible = e.target
+      valide = !cible.closest?.(
+        '.leaflet-container, input, textarea, select, .chips-row, .map-pills, .map-menu, [data-no-swipe]'
+      )
+      x0 = e.touches[0].clientX
+      y0 = e.touches[0].clientY
+    },
+    { passive: true }
+  )
+
+  document.addEventListener(
+    'touchend',
+    (e) => {
+      if (!valide) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - x0
+      const dy = t.clientY - y0
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return
+
+      const ici = TABS.findIndex((tab) => tab.path === currentRoute())
+      if (ici === -1) return // sous-écran : on ne fait rien
+      const suivant = ici + (dx < 0 ? 1 : -1)
+      if (suivant < 0 || suivant >= TABS.length) return
+      navigate(TABS[suivant].path)
+    },
+    { passive: true }
+  )
+}
+
 const TABS = [
   { path: '/', label: 'Agenda', ic: 'calendar' },
   { path: '/carte', label: 'Carte', ic: 'map' },
@@ -68,5 +124,6 @@ export function buildNav() {
   }
 
   nav.appendChild(inner)
+  activerBalayage()
   return nav
 }

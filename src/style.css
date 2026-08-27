@@ -602,8 +602,10 @@ a.settings-row .settings-row__label { word-break: break-all; }
 }
 .page--studio-blue .studio-title { color: #fff; }
 
-/* Bouton de partage dans la barre de titre (Profil, Carte). */
-.studio-head .settings-share {
+/* Bouton de partage dans la barre de titre (Profil, Carte, Favoris) :
+   pastille JAUNE, pictogramme VERT — les couleurs du masque Armana. */
+.studio-head .settings-share,
+.screen-head .settings-share {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -612,12 +614,29 @@ a.settings-row .settings-row__label { word-break: break-all; }
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: var(--studio-cream);
-  color: var(--studio-blue);
+  background: var(--mask-yellow);
+  color: var(--studio-green);
   cursor: pointer;
   flex: 0 0 auto;
 }
-.studio-head .settings-share svg { width: 19px; height: 19px; }
+.studio-head .settings-share svg,
+.screen-head .settings-share svg { width: 19px; height: 19px; }
+
+/* Retour éphémère du partage quand le lien est copié faute de feuille native. */
+.share-bulle {
+  position: absolute;
+  right: 0.9rem;
+  bottom: -1.6rem;
+  z-index: 5;
+  margin: 0;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  background: var(--studio-green);
+  color: #fff;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.studio-head, .screen-head { position: relative; }
 
 /* Pied du Profil : compte connecté + version, discrets et centrés. */
 .settings-pied { margin-top: 0.9rem; text-align: center; }
@@ -724,12 +743,18 @@ a.settings-row .settings-row__label { word-break: break-all; }
 
 /* Groupe « nu » : la connexion et la déconnexion, seules, sans filet ni ruban. */
 .page--studio-profile .settings-group--nu { border: none; background: transparent; }
+/* Connexion / déconnexion : le libellé est CENTRÉ, contrairement aux lignes
+   de navigation. Ce ne sont pas des entrées de menu mais des actions. */
 .page--studio-profile .settings-group--nu .settings-row {
   border-radius: 12px;
   border-bottom: none;
   justify-content: center;
   background: var(--studio-green);
   color: #fff;
+}
+.page--studio-profile .settings-group--nu .settings-row__label {
+  flex: 0 0 auto;
+  justify-content: center;
 }
 .page--studio-profile .settings-group--nu .settings-row > svg:last-child { display: none; }
 .page--studio-profile .settings-group--nu .settings-row__label,
@@ -758,6 +783,8 @@ a.settings-row .settings-row__label { word-break: break-all; }
 }
 .don-banner > svg { width: 30px; height: 30px; fill: currentColor; flex: 0 0 auto; }
 .don-banner__texte { flex: 1 1 auto; }
+/* Le chevron des autres lignes, dans une pastille blanche. Le coin bleu en
+   biais a été retiré : il alourdissait sans rien dire. */
 .don-banner__fleche {
   display: inline-flex;
   align-items: center;
@@ -767,20 +794,9 @@ a.settings-row .settings-row__label { word-break: break-all; }
   border-radius: 50%;
   background: #fff;
   color: var(--studio-blue);
-  font-size: 1.1rem;
   flex: 0 0 auto;
-  z-index: 1;
 }
-.don-banner::after {
-  content: '';
-  position: absolute;
-  right: -18px;
-  bottom: -34px;
-  width: 96px;
-  height: 78px;
-  background: var(--studio-blue);
-  transform: rotate(-34deg);
-}
+.don-banner__fleche svg { width: 17px; height: 17px; }
 
 /* --- Statistiques : les trois chiffres en tête --------------------------- */
 .stats-hero { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 1rem; }
@@ -906,11 +922,16 @@ a.settings-row .settings-row__label { word-break: break-all; }
 /* --- Carte : filtres en pastilles, tout en haut ------------------------- */
 /* Les gros panneaux d'avant prenaient la moitié de la hauteur utile. Ces
    pastilles tiennent sur une ligne et rendent l'espace à la carte. */
+/* Les filtres sont POSÉS SUR la carte, tout en haut : elle garde ainsi la
+   totalité de la hauteur disponible. */
 .map-pills {
-  position: relative;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 402;
   display: flex;
   gap: 0.4rem;
-  padding: 0 0 0.55rem;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -973,11 +994,12 @@ a.settings-row .settings-row__label { word-break: break-all; }
 }
 
 /* Recentrage et compteur, POSÉS sur la carte : ils ne lui prennent aucune
-   hauteur, contrairement aux panneaux qu'ils remplacent. */
+   hauteur, contrairement aux panneaux qu'ils remplacent.
+   Le recentrage se range à GAUCHE des zooms, dans le même coin bas-droit. */
 .map-recenter {
   position: absolute;
-  right: 10px;
-  bottom: 78px;
+  right: 62px;
+  bottom: 12px;
   z-index: 401;
   display: inline-flex;
   align-items: center;
@@ -997,13 +1019,96 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .map-geo-msg {
   position: absolute;
   left: 10px;
-  right: 60px;
-  bottom: 12px;
+  right: 116px;
+  bottom: 52px;
   z-index: 401;
   margin: 0;
   padding: 0 0.5rem;
   color: var(--studio-ink);
   text-align: center;
+}
+
+/* Compteur d'événements : en bas à GAUCHE, hors du chemin des commandes. */
+.map-frame-studio .map-results-bar {
+  position: absolute;
+  left: 10px;
+  bottom: 12px;
+  z-index: 401;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.36rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(6, 43, 29, 0.22);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--studio-green);
+}
+
+/* Zooms en bas à droite, alignés au pixel avec le recentrage placé à leur
+   gauche. ⚠ Leaflet impose ses propres marges ET ses tailles de boutons (via
+   .leaflet-touch, plus spécifique) : on reprend la main sur le conteneur
+   entier, sinon les deux commandes flottent à des hauteurs différentes. */
+.map-frame-studio .leaflet-bottom.leaflet-right {
+  right: 10px;
+  bottom: 12px;
+  /* Le coin doit rester traversable par les clics là où il n'y a rien, sinon
+     il capture les glissements sur toute sa largeur. */
+  pointer-events: none;
+}
+.map-frame-studio .leaflet-bottom.leaflet-right > * { pointer-events: auto; }
+.map-frame-studio .leaflet-control-zoom.leaflet-control {
+  margin: 0;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(6, 43, 29, 0.28);
+  overflow: hidden;
+}
+.map-frame-studio .leaflet-control-zoom.leaflet-control a {
+  width: 40px;
+  height: 40px;
+  line-height: 38px;
+  color: var(--studio-blue);
+  font-size: 1.3rem;
+  border: none;
+  border-radius: 0;
+}
+.map-frame-studio .leaflet-control-zoom.leaflet-control a + a {
+  border-top: 1px solid rgba(6, 43, 29, 0.12);
+}
+/* Les deux boutons empilés font 80 px : le recentrage s'aligne sur le BAS de
+   la pile, pas sur son milieu. */
+.map-recenter { bottom: 12px; right: 62px; }
+
+/* Crédit OpenStreetMap : OBLIGATOIRE (c'est la condition qui rend les tuiles
+   gratuites), donc jamais supprimé — mais réduit à une mention discrète, sans
+   cadre blanc, pour ne plus manger un coin de la carte. */
+/* ⚠ SORTI DU FLUX : Leaflet empile le crédit et les zooms dans le même coin,
+   ce qui poussait les zooms 17 px plus haut que le recentrage. Le crédit se
+   colle au coin, les zooms retrouvent le bas. */
+.map-frame-studio .leaflet-control-attribution,
+.map-frame-studio .leaflet-container .leaflet-control-attribution {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 6px 0 0 0;
+  font-size: 0.56rem;
+  line-height: 1.3;
+  color: rgba(6, 43, 29, 0.66);
+}
+.map-frame-studio .leaflet-control-attribution a { color: rgba(6, 43, 29, 0.8); }
+
+/* Marqueur d'événement aux couleurs d'Armana. */
+.marqueur-armana { background: none; border: none; }
+.marqueur-armana svg {
+  width: 44px;
+  height: 56px;
+  display: block;
+  filter: drop-shadow(0 3px 4px rgba(6, 43, 29, 0.35));
 }
 .map-geo-msg:not(:empty) {
   padding: 0.45rem 0.6rem;
@@ -1939,14 +2044,18 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   object-fit: contain;
   box-shadow: none;
 }
+/* ⚠ MÊME POLICE QUE LES SOUS-ÉCRANS. Avant, l'Agenda et la Carte étaient en
+   Poppins 850 tandis que Profil, Notifications et tout le reste passaient en
+   Oswald : deux titres côte à côte n'avaient pas la même allure. Un seul
+   jeton, --font-display, gouverne désormais tous les titres de l'application. */
 .screen-title--studio {
   justify-content: flex-start;
-  color: var(--studio-cream);
-  font-family: 'Poppins', system-ui, sans-serif;
-  font-size: clamp(2.7rem, 12.8vw, 3.25rem);
-  font-weight: 850;
-  letter-spacing: -0.055em;
-  line-height: 1;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 8vw, 2.3rem);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  line-height: 1.1;
 }
 .studio-calendar-toggle {
   grid-column: 2;
@@ -2083,6 +2192,11 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   color: #043326;
   font-weight: 800;
 }
+/* ⚠ La pastille blanche de l'onglet actif remonte de 7 px : sans la marge
+   haute ci-dessous, elle dépassait du bandeau et se retrouvait rognée sur le
+   dessus (« le logo Agenda est légèrement tronqué »). */
+.bottom-nav--studio { overflow: visible; }
+.bottom-nav--studio .bottom-nav__inner { padding-top: 7px; }
 .bottom-nav--studio .navtab.is-active svg {
   box-sizing: content-box;
   margin-top: -7px;
