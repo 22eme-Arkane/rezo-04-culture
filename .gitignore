@@ -28,3 +28,4 @@ PANDORA_*.md
 
 # Matériaux sources (PSD, exports) — hors repo public
 ELEMENTS/
+supabase/.temp/
