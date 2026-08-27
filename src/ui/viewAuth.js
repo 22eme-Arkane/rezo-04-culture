@@ -9,17 +9,22 @@ export function viewAuth() {
   // — pas un « Bienvenue sur Armana » géant qui répétait deux fois la même
   // chose et repoussait le formulaire hors de l'écran (demande de Matthieu).
   const wrap = el('section', 'page page--studio-sub page--studio-blue page--studio-auth')
-  wrap.appendChild(studioHeader('ARMANA', { backTo: '/', backLabel: 'Agenda', sansLogo: true }))
+  // Barre sans titre : le logo juste dessous dit déjà où l'on est, et
+  // « ARMANA » écrit au-dessus de lui faisait doublon.
+  wrap.appendChild(studioHeader('', { backTo: '/', backLabel: 'Agenda', sansLogo: true }))
 
   if (isLoggedIn()) {
     navigate('/')
     return wrap
   }
 
-  // ⚠ L'icône 512 px, celle de l'écran d'accueil — pas la petite vignette de
-  // la barre de titre, qui montait à 150 px et sortait toute pixellisée.
+  // Le LOGO OFFICIEL (masques détourés), et non l'icône d'application au carré
+  // bleu — celle-ci se noyait sur le fond bleu de l'écran.
+  // ⚠ Ce fichier ne fait que 77 × 60 px : au-delà d'environ 110 px il
+  // pixellise. La taille ci-dessous est calée là-dessus, pas sur une envie de
+  // sobriété. Un export plus grand permettrait de l'agrandir.
   const logo = el('img', 'auth-logo')
-  logo.src = '/icons/icon-512.png'
+  logo.src = '/assets/studio-affiche/masks-logo.png'
   logo.alt = 'Armana'
   wrap.appendChild(logo)
 

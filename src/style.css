@@ -534,6 +534,10 @@ a.settings-row .settings-row__label { word-break: break-all; }
      seuil lisible pour du texte de 0,72rem. */
   --mask-green-light: #7ac97f;
   --mask-yellow: #f4ca15;
+  /* Vert RELEVÉ SUR LE LOGO (masque de gauche d'icon-512.png, teinte
+     dominante : 1 465 pixels sur #409860). C'est celui-ci, et pas une
+     approximation, qui habille les pastilles et les rubans du Profil. */
+  --logo-green: #409860;
 }
 
 /* Police d'affichage : grotesque CONDENSÉE, comme les maquettes. Elle ne sert
@@ -615,7 +619,7 @@ a.settings-row .settings-row__label { word-break: break-all; }
   border: none;
   border-radius: 50%;
   background: var(--mask-yellow);
-  color: var(--studio-green);
+  color: var(--logo-green);
   cursor: pointer;
   flex: 0 0 auto;
 }
@@ -656,15 +660,20 @@ a.settings-row .settings-row__label { word-break: break-all; }
   width: fit-content;
   max-width: 100%;
   font-family: var(--font-display);
-  font-size: 0.82rem;
-  font-weight: 600;
+  /* Corps et graisse relevés : l'encre sombre sur le vert du logo plafonne à
+     4,29:1, un cheveu sous le seuil AA. En capitales grasses de cette taille,
+     la lecture reste franche — et c'est le vert du logo que Matthieu veut. */
+  font-size: 0.9rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   clip-path: polygon(0 0, 100% 0, calc(100% - 0.7rem) 50%, 100% 100%, 0 100%);
 }
 .studio-ruban--jaune { background: var(--mask-yellow); color: var(--studio-ink); }
 .studio-ruban--bleu { background: var(--studio-blue); color: #fff; }
-.studio-ruban--vert { background: var(--studio-green); color: #fff; }
+/* Le vert du logo est clair : c'est l'ENCRE SOMBRE qui s'y pose, pas du blanc
+   — blanc sur #409860 tombe à 3,3:1, sous le seuil lisible à cette taille. */
+.studio-ruban--vert { background: var(--logo-green); color: var(--studio-ink); }
 .page--studio-profile .settings-group + .studio-ruban { margin-top: 1.3rem; }
 
 /* Pastille ronde autour de l'icône de chaque ligne, reliée par un filet
@@ -687,8 +696,7 @@ a.settings-row .settings-row__label { word-break: break-all; }
   top: -0.4rem;
   bottom: 1.4rem;
   width: 2px;
-  background: var(--studio-green);
-  opacity: 0.55;
+  background: var(--logo-green);
 }
 .page--studio-profile .settings-group--jaune .settings-row__label > svg,
 .page--studio-profile .settings-group--bleu .settings-row__label > svg,
@@ -710,7 +718,7 @@ a.settings-row .settings-row__label { word-break: break-all; }
   color: #fff;
 }
 .page--studio-profile .settings-group--vert .settings-row__label > svg {
-  background: var(--studio-green);
+  background: var(--logo-green);
   color: #fff;
 }
 /* Le fond vert plein des lignes ne s'applique plus qu'au groupe « nu »
@@ -1028,11 +1036,17 @@ a.settings-row .settings-row__label { word-break: break-all; }
   text-align: center;
 }
 
-/* Compteur d'événements : en bas à GAUCHE, hors du chemin des commandes. */
+/* Compteur d'événements : en bas à GAUCHE, hors du chemin des commandes.
+   ⚠ `top: auto` et `right: auto` sont INDISPENSABLES : la règle générique
+   .map-results-bar pose top:12px / right:12px, et sans les annuler le
+   compteur s'étirait sur toute la largeur, au milieu de la carte. */
 .map-frame-studio .map-results-bar {
   position: absolute;
+  top: auto;
+  right: auto;
   left: 10px;
-  bottom: 12px;
+  bottom: 26px;
+  width: auto;
   z-index: 401;
   display: inline-flex;
   align-items: center;
@@ -1052,7 +1066,7 @@ a.settings-row .settings-row__label { word-break: break-all; }
    entier, sinon les deux commandes flottent à des hauteurs différentes. */
 .map-frame-studio .leaflet-bottom.leaflet-right {
   right: 10px;
-  bottom: 12px;
+  bottom: 26px;
   /* Le coin doit rester traversable par les clics là où il n'y a rien, sinon
      il capture les glissements sur toute sa largeur. */
   pointer-events: none;
@@ -1078,8 +1092,9 @@ a.settings-row .settings-row__label { word-break: break-all; }
   border-top: 1px solid rgba(6, 43, 29, 0.12);
 }
 /* Les deux boutons empilés font 80 px : le recentrage s'aligne sur le BAS de
-   la pile, pas sur son milieu. */
-.map-recenter { bottom: 12px; right: 62px; }
+   la pile, pas sur son milieu — et sur la même ligne qu'elle (26 px), pour
+   laisser passer le crédit OpenStreetMap tout en bas. */
+.map-recenter { bottom: 26px; right: 62px; }
 
 /* Crédit OpenStreetMap : OBLIGATOIRE (c'est la condition qui rend les tuiles
    gratuites), donc jamais supprimé — mais réduit à une mention discrète, sans
@@ -1087,15 +1102,15 @@ a.settings-row .settings-row__label { word-break: break-all; }
 /* ⚠ SORTI DU FLUX : Leaflet empile le crédit et les zooms dans le même coin,
    ce qui poussait les zooms 17 px plus haut que le recentrage. Le crédit se
    colle au coin, les zooms retrouvent le bas. */
+/* Le crédit vit maintenant dans le coin BAS-GAUCHE (déplacé par l'API, voir
+   viewMap.js), tout en bas, sous le compteur d'événements. */
+.map-frame-studio .leaflet-bottom.leaflet-left { bottom: 0; left: 0; }
 .map-frame-studio .leaflet-control-attribution,
 .map-frame-studio .leaflet-container .leaflet-control-attribution {
-  position: absolute;
-  right: 0;
-  bottom: 0;
   margin: 0;
+  border-radius: 0 6px 0 0;
   padding: 1px 5px;
   background: rgba(255, 255, 255, 0.6);
-  border-radius: 6px 0 0 0;
   font-size: 0.56rem;
   line-height: 1.3;
   color: rgba(6, 43, 29, 0.66);
@@ -1119,15 +1134,17 @@ a.settings-row .settings-row__label { word-break: break-all; }
 
 /* --- Illustrations SVG en tête d'écran ---------------------------------- */
 .illu { display: flex; justify-content: center; margin: 0.3rem 0 0.9rem; }
-.illu__svg { display: block; width: min(150px, 40vw); height: auto; }
+.illu__svg { display: block; width: min(170px, 44vw); height: auto; }
 .support-text--centre { text-align: center; }
 
 /* --- Connexion : le logo accueille, le formulaire suit ------------------- */
+/* 110 px maximum : le logo officiel ne fait que 77 px de large, au-delà il
+   pixellise (c'est le défaut que Matthieu a signalé). */
 .auth-logo {
   display: block;
-  width: min(150px, 42vw);
+  width: min(110px, 32vw);
   height: auto;
-  margin: 0.6rem auto 1rem;
+  margin: 0.4rem auto 1rem;
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
 }
 .page--studio-auth .studio-auth-card { margin-top: 0; }
@@ -2197,10 +2214,16 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    dessus (« le logo Agenda est légèrement tronqué »). */
 .bottom-nav--studio { overflow: visible; }
 .bottom-nav--studio .bottom-nav__inner { padding-top: 7px; }
+/* ⚠ LE ROND EST PORTÉ PAR LE SVG LUI-MÊME, et un <svg> découpe son contenu
+   par défaut (overflow: hidden). Avec 5 px de marge, le rond faisait 35 px de
+   diamètre pour une icône dont la DIAGONALE atteint 35,4 px : les quatre
+   angles du calendrier étaient rognés. Deux corrections, l'une sans l'autre ne
+   suffit pas : on élargit le rond ET on rend le débordement visible. */
 .bottom-nav--studio .navtab.is-active svg {
   box-sizing: content-box;
+  overflow: visible;
   margin-top: -7px;
-  padding: 5px;
+  padding: 7px;
   border-radius: 50%;
   background: #ffffff;
   filter: drop-shadow(0 2px 0 rgba(6, 79, 54, 0.16));

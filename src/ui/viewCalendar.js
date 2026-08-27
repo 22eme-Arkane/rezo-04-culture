@@ -2,7 +2,6 @@
 // calendrier mensuel (jours à événements marqués), liste des événements.
 import { el, emptyState, formatMonthLabel, formatDateFull } from './components.js'
 import { posterEventCard } from './posterEventCard.js'
-import { boutonPartage } from './studio.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
@@ -58,9 +57,9 @@ export async function viewCalendar() {
   calendarToggle.appendChild(icon('calendar'))
 
   head.appendChild(calendarToggle)
-  // Le même bouton de partage que la Carte, les Favoris et le Profil : sur
-  // trois onglets racines sur quatre, son absence ici passerait pour un oubli.
-  head.appendChild(boutonPartage())
+  // ⚠ PAS de bouton de partage ici : j'en avais ajouté un « pour la cohérence »,
+  // Matthieu l'a fait retirer — l'Agenda est déjà chargé (titre, calendrier,
+  // filtres) et c'était mieux avant. Il reste sur Carte, Favoris et Profil.
   head.appendChild(logo)
 
   // --- Filtre par style, sous le titre et AU-DESSUS des filtres rapides ---

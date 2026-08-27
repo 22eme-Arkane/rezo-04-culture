@@ -304,10 +304,16 @@ export async function viewMap() {
       // haut à gauche ils tombaient sous les filtres.
       zoomControl: false,
       maxBoundsViscosity: 1.0,
-      // Les contours des départements font près de 5 000 sommets : sur un
-      // téléphone modeste, le canevas les redessine bien plus vite que le SVG.
-      preferCanvas: true,
+      // ⚠ NE JAMAIS remettre `preferCanvas: true` ICI. Le masque du territoire
+      // est un polygone « monde entier » percé des départements, et ces trous
+      // reposent sur `fillRule: evenodd` — que le moteur CANEVAS de Leaflet
+      // IGNORE. Résultat : le masque se remplit en entier et recouvre la carte
+      // d'un grand aplat blanc. Essayé, cassé, retiré.
+      // ⚠ Le crédit est déplacé en BAS À GAUCHE. Laissé à droite, Leaflet
+      // l'empile dans le même coin que les zooms et les deux se recouvraient.
+      attributionControl: false,
     }).setView([center.lat, center.lng], 11)
+    L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     // Le recentrage vient se ranger à GAUCHE des zooms, dans le même coin.
     mapFrame.appendChild(recenter)
@@ -326,7 +332,6 @@ export async function viewMap() {
       attribution:
         '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · Etalab',
     }).addTo(map)
-    map.attributionControl.setPrefix(false)
 
     markers.addTo(map)
     userMarker = L.circleMarker([center.lat, center.lng], {

@@ -22,18 +22,27 @@ function svg(viewBox, contenu, { titre = '' } = {}) {
   return hote
 }
 
-/** Un cœur tenu à deux mains : l'écran « Faire un don ». */
+/**
+ * Un cœur tenu à deux mains : l'écran « Faire un don ».
+ * Redessiné d'après l'illustration fournie par Matthieu
+ * (assets/Faire un Don.png) — mêmes formes, mêmes aplats, mais en vectoriel :
+ * le PNG pesait 408 Ko pour une image qui n'est faite que de trois couleurs.
+ */
 export function illustrationDon() {
   return svg(
-    '0 0 200 210',
+    '0 0 320 400',
     `
-    <path d="M20 200V80a80 80 0 0 1 160 0v120z" fill="var(--studio-blue)"/>
-    <path d="M100 168c-38-26-58-48-58-72a30 30 0 0 1 58-11 30 30 0 0 1 58 11c0 24-20 46-58 72z"
-          fill="var(--mask-yellow)"/>
-    <path d="M62 128c-8-6-16-4-19 3-4 8-1 18 6 27l25 32a34 34 0 0 0 26 12h6v-24c0-9-4-17-11-22z"
-          fill="var(--studio-green)" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M138 128c8-6 16-4 19 3 4 8 1 18-6 27l-25 32a34 34 0 0 1-26 12h-6v-24c0-9 4-17 11-22z"
-          fill="var(--studio-green)" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M40 400V180a120 120 0 0 1 240 0v220Z" fill="#0b3fbf"/>
+    <path d="M160 278c-52-38-90-70-90-116a52 52 0 0 1 90-31 52 52 0 0 1 90 31c0 46-38 78-90 116Z"
+          fill="#ffc400"/>
+    <g fill="#1f9235" stroke="#fffaf0" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M104 400V292c0-14-6-22-16-32l-24-24c-10-10-12-24-4-32s22-6 32 4l38 38c10 10 14 20 14 34v120Z"/>
+      <path d="M216 400V292c0-14 6-22 16-32l24-24c10-10 12-24 4-32s-22-6-32 4l-38 38c-10 10-14 20-14 34v120Z"/>
+    </g>
+    <g fill="none" stroke="#fffaf0" stroke-width="5" stroke-linecap="round" opacity="0.95">
+      <path d="M96 292c4-16 0-26-10-36"/>
+      <path d="M224 292c-4-16 0-26 10-36"/>
+    </g>
   `,
     { titre: 'Un cœur tenu à deux mains' }
   )
