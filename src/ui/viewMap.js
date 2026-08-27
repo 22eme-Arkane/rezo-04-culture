@@ -18,6 +18,7 @@ import {
   estDansLeTerritoire,
   loadDepartements,
   nomDepartement,
+  estActif,
   CODES_DEPARTEMENTS,
 } from '../lib/departements.js'
 import { getMesDepartements } from '../lib/mesDepartements.js'
@@ -400,11 +401,16 @@ export async function viewMap() {
     if (contours && !estDansLeTerritoire(located, contours, mesCodes())) {
       // On ne déplace PAS la carte sans le dire : l'utilisateur croirait que sa
       // position a été prise en compte.
+      // Trois cas distincts : un département couvert mais décoché, un
+      // département dont les contours existent mais qui n'est pas encore
+      // ouvert, ou franchement ailleurs.
       const dept = departementDuPoint(located, contours)
-      geoMsg.textContent = dept
-        ? `Vous êtes dans un département que vous n’affichez pas (${nomDepartement(dept)}). ` +
-          'Ajoutez-le depuis Profil → Mes départements.'
-        : 'Vous semblez être hors du territoire couvert : la carte n’a pas bougé.'
+      geoMsg.textContent = !dept
+        ? 'Vous semblez être hors du territoire couvert : la carte n’a pas bougé.'
+        : estActif(dept)
+          ? `Vous êtes dans un département que vous n’affichez pas (${nomDepartement(dept)}). ` +
+            'Ajoutez-le depuis Profil → Mes départements.'
+          : `Armana ne couvre pas encore ${nomDepartement(dept)} : la carte n’a pas bougé.`
       return
     }
 

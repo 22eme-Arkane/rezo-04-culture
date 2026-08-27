@@ -1,3 +1,8 @@
+// Le cadre de recherche vit dans lib/departements.js, à côté des interrupteurs
+// d'ouverture : ouvrir un département sans élargir le cadre rendrait toutes ses
+// adresses introuvables.
+import { CADRE_RECHERCHE } from './departements.js'
+
 // Armana — géolocalisation utilisateur + géocodage d'adresse.
 //
 // - Position de l'utilisateur : API navigateur (Geolocation) UNIQUEMENT, repli sur
@@ -86,7 +91,6 @@ export function locationErrorMessage(reason) {
 // réel : « Les Mées » a été résolu dans l'Orne, à 650 km du village du 04, et
 // l'événement s'est retrouvé invisible sur la carte sans que personne ne
 // comprenne pourquoi. Beaucoup de villages du Sud ont un homonyme au Nord.
-const CADRE_RECHERCHE = '4.499,45.277,7.227,43.509' // ouest,nord,est,sud
 
 function urlNominatim(q, cadre) {
   const base =

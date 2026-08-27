@@ -7,23 +7,56 @@
 // simplifiées séparément, un liseré de masque apparaîtrait entre le 04 et le
 // 05, ou entre le 04 et le 84.
 //
-// Le 84 est un MultiPolygon : le Vaucluse comprend l'enclave des Papes,
-// autour de Valréas, entièrement entourée par la Drôme. Tout le code ci-dessous
-// raisonne donc en « liste de polygones », jamais en polygone unique.
+// Deux particularités que le code doit absolument gérer :
+//  - le 84 est un MultiPolygon : le Vaucluse comprend l'enclave des Papes,
+//    autour de Valréas, détachée du reste du département ;
+//  - le 26 a un TROU à l'emplacement de cette enclave, qu'il entoure
+//    complètement. Sans traiter les trous, Valréas serait attribuée à la Drôme.
+// Tout le code ci-dessous raisonne donc en liste de polygones, chacun pouvant
+// avoir des trous — jamais en polygone unique et plein.
 
 export const DEPARTEMENTS_URL = '/data/departements.geojson'
 
-/** Ordre d'affichage : du plus au moins central pour Armana. */
-export const DEPARTEMENTS = [
-  { code: '04', nom: 'Alpes-de-Haute-Provence' },
-  { code: '05', nom: 'Hautes-Alpes' },
-  { code: '84', nom: 'Vaucluse' },
+/**
+ * Les six départements dont le contour est embarqué, par numéro.
+ *
+ * ⚠ `actif` est l'INTERRUPTEUR d'ouverture d'un département. Les contours du
+ * 13, du 26 et du 83 sont déjà en place et prêts : les activer ne demandera
+ * que de passer `actif` à true ici, d'élargir CADRE_RECHERCHE ci-dessous, et
+ * de redéployer. Aucune migration, aucun nouveau fichier.
+ * Décision de Matthieu : on n'ouvre ces trois-là qu'une fois le nom de domaine
+ * acheté.
+ */
+export const TOUS_DEPARTEMENTS = [
+  { code: '04', nom: 'Alpes-de-Haute-Provence', actif: true },
+  { code: '05', nom: 'Hautes-Alpes', actif: true },
+  { code: '13', nom: 'Bouches-du-Rhône', actif: false },
+  { code: '26', nom: 'Drôme', actif: false },
+  { code: '83', nom: 'Var', actif: false },
+  { code: '84', nom: 'Vaucluse', actif: true },
 ]
+
+/** Ceux réellement ouverts. C'est cette liste que voit l'application. */
+export const DEPARTEMENTS = TOUS_DEPARTEMENTS.filter((d) => d.actif)
 
 export const CODES_DEPARTEMENTS = DEPARTEMENTS.map((d) => d.code)
 
+/**
+ * Rectangle englobant les départements ACTIFS, pour orienter la recherche
+ * d'adresse (voir lib/geo.js). Volontairement placé ICI, à côté des
+ * interrupteurs : les deux doivent changer ensemble, sinon on chercherait des
+ * adresses dans un département qu'on n'affiche pas.
+ *   04+05+84 (actuel)  : 4.499,45.277,7.227,43.509
+ *   les six            : 4.080,45.494,7.227,42.832
+ */
+export const CADRE_RECHERCHE = '4.499,45.277,7.227,43.509'
+
 export function nomDepartement(code) {
-  return DEPARTEMENTS.find((d) => d.code === code)?.nom || code
+  return TOUS_DEPARTEMENTS.find((d) => d.code === code)?.nom || code
+}
+
+export function estActif(code) {
+  return CODES_DEPARTEMENTS.includes(code)
 }
 
 let promesse = null
