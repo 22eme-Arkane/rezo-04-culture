@@ -35,18 +35,30 @@ export async function viewSettings() {
   // « Mes événements », en revanche, n'aurait rien à montrer sans compte.
   if (logged) pub.appendChild(rowNav(icon('ticket'), 'Mes événements', '/mes-evenements'))
   pub.appendChild(rowNav(icon('map'), 'Mes départements', '/mes-departements'))
-  const terr = pub
   wrap.appendChild(pub)
 
-  // --- Groupe 2 : modération et administration ---
-  // Nouveau partage des rôles : le PROPRIÉTAIRE garde tout ; un MODÉRATEUR ne
-  // voit que sa file de modération (cloisonnée à sa zone) et les statistiques.
-  // La base impose ces limites de toute façon — l'écran ne fait que ne pas
+  // --- Groupe 2 : la communauté ---
+  // Un seul groupe pour tout ce qui touche aux autres : proposer son aide
+  // quand on n'est pas modérateur, gérer la relecture quand on l'est. Le mot
+  // « administration » est retiré du titre — on n'administre pas des gens.
+  //
+  // Partage des rôles : le PROPRIÉTAIRE garde tout ; un MODÉRATEUR ne voit
+  // que sa file de modération (cloisonnée à sa zone) et les statistiques. La
+  // base impose ces limites de toute façon — l'écran ne fait que ne pas
   // afficher des portes qui seraient fermées.
+  wrap.appendChild(ruban('Communauté', 'bleu'))
+  const adm = el('div', 'settings-group settings-group--bleu')
+
+  // Proposer son aide. Visible même DÉCONNECTÉ, comme « Publier un
+  // événement » : c'est un appel à rejoindre le projet, le cacher à ceux qui
+  // n'ont pas encore de compte revenait à ne le proposer qu'à ceux qui sont
+  // déjà là. L'écran invite alors à s'inscrire.
+  if (!isAdmin()) {
+    adm.appendChild(rowNav(icon('shield'), 'Devenir modérateur', '/devenir-moderateur'))
+  }
+
   if (logged && isAdmin()) {
     const owner = await amIOwner()
-    wrap.appendChild(ruban('Communauté & administration', 'bleu'))
-    const adm = el('div', 'settings-group settings-group--bleu')
     // Tous les compteurs en parallèle : inutile d'attendre l'un puis l'autre.
     const [pending, messages, demandes] = await Promise.all([
       myPendingCount().catch(() => 0),
@@ -75,16 +87,8 @@ export async function viewSettings() {
     adm.appendChild(rowNav(icon('check'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
     if (owner) adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
     adm.appendChild(rowNav(icon('chart'), 'Statistiques', '/statistiques'))
-    wrap.appendChild(adm)
   }
-
-  // Proposer son aide. Visible même DÉCONNECTÉ, comme « Publier un
-  // événement » : c'est un appel à rejoindre le projet, le cacher à ceux qui
-  // n'ont pas encore de compte revenait à ne le proposer qu'à ceux qui sont
-  // déjà là. L'écran invite alors à s'inscrire.
-  if (!isAdmin()) {
-    terr.appendChild(rowNav(icon('shield'), 'Devenir modérateur', '/devenir-moderateur'))
-  }
+  wrap.appendChild(adm)
 
   // 3. Pratique : installer et régler, deux actions ponctuelles.
   wrap.appendChild(ruban('Pratique', 'vert'))
