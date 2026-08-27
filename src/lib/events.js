@@ -168,16 +168,6 @@ export async function listMyEvents() {
   return attachRelations(data)
 }
 
-/** Nombre d'événements en attente (admin ; renvoie 0 pour les autres via RLS). */
-export async function listPendingCount() {
-  const { count, error } = await supabase
-    .from('events')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'pending')
-  if (error) throw error
-  return count ?? 0
-}
-
 /** Événements en attente de modération (admin uniquement, garanti par RLS). */
 export async function listPendingEvents() {
   const { data, error } = await supabase
@@ -260,14 +250,32 @@ export async function deleteEvent(id) {
     console.warn('[Armana] Photos non supprimées :', e.message)
   }
 
-  const { error } = await supabase.from('events').delete().eq('id', id)
+  // Même piège que setEventStatus : un DELETE filtré par la RLS répond 204
+  // sans rien supprimer. On exige la ligne supprimée en retour. Message
+  // neutre : zéro ligne peut vouloir dire « déjà supprimé entre-temps »
+  // autant que « hors de la zone du modérateur » — et deleteEvent sert AUSSI
+  // à l'auteur, qui n'a pas de zone de modération.
+  const { data, error } = await supabase.from('events').delete().eq('id', id).select('id')
   if (error) throw error
+  if (!data?.length) {
+    throw new Error('événement introuvable — déjà supprimé, ou hors de vos droits.')
+  }
 }
 
-/** Modération (admin) : approuver / rejeter. */
+/** Modération : approuver / rejeter. */
 export async function setEventStatus(id, status) {
-  const { error } = await supabase.from('events').update({ status }).eq('id', id)
+  // ⚠ Sans `.select()`, un UPDATE que la RLS filtre (modérateur hors de sa
+  // zone) répond 204 avec ZÉRO ligne modifiée : on croirait avoir approuvé
+  // alors que rien n'a bougé. On exige la ligne en retour.
+  const { data, error } = await supabase
+    .from('events')
+    .update({ status })
+    .eq('id', id)
+    .select('id')
   if (error) throw error
+  if (!data?.length) {
+    throw new Error('cet événement est hors de votre zone de modération.')
+  }
 }
 
 /**

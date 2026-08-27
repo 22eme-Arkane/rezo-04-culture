@@ -174,7 +174,11 @@ html, body {
 .calendar__nav {
   background: var(--surface); border: 1px solid var(--border); color: var(--fg);
   width: 32px; height: 32px; border-radius: 999px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  /* Safari iOS : sans ces trois lignes, l'apparence native du bouton (padding
+     compris) et un SVG non dimensionné rendaient les flèches invisibles. */
+  -webkit-appearance: none; appearance: none; padding: 0;
 }
+.calendar__nav svg { width: 18px; height: 18px; flex: 0 0 auto; }
 .calendar__nav:disabled { opacity: 0.35; cursor: default; }
 .calendar__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .calendar__dow { text-align: center; font-size: 0.7rem; color: var(--muted); font-weight: 600; padding-bottom: 2px; }
@@ -348,6 +352,40 @@ html, body {
    « Début » : seul endroit du formulaire où une année erronée se voit. */
 .date-echo { display: block; margin-top: 0.35rem; }
 .date-echo--warn { color: var(--danger); font-weight: 700; }
+
+/* --- Couleurs du Profil (demande de Matthieu) --------------------------------
+   Lignes sur fond VERT avec écriture NOIRE (noir sur #539957 : contraste 6:1) ;
+   « Se déconnecter » en ROUGE — son texte rouge d'origine y serait invisible,
+   il passe donc au noir lui aussi (5,8:1) ; « Faire un don » en JAUNE (13:1).
+   Scopé à l'écran Profil : les sous-écrans gardent leurs lignes claires. */
+.page--studio-profile .settings-group .settings-row {
+  background: var(--mask-green, #539957);
+  color: #062b1d;
+  border-bottom-color: rgba(0, 0, 0, 0.18);
+}
+.page--studio-profile .settings-group .settings-row .settings-row__label { color: #062b1d; }
+.page--studio-profile .settings-group .settings-row .settings-row__label svg { color: #062b1d; }
+.page--studio-profile .settings-group .settings-row > svg { color: rgba(6, 43, 29, 0.7); }
+.page--studio-profile .settings-group .settings-row .settings-row__value { color: rgba(6, 43, 29, 0.75); }
+.page--studio-profile .settings-group .settings-row--danger {
+  background: var(--studio-red, #f04b2f);
+}
+.page--studio-profile .settings-group .settings-row--danger .settings-row__label,
+.page--studio-profile .settings-group .settings-row--danger .settings-row__label svg {
+  color: #062b1d;
+}
+.page--studio-profile .settings-group .settings-row--don {
+  background: var(--mask-yellow, #f4ca15);
+}
+
+/* Zone d'un modérateur (écran Modérateurs) : pastilles de départements. */
+.moderateur { flex-wrap: wrap; }
+.moderateur__zone { display: flex; gap: 0.3rem; flex: 0 0 auto; }
+.moderateur__zone .recur__day { width: 34px; height: 34px; font-size: 0.72rem; }
+
+/* Carte d'une candidature (écran Candidatures). */
+.candidature { margin-bottom: 0.8rem; }
+.candidature__qui { margin: 0 0 0.4rem; font-size: 0.92rem; }
 
 /* Écran Notifications : intitulé + explication sous chaque interrupteur. */
 .notif-type { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }

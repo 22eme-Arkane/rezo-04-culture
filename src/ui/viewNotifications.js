@@ -10,6 +10,7 @@ import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { navigate, refresh } from '../lib/router.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
+import { amIOwner } from '../lib/admins.js'
 import {
   TYPES,
   deviceState,
@@ -149,7 +150,12 @@ export async function viewNotifications() {
   wrap.appendChild(el('h3', 'support-wall__title', 'Ce que je veux recevoir'))
 
   const admin = isAdmin()
-  const visibles = TYPES.filter((t) => !t.adminSeulement || admin)
+  const owner = admin && (await amIOwner().catch(() => false))
+  // Un réglage qui ne produira jamais rien n'a pas à être proposé : le type
+  // « messages » n'est routé qu'au propriétaire par la fonction d'envoi.
+  const visibles = TYPES.filter(
+    (t) => (!t.adminSeulement || admin) && (!t.proprietaireSeulement || owner)
+  )
   const groupe = el('div', 'settings-group')
   const message = el('p', 'form__hint')
 

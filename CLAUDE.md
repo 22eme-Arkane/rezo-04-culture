@@ -45,9 +45,20 @@ département décoché repasse sous le masque.
    Jamais la clé `service_role` côté client.
 2. **Séparation stricte** : ce repo ne touche à aucun autre projet.
 3. **Sécurité côté base** : RLS activé partout, **jamais** de confiance côté client.
-4. **Rôles** : `profiles.role ∈ {user, admin}`. Un admin peut modérer/supprimer n'importe
-   quel événement ; un user ne gère que les siens. Un user ne peut pas s'auto-promouvoir
-   admin (garde-fou trigger + politiques).
+4. **Rôles** (depuis la migration 0020) — trois niveaux, deux valeurs en base :
+   - **Propriétaire** (`profiles.is_owner`, unique — Matthieu) : tous les droits.
+     Gestion des modérateurs, candidatures, messages, membres, purge, journal.
+   - **Modérateur** (`role = 'admin'` en base ; TOUJOURS dit « modérateur » dans
+     l'interface) : modération + statistiques, CLOISONNÉ à sa zone
+     `profiles.mod_depts` (ex. `{'04'}`). `NULL` = tous les départements.
+     Le cloisonnement est imposé par `can_moderate(dept)` dans les politiques RLS
+     (events, event_photos, storage.objects) — jamais seulement par l'interface.
+   - **User** : ne gère que ses propres événements. Peut postuler modérateur
+     (`moderator_requests`, écran « Devenir modérateur ») ; un modérateur demande
+     une extension de zone depuis « Mes départements ».
+   Rôle et zone ne se modifient que par le propriétaire (garde-fou trigger).
+   Chaque événement porte son département (`events.dept`, trigger PostGIS sur les
+   contours allégés de `dept_contours`, migration 0019).
 5. **Modération** : `events.status ∈ {pending, approved, rejected}`. Le public ne voit
    que `approved`.
 

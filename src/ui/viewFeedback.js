@@ -2,6 +2,7 @@
 import { el, emptyState } from './components.js'
 import { studioHeader } from './studio.js'
 import { isAdmin } from '../lib/auth.js'
+import { amIOwner } from '../lib/admins.js'
 import { listFeedback, deleteFeedback } from '../lib/feedback.js'
 
 const DTF = new Intl.DateTimeFormat('fr-FR', {
@@ -15,8 +16,11 @@ export async function viewFeedback() {
   const wrap = el('section', 'page page--studio-sub')
   wrap.appendChild(studioHeader('Messages', { backTo: '/parametres' }))
 
-  if (!isAdmin()) {
-    wrap.appendChild(emptyState('Accès réservé aux administrateurs.'))
+  // Messages « Nous contacter » et signalements : le PROPRIÉTAIRE seul — les
+  // modérateurs n'ont que la modération et les statistiques. La base impose
+  // déjà cette limite (0020) ; on évite juste un écran d'erreur.
+  if (!isAdmin() || !(await amIOwner().catch(() => false))) {
+    wrap.appendChild(emptyState('Réservé au propriétaire du projet.'))
     return wrap
   }
 
@@ -24,7 +28,7 @@ export async function viewFeedback() {
     el(
       'p',
       'page__subtitle',
-      'Bugs signalés et avis envoyés depuis « Nous contacter ». Visible des seuls administrateurs.'
+      'Bugs signalés et avis envoyés depuis « Nous contacter ». Visible du seul propriétaire.'
     )
   )
 

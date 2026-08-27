@@ -5,7 +5,8 @@ import { el } from './components.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn, isAdmin, getProfile, getUser, signOut } from '../lib/auth.js'
-import { listPendingCount } from '../lib/events.js'
+import { amIOwner } from '../lib/admins.js'
+import { listModeratorRequests, myPendingCount } from '../lib/moderation.js'
 import { countFeedback } from '../lib/feedback.js'
 import { currentBuild } from '../lib/update.js'
 import { APP_URL, shareApp } from '../lib/share.js'
@@ -64,22 +65,43 @@ export async function viewSettings() {
   terr.appendChild(rowNav(icon('map'), 'Mes départements', '/mes-departements'))
   wrap.appendChild(terr)
 
-  // --- Groupe 2 : administration (admins uniquement) ---
+  // --- Groupe 2 : modération et administration ---
+  // Nouveau partage des rôles : le PROPRIÉTAIRE garde tout ; un MODÉRATEUR ne
+  // voit que sa file de modération (cloisonnée à sa zone) et les statistiques.
+  // La base impose ces limites de toute façon — l'écran ne fait que ne pas
+  // afficher des portes qui seraient fermées.
   if (logged && isAdmin()) {
+    const owner = await amIOwner()
     const adm = el('div', 'settings-group')
-    // Les deux compteurs en parallèle : inutile d'attendre l'un puis l'autre.
-    const [pending, messages] = await Promise.all([
-      listPendingCount().catch(() => 0),
-      countFeedback().catch(() => 0),
+    // Tous les compteurs en parallèle : inutile d'attendre l'un puis l'autre.
+    const [pending, messages, demandes] = await Promise.all([
+      myPendingCount().catch(() => 0),
+      owner ? countFeedback().catch(() => 0) : Promise.resolve(0),
+      owner
+        ? listModeratorRequests()
+            .then((l) => l.filter((d) => d.status === 'pending').length)
+            .catch(() => 0)
+        : Promise.resolve(0),
     ])
-    adm.appendChild(rowNav(icon('shield'), 'Gérer les administrateurs', '/admins'))
-    adm.appendChild(
-      rowNav(icon('message'), 'Messages reçus' + (messages ? ` (${messages})` : ''), '/messages')
-    )
+
+    if (owner) adm.appendChild(rowNav(icon('shield'), 'Gérer les modérateurs', '/admins'))
+    if (owner) {
+      adm.appendChild(
+        rowNav(icon('user'), 'Candidatures' + (demandes ? ` (${demandes})` : ''), '/candidatures')
+      )
+      adm.appendChild(
+        rowNav(icon('message'), 'Messages reçus' + (messages ? ` (${messages})` : ''), '/messages')
+      )
+    }
     adm.appendChild(rowNav(icon('check'), 'Modération' + (pending ? ` (${pending})` : ''), '/moderation'))
-    adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
+    if (owner) adm.appendChild(rowNav(icon('user'), 'Membres', '/membres'))
     adm.appendChild(rowNav(icon('chart'), 'Statistiques', '/statistiques'))
     wrap.appendChild(adm)
+  }
+
+  // Proposer son aide : pour les membres qui ne modèrent pas encore.
+  if (logged && !isAdmin()) {
+    terr.appendChild(rowNav(icon('shield'), 'Devenir modérateur', '/devenir-moderateur'))
   }
 
   // --- Trois groupes distincts en bas, volontairement séparés ---
@@ -94,7 +116,9 @@ export async function viewSettings() {
 
   // 4. Soutenir et écrire : les deux façons d'aider le projet.
   const help = el('div', 'settings-group')
-  help.appendChild(rowNav(icon('heart'), 'Soutenir Armana', '/soutenir'))
+  const don = rowNav(icon('heart'), 'Faire un don', '/soutenir')
+  don.classList.add('settings-row--don')
+  help.appendChild(don)
   help.appendChild(rowNav(icon('message'), 'Nous contacter', '/contact'))
   wrap.appendChild(help)
 

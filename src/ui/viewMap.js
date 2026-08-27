@@ -9,6 +9,7 @@ import { navigate } from '../lib/router.js'
 import { DEFAULT_CENTER, getUserLocation, locationErrorMessage } from '../lib/geo.js'
 import { eventsWithinRadius } from '../lib/events.js'
 import { dayKey, eventDayKeys } from '../lib/recurrence.js'
+import { tagVisitDept } from '../lib/admins.js'
 import { getCategory, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
 import { studioHeader } from './studio.js'
@@ -215,6 +216,10 @@ export async function viewMap() {
     // Une seule source pour le point de départ : le GPS, avec repli sur
     // Forcalquier. C'est aussi ce qu'utilise le bouton « ma position ».
     center = await getUserLocation()
+    // Position réelle obtenue → on complète la visite du jour avec le
+    // DÉPARTEMENT (jamais la position). Le repli Forcalquier ne compte pas :
+    // ce serait inventer une provenance.
+    if (!center.fallback) tagVisitDept(departementDuPoint(center, contours))
     // Hors des départements retenus, on part du repli plutôt que d'ouvrir sur
     // une zone entièrement masquée.
     if (!estDansLeTerritoire(center, contours, mesCodes())) {
@@ -416,6 +421,8 @@ export async function viewMap() {
 
     geoMsg.textContent = ''
     center = located
+    // Statistique de provenance : le DÉPARTEMENT observé, jamais la position.
+    tagVisitDept(departementDuPoint(located, contours))
     userMarker.setLatLng([center.lat, center.lng])
     cadrerSurPosition()
     await loadEvents()

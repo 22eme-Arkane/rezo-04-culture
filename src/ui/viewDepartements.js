@@ -10,10 +10,13 @@
 import { el } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
-import { DEPARTEMENTS } from '../lib/departements.js'
+import { isAdmin, isLoggedIn } from '../lib/auth.js'
+import { amIOwner } from '../lib/admins.js'
+import { DEPARTEMENTS, nomDepartement } from '../lib/departements.js'
 import { getMesDepartements, setMesDepartements } from '../lib/mesDepartements.js'
+import { applyModerator, myModDepts, myModeratorRequest } from '../lib/moderation.js'
 
-export function viewDepartements() {
+export async function viewDepartements() {
   const wrap = el('section', 'page page--studio-sub')
   wrap.appendChild(studioHeader('Mes départements', { backTo: '/parametres' }))
 
@@ -85,6 +88,97 @@ export function viewDepartements() {
         'autres membres, et n’empêche personne de publier ailleurs.'
     )
   )
+
+  // --- Ma zone de modération (modérateurs uniquement) ------------------------
+  // Distincte du filtre d'affichage ci-dessus : l'affichage est un confort
+  // local, la zone de modération est un DROIT, accordé par le propriétaire.
+  // C'est ici qu'un modérateur demande à élargir sa zone (décision Matthieu).
+  if (isLoggedIn() && isAdmin() && !(await amIOwner().catch(() => false))) {
+    let zone = null
+    let demande = null
+    try {
+      ;[zone, demande] = await Promise.all([myModDepts(), myModeratorRequest()])
+    } catch {
+      return wrap // migration pas encore appliquée : section simplement absente
+    }
+
+    wrap.appendChild(el('h3', 'support-wall__title', '🛡 Ma zone de modération'))
+    wrap.appendChild(
+      el(
+        'p',
+        'form__hint',
+        zone?.length
+          ? 'Vous relisez les événements de : ' +
+            zone.map((c) => `${c} (${nomDepartement(c)})`).join(', ') + '.'
+          : 'Vous relisez les événements de tout le territoire.'
+      )
+    )
+
+    if (demande?.status === 'pending') {
+      wrap.appendChild(
+        el(
+          'p',
+          'demo-note',
+          `✉ Votre demande d’extension (${demande.depts.join(', ')}) attend la ` +
+            'réponse du propriétaire.'
+        )
+      )
+      return wrap
+    }
+
+    const restants = DEPARTEMENTS.filter((d) => zone?.length && !zone.includes(d.code))
+    if (!restants.length) return wrap
+
+    wrap.appendChild(
+      el('p', 'form__label', 'Demander un département de plus')
+    )
+    const groupe = el('div', 'settings-group')
+    const cases = []
+    for (const d of restants) {
+      const ligne = el('label', 'settings-row settings-row--static')
+      const lab = el('div', 'settings-row__label')
+      lab.appendChild(icon('pin'))
+      lab.appendChild(document.createTextNode(`${d.code} · ${d.nom}`))
+      ligne.appendChild(lab)
+      const c = el('input')
+      c.type = 'checkbox'
+      c.dataset.code = d.code
+      ligne.appendChild(c)
+      groupe.appendChild(ligne)
+      cases.push(c)
+    }
+    wrap.appendChild(groupe)
+
+    const msg = el('p', 'form__msg')
+    const demander = el('button', 'btn btn--primary btn--block')
+    demander.type = 'button'
+    demander.appendChild(icon('shield'))
+    demander.appendChild(document.createTextNode(' Demander l’extension'))
+    demander.addEventListener('click', async () => {
+      const depts = cases.filter((c) => c.checked).map((c) => c.dataset.code)
+      msg.className = 'form__msg'
+      if (!depts.length) {
+        msg.classList.add('form__msg--err')
+        msg.textContent = 'Cochez au moins un département.'
+        return
+      }
+      demander.disabled = true
+      msg.textContent = 'Envoi…'
+      try {
+        await applyModerator(depts, null)
+        msg.className = 'form__msg form__msg--ok'
+        msg.textContent = '✅ Demande envoyée au propriétaire. Réponse dans l’application.'
+        demander.remove()
+        groupe.remove()
+      } catch (e) {
+        msg.className = 'form__msg form__msg--err'
+        msg.textContent = 'Envoi impossible : ' + e.message
+        demander.disabled = false
+      }
+    })
+    wrap.appendChild(demander)
+    wrap.appendChild(msg)
+  }
 
   return wrap
 }

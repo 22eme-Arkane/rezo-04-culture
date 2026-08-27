@@ -10,7 +10,9 @@ import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { navigate, refresh } from '../lib/router.js'
 import { isAdmin, getUser } from '../lib/auth.js'
-import { getMemberProfile, setAdminById } from '../lib/admins.js'
+import { amIOwner, getMemberProfile } from '../lib/admins.js'
+import { setModerator } from '../lib/moderation.js'
+import { DEPARTEMENTS } from '../lib/departements.js'
 import { copyText } from '../lib/share.js'
 
 const DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -29,8 +31,9 @@ export async function viewMember({ query } = {}) {
   const wrap = el('section', 'page page--studio-sub')
   wrap.appendChild(studioHeader('Membre', { backTo: '/membres', backLabel: 'Membres' }))
 
-  if (!isAdmin()) {
-    wrap.appendChild(emptyState('Accès réservé aux administrateurs.'))
+  // Même garde que la base (member_profile est réservée au propriétaire).
+  if (!isAdmin() || !(await amIOwner().catch(() => false))) {
+    wrap.appendChild(emptyState('Réservé au propriétaire du projet.'))
     return wrap
   }
 
@@ -61,7 +64,10 @@ export async function viewMember({ query } = {}) {
   tete.appendChild(el('h2', 'member-head__name', nom))
   const badges = el('div', 'member-head__badges')
   if (m.is_owner) badges.appendChild(el('span', 'fb-tag fb-tag--avis', 'Propriétaire'))
-  else if (estAdmin) badges.appendChild(el('span', 'fb-tag fb-tag--avis', 'Administrateur'))
+  else if (estAdmin)
+    badges.appendChild(
+      el('span', 'fb-tag fb-tag--avis', 'Modérateur · ' + (m.mod_depts?.join(', ') || 'tous'))
+    )
   else badges.appendChild(el('span', 'fb-tag', 'Membre'))
   if (m.supporter_since) badges.appendChild(el('span', 'fb-tag', '💛 Soutien'))
   tete.appendChild(badges)
@@ -110,16 +116,16 @@ export async function viewMember({ query } = {}) {
   }
   wrap.appendChild(infos)
 
-  // --- Rôle -----------------------------------------------------------------
-  wrap.appendChild(el('h3', 'support-wall__title', 'Rôle'))
+  // --- Rôle de modérateur -----------------------------------------------------
+  wrap.appendChild(el('h3', 'support-wall__title', 'Modération'))
 
   if (m.is_owner) {
     wrap.appendChild(
       el(
         'p',
         'form__hint',
-        'Ce compte est le propriétaire du projet. Son rôle ne peut être modifié ' +
-          'par personne depuis l’application, y compris par un autre administrateur.'
+        'Ce compte est le propriétaire du projet : il a tous les droits, et son ' +
+          'rôle ne peut être modifié par personne depuis l’application.'
       )
     )
     return wrap
@@ -129,26 +135,59 @@ export async function viewMember({ query } = {}) {
     return wrap
   }
 
-  const msg = el('p', 'form__msg')
-  const bouton = el('button', estAdmin ? 'btn btn--danger btn--block' : 'btn btn--primary btn--block')
-  bouton.type = 'button'
-  bouton.appendChild(icon('shield'))
-  bouton.appendChild(
-    document.createTextNode(
-      estAdmin ? ' Retirer le rôle d’administrateur' : ' Désigner comme administrateur'
+  wrap.appendChild(
+    el(
+      'p',
+      'form__hint',
+      estAdmin
+        ? 'Cochez les départements de sa zone. Tout décocher retire le rôle.'
+        : 'Cochez un ou plusieurs départements pour en faire un modérateur.'
     )
   )
+
+  const groupe = el('div', 'settings-group')
+  const cases = []
+  const zone = new Set(m.mod_depts ?? [])
+  for (const d of DEPARTEMENTS) {
+    const ligne = el('label', 'settings-row settings-row--static')
+    const lab = el('div', 'settings-row__label')
+    lab.appendChild(icon('pin'))
+    lab.appendChild(document.createTextNode(`${d.code} · ${d.nom}`))
+    ligne.appendChild(lab)
+    const c = el('input')
+    c.type = 'checkbox'
+    c.dataset.code = d.code
+    c.checked = estAdmin && zone.has(d.code)
+    ligne.appendChild(c)
+    groupe.appendChild(ligne)
+    cases.push(c)
+  }
+  wrap.appendChild(groupe)
+
+  const msg = el('p', 'form__msg')
+  const bouton = el('button', 'btn btn--primary btn--block')
+  bouton.type = 'button'
+  bouton.appendChild(icon('shield'))
+  bouton.appendChild(document.createTextNode(' Enregistrer la zone de modération'))
   bouton.addEventListener('click', async () => {
-    const question = estAdmin
-      ? `Retirer le rôle d’administrateur à ${nom} ?`
-      : `Désigner ${nom} comme administrateur ?\n\nIl pourra modérer, modifier et supprimer tous les événements, et désigner d’autres administrateurs.`
+    const depts = cases.filter((c) => c.checked).map((c) => c.dataset.code)
+    const question = depts.length
+      ? `${nom} : modérateur de ${depts.join(', ')} ?\n\nIl pourra approuver, modifier et supprimer les événements de cette zone, et verra les statistiques.`
+      : estAdmin
+        ? `Retirer le rôle de modérateur à ${nom} ?`
+        : null
+    if (question === null) {
+      msg.className = 'form__msg form__msg--err'
+      msg.textContent = 'Cochez au moins un département pour en faire un modérateur.'
+      return
+    }
     if (!confirm(question)) return
     bouton.disabled = true
     msg.className = 'form__msg'
     msg.textContent = 'Enregistrement…'
     try {
-      await setAdminById(m.id, !estAdmin)
-      refresh() // recharge la fiche : badge et bouton suivent
+      await setModerator(m.id, depts)
+      refresh() // recharge la fiche : badge et cases suivent
     } catch (e) {
       msg.className = 'form__msg form__msg--err'
       msg.textContent = e.message
@@ -157,17 +196,13 @@ export async function viewMember({ query } = {}) {
   })
   wrap.appendChild(bouton)
   wrap.appendChild(msg)
-
-  if (!estAdmin) {
-    wrap.appendChild(
-      el(
-        'p',
-        'form__hint',
-        'Un administrateur peut modérer, modifier et supprimer tous les événements. ' +
-          'Ses actions sont consignées dans le journal.'
-      )
+  wrap.appendChild(
+    el(
+      'p',
+      'form__hint',
+      'Les actions des modérateurs sont consignées dans le journal.'
     )
-  }
+  )
 
   return wrap
 }

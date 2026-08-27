@@ -16,14 +16,17 @@ export const TYPES = [
   {
     cle: 'moderation',
     titre: 'Événements à valider',
-    detail: 'Quand quelqu’un publie un événement en attente de modération.',
+    detail: 'Quand un événement de votre zone attend d’être relu.',
     adminSeulement: true,
   },
   {
     cle: 'messages',
     titre: 'Messages reçus',
-    detail: 'Quand quelqu’un écrit depuis « Nous contacter » ou signale un problème.',
+    detail: 'Courriers, signalements et candidatures.',
     adminSeulement: true,
+    // La fonction d'envoi ne route ce type qu'au propriétaire : proposer
+    // l'interrupteur à un modérateur serait un réglage sans aucun effet.
+    proprietaireSeulement: true,
   },
   {
     cle: 'nouveaux_evenements',

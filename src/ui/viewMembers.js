@@ -5,7 +5,7 @@ import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { navigate } from '../lib/router.js'
 import { isAdmin, getUser } from '../lib/auth.js'
-import { listMembers } from '../lib/admins.js'
+import { amIOwner, listMembers } from '../lib/admins.js'
 
 const DTF = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -13,8 +13,12 @@ export async function viewMembers() {
   const wrap = el('section', 'page page--studio-sub')
   wrap.appendChild(studioHeader('Membres', { backTo: '/parametres' }))
 
-  if (!isAdmin()) {
-    wrap.appendChild(emptyState('Accès réservé aux administrateurs.'))
+  // Depuis la 0020 la liste des membres est réservée au propriétaire : la
+  // garde du client doit dire la même chose que la base, sinon un modérateur
+  // arrivant par l'historique verrait une erreur de chargement au lieu d'un
+  // refus propre.
+  if (!isAdmin() || !(await amIOwner().catch(() => false))) {
+    wrap.appendChild(emptyState('Réservé au propriétaire du projet.'))
     return wrap
   }
 
@@ -27,7 +31,7 @@ export async function viewMembers() {
       'p',
       'form__hint',
       'Touchez un membre pour ouvrir sa fiche : son adresse pour lui écrire, ' +
-        'ses publications, et la désignation comme administrateur.'
+        'ses publications, et la zone de modération.'
     )
   )
 
@@ -56,7 +60,7 @@ export async function viewMembers() {
       label.appendChild(icon(m.is_owner ? 'shield' : 'user'))
       label.appendChild(document.createTextNode(nom))
       if (m.is_owner) label.appendChild(el('span', 'fb-tag fb-tag--avis', 'Propriétaire'))
-      else if (estAdmin) label.appendChild(el('span', 'fb-tag fb-tag--avis', 'Admin'))
+      else if (estAdmin) label.appendChild(el('span', 'fb-tag fb-tag--avis', 'Modérateur'))
       row.appendChild(label)
       row.appendChild(
         el(

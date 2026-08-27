@@ -57,9 +57,13 @@ const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:contact@armana04.
 // fuite de données mais l'épuisement du quota gratuit d'invocations.
 const PUSH_KEY = Deno.env.get('ARMANA_PUSH_KEY') ?? ''
 
-// Ces deux types ne concernent que les administrateurs : même si quelqu'un
-// forçait la préférence, il ne recevrait rien.
-const ADMIN_SEULEMENT = new Set(['moderation', 'messages'])
+// Qui reçoit quoi (le filtrage par préférence s'ajoute par-dessus) :
+//   messages             → le PROPRIÉTAIRE uniquement (courriers, signalements,
+//                          candidatures de modérateurs) ;
+//   moderation           → le propriétaire, et les modérateurs dont la zone
+//                          couvre le département de l'événement — un modérateur
+//                          du 04 ne reçoit pas les événements du 84 ;
+//   nouveaux_evenements  → tout abonné qui l'a demandé.
 
 // Au-delà, l'abonnement est considéré mort et supprimé.
 const ECHECS_MAX = 5
@@ -90,7 +94,7 @@ Deno.serve(async (req) => {
 
   const { data: file, error: erFile } = await db
     .from('notification_queue')
-    .select('id, kind, title, body, url')
+    .select('id, kind, title, body, url, dept')
     .is('sent_at', null)
     .order('created_at', { ascending: true })
     .limit(LOT)
@@ -100,7 +104,7 @@ Deno.serve(async (req) => {
   // Un seul chargement des abonnés pour tout le lot.
   const { data: abonnes, error: erAb } = await db
     .from('push_subscriptions')
-    .select('endpoint, p256dh, auth, failures, profiles!inner(role, notif_prefs)')
+    .select('endpoint, p256dh, auth, failures, profiles!inner(role, notif_prefs, is_owner, mod_depts)')
   if (erAb) return json({ erreur: erAb.message }, 500)
 
   let envois = 0
@@ -109,9 +113,17 @@ Deno.serve(async (req) => {
   for (const notif of file) {
     const cibles = (abonnes ?? []).filter((a: any) => {
       const p = a.profiles
-      if (!p) return false
-      if (ADMIN_SEULEMENT.has(notif.kind) && p.role !== 'admin') return false
-      return p.notif_prefs?.[notif.kind] === true
+      if (!p || p.notif_prefs?.[notif.kind] !== true) return false
+      if (notif.kind === 'messages') return p.is_owner === true
+      if (notif.kind === 'moderation') {
+        if (p.is_owner) return true
+        if (p.role !== 'admin') return false
+        // Zone du modérateur : null = tous ; un événement sans département
+        // (hors territoire, sans coordonnées) est signalé à tout le monde,
+        // sinon personne ne le verrait jamais.
+        return p.mod_depts == null || notif.dept == null || p.mod_depts.includes(notif.dept)
+      }
+      return true // nouveaux_evenements
     })
 
     const charge = JSON.stringify({

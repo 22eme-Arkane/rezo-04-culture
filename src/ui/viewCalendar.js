@@ -246,11 +246,18 @@ export async function viewCalendar() {
   cal.hidden = false
   calendarToggle.setAttribute('aria-controls', cal.id)
   const calHead = el('div', 'calendar__head')
+  // ⚠ size explicite : sans attributs width/height ni règle CSS, Safari iOS
+  // rendait ces SVG à sa taille par défaut, hors du bouton de 28 px — flèches
+  // invisibles sur iPhone alors que Chrome, lui, devinait une taille correcte.
   const prevBtn = el('button', 'calendar__nav')
-  prevBtn.appendChild(icon('chevronLeft'))
+  prevBtn.type = 'button'
+  prevBtn.setAttribute('aria-label', 'Mois précédent')
+  prevBtn.appendChild(icon('chevronLeft', { size: 18 }))
   const monthLabel = el('div', 'calendar__month')
   const nextBtn = el('button', 'calendar__nav')
-  nextBtn.appendChild(icon('chevronRight'))
+  nextBtn.type = 'button'
+  nextBtn.setAttribute('aria-label', 'Mois suivant')
+  nextBtn.appendChild(icon('chevronRight', { size: 18 }))
   calHead.appendChild(prevBtn)
   calHead.appendChild(monthLabel)
   calHead.appendChild(nextBtn)

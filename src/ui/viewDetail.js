@@ -3,6 +3,8 @@ import { el, formatDateFull, formatTime, formatPrice, emptyState } from './compo
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn, getUser } from '../lib/auth.js'
+import { amIOwner } from '../lib/admins.js'
+import { canModerateEvent, myModDepts } from '../lib/moderation.js'
 import { dayKey, describeRecurrence, isRecurring, nextOccurrence } from '../lib/recurrence.js'
 import { navigate } from '../lib/router.js'
 import { sendFeedback } from '../lib/feedback.js'
@@ -169,16 +171,34 @@ export async function viewDetail({ query } = {}) {
   // L'auteur et les administrateurs gèrent l'événement ; les autres personnes
   // connectées peuvent le signaler. Les droits sont AUSSI imposés côté base
   // (RLS) : ce qui suit ne fait que masquer ce qui serait de toute façon refusé.
-  wrap.appendChild(buildActions(ev))
+  // La zone du modérateur borne ses boutons : un modérateur du 04 ne doit pas
+  // voir « Supprimer » sur un événement du 84 — la base le refuserait, mais un
+  // bouton qui échoue toujours est pire qu'un bouton absent.
+  let ctxModeration = null
+  if (isAdmin()) {
+    const [owner, depts] = await Promise.all([
+      amIOwner().catch(() => false),
+      myModDepts().catch(() => null),
+    ])
+    ctxModeration = { owner, depts }
+  }
+  wrap.appendChild(buildActions(ev, ctxModeration))
 
   return wrap
 }
 
-function buildActions(ev) {
+function buildActions(ev, ctxModeration) {
   const zone = el('div', 'detail-actions')
   const uid = getUser()?.id ?? null
   const estAuteur = Boolean(uid && ev.created_by === uid)
-  const peutGerer = estAuteur || isAdmin()
+  const peutGerer =
+    estAuteur ||
+    (isAdmin() &&
+      canModerateEvent(ev, {
+        isAdmin: true,
+        isOwner: ctxModeration?.owner ?? false,
+        depts: ctxModeration?.depts ?? null,
+      }))
 
   if (peutGerer) {
     zone.appendChild(el('h3', 'detail__section-title', 'Gérer cet événement'))
@@ -243,7 +263,7 @@ function buildActions(ev) {
     'Date erronée, événement annulé, lieu incorrect, contenu inapproprié…'
   field.appendChild(area)
   form.appendChild(field)
-  const send = el('button', 'btn btn--primary btn--block', 'Envoyer aux administrateurs')
+  const send = el('button', 'btn btn--primary btn--block', 'Envoyer le signalement')
   send.type = 'submit'
   form.appendChild(send)
   const msg = el('p', 'form__msg')
@@ -278,7 +298,7 @@ function buildActions(ev) {
         el(
           'p',
           'form__msg form__msg--ok',
-          'Merci, le signalement a été transmis aux administrateurs. 🙏'
+          'Merci, le signalement a été transmis à l’équipe d’Armana. 🙏'
         )
       )
       open.disabled = true

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1180" role="img" aria-label="Aperçu du kit Profil Armana">
+  <rect width="1200" height="1180" fill="#fff4df"/>
+  <text x="60" y="75" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="#064f36">KIT PROFIL ARMANA</text>
+  <text x="60" y="125" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#0b55c5">DRAPEAUX ET RACCORD</text>
+  <image href="flag-yellow.svg" x="60" y="150" width="470" height="58"/>
+  <image href="flag-blue.svg" x="60" y="225" width="540" height="58"/>
+  <image href="flag-green.svg" x="60" y="300" width="390" height="58"/>
+  <image href="timeline-connector.svg" x="635" y="145" width="20" height="220"/>
+
+  <text x="60" y="420" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#0b55c5">BOUTON FAIRE UN DON</text>
+  <image href="donation-card-complete.svg" x="60" y="445" width="760" height="170"/>
+
+  <text x="60" y="680" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#0b55c5">PASTILLES DES ACTIONS</text>
+  <g font-family="Arial, sans-serif" font-size="16" fill="#064f36" text-anchor="middle">
+    <image href="icon-publier.svg" x="60" y="715" width="72" height="72"/><text x="96" y="810">Publier</text>
+    <image href="icon-mes-evenements.svg" x="155" y="715" width="72" height="72"/><text x="191" y="810">Événements</text>
+    <image href="icon-departements.svg" x="250" y="715" width="72" height="72"/><text x="286" y="810">Départements</text>
+    <image href="icon-gerer-moderateurs.svg" x="345" y="715" width="72" height="72"/><text x="381" y="810">Modérateurs</text>
+    <image href="icon-candidatures.svg" x="440" y="715" width="72" height="72"/><text x="476" y="810">Candidatures</text>
+    <image href="icon-messages.svg" x="535" y="715" width="72" height="72"/><text x="571" y="810">Messages</text>
+    <image href="icon-moderation.svg" x="630" y="715" width="72" height="72"/><text x="666" y="810">Modération</text>
+    <image href="icon-membres.svg" x="725" y="715" width="72" height="72"/><text x="761" y="810">Membres</text>
+    <image href="icon-statistiques.svg" x="820" y="715" width="72" height="72"/><text x="856" y="810">Statistiques</text>
+    <image href="icon-devenir-moderateur.svg" x="915" y="715" width="72" height="72"/><text x="951" y="810">Candidater</text>
+    <image href="icon-installer.svg" x="1010" y="715" width="72" height="72"/><text x="1046" y="810">Installer</text>
+
+    <image href="icon-notifications.svg" x="60" y="850" width="72" height="72"/><text x="96" y="945">Notifications</text>
+    <image href="icon-contact.svg" x="155" y="850" width="72" height="72"/><text x="191" y="945">Contact</text>
+    <image href="icon-deconnexion.svg" x="250" y="850" width="72" height="72"/><text x="286" y="945">Déconnexion</text>
+    <image href="icon-don-heart.svg" x="345" y="850" width="72" height="72"/><text x="381" y="945">Don</text>
+    <image href="icon-share-round.svg" x="440" y="850" width="72" height="72"/><text x="476" y="945">Partager</text>
+    <image href="icon-arrow-round.svg" x="535" y="850" width="72" height="72"/><text x="571" y="945">Ouvrir</text>
+    <image href="icon-nav-agenda.svg" x="650" y="850" width="72" height="72"/><text x="686" y="945">Agenda</text>
+    <image href="icon-nav-carte.svg" x="745" y="850" width="72" height="72"/><text x="781" y="945">Carte</text>
+    <image href="icon-nav-favoris.svg" x="840" y="850" width="72" height="72"/><text x="876" y="945">Favoris</text>
+    <image href="icon-nav-profil.svg" x="935" y="850" width="72" height="72"/><text x="971" y="945">Profil</text>
+    <image href="icon-chevron.svg" x="1030" y="860" width="52" height="52"/><text x="1056" y="945">Chevron</text>
+  </g>
+  <text x="60" y="1040" font-family="Arial, sans-serif" font-size="20" fill="#064f36">SVG redimensionnables • Logo officiel Armana • Palette validée</text>
+</svg>

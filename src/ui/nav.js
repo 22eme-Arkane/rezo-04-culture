@@ -3,7 +3,7 @@ import { el } from './components.js'
 import { icon } from './icons.js'
 import { navigate, currentRoute } from '../lib/router.js'
 import { isAdmin } from '../lib/auth.js'
-import { listPendingCount } from '../lib/events.js'
+import { myPendingCount } from '../lib/moderation.js'
 
 const TABS = [
   { path: '/', label: 'Agenda', ic: 'calendar' },
@@ -27,6 +27,13 @@ const PARENT = {
   '/messages': '/parametres',
   '/soutenir': '/parametres',
   '/importer': '/',
+  '/installer': '/parametres',
+  '/journal': '/parametres',
+  '/membre': '/parametres',
+  '/notifications': '/parametres',
+  '/mes-departements': '/parametres',
+  '/devenir-moderateur': '/parametres',
+  '/candidatures': '/parametres',
 }
 
 export function buildNav() {
@@ -46,10 +53,11 @@ export function buildNav() {
     buttons[t.path] = b
   }
 
-  // Notification admin : pastille sur « Paramètres » = événements en attente de
-  // modération. Chargée en arrière-plan.
+  // Pastille du modérateur sur « Profil » : les événements en attente DANS SA
+  // ZONE — l'ancien compteur global aurait menti à un modérateur cloisonné à
+  // son département. Chargée en arrière-plan.
   if (isAdmin()) {
-    listPendingCount()
+    myPendingCount()
       .then((pending) => {
         if (!pending) return
         const badge = el('span', 'navtab__badge', pending > 99 ? '99+' : String(pending))

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Ouvrir">
+  <circle cx="32" cy="32" r="29" fill="#fffaf0"/>
+  <path d="M20 32h25m-10-11 11 11-11 11" fill="none" stroke="#0b55c5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

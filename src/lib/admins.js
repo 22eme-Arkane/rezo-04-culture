@@ -1,5 +1,6 @@
 // Armana — gestion des administrateurs (réservé aux admins, via RPC).
 import { supabase } from './supabaseClient.js'
+import { getUser } from './auth.js'
 
 /** Liste des admins (nom + e-mail). Nécessite d'être admin (garanti côté base). */
 export async function listAdmins() {
@@ -93,9 +94,11 @@ export async function listMembers() {
  * totalement inaperçue, et un comptage défaillant était indiagnostiquable
  * depuis le navigateur.
  */
-export async function recordVisit() {
+export async function recordVisit(dept = null) {
   try {
-    const { error } = await supabase.rpc('record_visit')
+    // `p_dept` : renseigné quand l'appareil n'affiche qu'un seul département —
+    // signal faible mais honnête sur la provenance, sans géolocalisation.
+    const { error } = await supabase.rpc('record_visit', { p_dept: dept })
     if (error) console.warn('[Armana] Visite non enregistrée :', error.code, error.message)
   } catch (e) {
     console.warn('[Armana] Visite non enregistrée :', e.message)
@@ -127,7 +130,7 @@ function idVisiteur() {
  * Passage d'un visiteur NON connecté. Sans cela, les statistiques ne voyaient
  * que les inscrits — c'est-à-dire une minorité des passages.
  */
-export async function recordAnonVisit() {
+export async function recordAnonVisit(dept = null) {
   const id = idVisiteur()
   if (!id) {
     // Navigation privée, ou navigateur sans générateur aléatoire : on préfère
@@ -136,10 +139,29 @@ export async function recordAnonVisit() {
     return
   }
   try {
-    const { error } = await supabase.rpc('record_anon_visit', { p_visitor: id })
+    const { error } = await supabase.rpc('record_anon_visit', { p_visitor: id, p_dept: dept })
     if (error) console.warn('[Armana] Passage non enregistré :', error.code, error.message)
   } catch (e) {
     console.warn('[Armana] Passage non enregistré :', e.message)
+  }
+}
+
+/**
+ * Complète la ligne de visite du jour avec le département OBSERVÉ — appelé par
+ * la carte quand la géolocalisation aboutit. Seul le code du département part
+ * en base, jamais la position (choix de Matthieu). Premier arrivé gagne : la
+ * base ignore l'appel si la ligne du jour est déjà renseignée.
+ */
+export async function tagVisitDept(dept) {
+  if (!dept) return
+  try {
+    const { error } = await supabase.rpc('tag_visit_dept', {
+      p_dept: dept,
+      p_visitor: getUser() ? null : idVisiteur(),
+    })
+    if (error) console.warn('[Armana] Département non enregistré :', error.code, error.message)
+  } catch (e) {
+    console.warn('[Armana] Département non enregistré :', e.message)
   }
 }
 

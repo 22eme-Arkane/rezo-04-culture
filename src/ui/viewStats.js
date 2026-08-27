@@ -6,7 +6,8 @@ import { el } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
-import { getAdminStats } from '../lib/admins.js'
+import { amIOwner, getAdminStats } from '../lib/admins.js'
+import { nomDepartement } from '../lib/departements.js'
 import { purgePastMonths } from '../lib/events.js'
 import { navigate } from '../lib/router.js'
 
@@ -19,7 +20,7 @@ export async function viewStats() {
   wrap.appendChild(studioHeader('Statistiques', { backTo: '/parametres' }))
 
   if (!isLoggedIn() || !isAdmin()) {
-    wrap.appendChild(el('p', 'empty-state', 'Réservé aux administrateurs.'))
+    wrap.appendChild(el('p', 'empty-state', 'Réservé aux modérateurs.'))
     return wrap
   }
 
@@ -145,6 +146,35 @@ export async function viewStats() {
       label: JOUR.format(new Date(label + 'T12:00:00')),
       n,
     }))
+  // D'où viennent les gens : passages des 30 derniers jours par département
+  // (position GPS quand elle est donnée — seul le département est enregistré).
+  const parDept = (stats.par_departement ?? []).map((d) => ({
+    label: d.code === '—' ? 'non renseigné' : `${d.code} ${nomDepartement(d.code)}`,
+    n: d.n,
+  }))
+  if (parDept.length) {
+    body.appendChild(section('Passages par département (30 jours)'))
+    body.appendChild(barChart(parDept))
+    body.appendChild(
+      el(
+        'p',
+        'form__hint',
+        '« Non renseigné » : localisation refusée ou carte jamais ouverte ce jour-là. ' +
+          'Seul le département est enregistré, jamais la position.'
+      )
+    )
+  }
+
+  // Où se passe l'activité : les événements à venir, par département.
+  const evtDept = (stats.evenements_par_departement ?? []).map((d) => ({
+    label: d.code === '—' ? 'hors territoire' : `${d.code} ${nomDepartement(d.code)}`,
+    n: d.n,
+  }))
+  if (evtDept.length) {
+    body.appendChild(section('Événements à venir par département'))
+    body.appendChild(barChart(evtDept))
+  }
+
   if (daily.length) {
     body.appendChild(section('Passages par jour, tous publics (30 jours)'))
     body.appendChild(barChart(daily))
@@ -200,46 +230,50 @@ export async function viewStats() {
   cont.appendChild(line('— dont avis', stats.retours.avis))
   body.appendChild(cont)
 
-  // --- Entretien du stockage ----------------------------------------------
-  body.appendChild(section('Entretien du stockage'))
-  const maint = el('div', 'settings-group')
-  maint.appendChild(line('Événements des mois passés', stats.evenements.a_purger))
-  body.appendChild(maint)
-  body.appendChild(
-    el(
-      'p',
-      'form__hint',
-      'Le mois en cours et les mois à venir sont conservés. Les mois révolus peuvent être supprimés — photos comprises — pour libérer de l’espace.'
-    )
-  )
-
-  const purgeBtn = el('button', 'btn btn--block', 'Nettoyer les mois passés')
-  purgeBtn.type = 'button'
-  purgeBtn.disabled = stats.evenements.a_purger === 0
-  const purgeMsg = el('p', 'form__msg')
-  purgeBtn.addEventListener('click', async () => {
-    if (
-      !confirm(
-        `Supprimer définitivement ${stats.evenements.a_purger} événement(s) des mois passés, ainsi que leurs photos ?\n\nCette action est irréversible.`
+  // --- Entretien du stockage : PROPRIÉTAIRE UNIQUEMENT ----------------------
+  // La purge est irréversible et globale : elle n'a rien à faire entre les
+  // mains d'un modérateur (et la base la refuse de toute façon depuis 0020).
+  if (await amIOwner().catch(() => false)) {
+    body.appendChild(section('Entretien du stockage'))
+    const maint = el('div', 'settings-group')
+    maint.appendChild(line('Événements des mois passés', stats.evenements.a_purger))
+    body.appendChild(maint)
+    body.appendChild(
+      el(
+        'p',
+        'form__hint',
+        'Le mois en cours et les mois à venir sont conservés. Les mois révolus peuvent être supprimés — photos comprises — pour libérer de l’espace.'
       )
     )
-      return
-    purgeBtn.disabled = true
-    purgeBtn.textContent = 'Nettoyage…'
-    try {
-      const r = await purgePastMonths()
-      purgeMsg.className = 'form__msg'
-      purgeMsg.textContent = `${r.events} événement(s) et ${r.files} fichier(s) supprimés.`
-      purgeBtn.textContent = 'Nettoyage terminé'
-    } catch (e) {
-      purgeMsg.className = 'form__msg form__msg--err'
-      purgeMsg.textContent = 'Nettoyage impossible : ' + e.message
-      purgeBtn.disabled = false
-      purgeBtn.textContent = 'Réessayer'
-    }
-  })
-  body.appendChild(purgeBtn)
-  body.appendChild(purgeMsg)
+
+    const purgeBtn = el('button', 'btn btn--block', 'Nettoyer les mois passés')
+    purgeBtn.type = 'button'
+    purgeBtn.disabled = stats.evenements.a_purger === 0
+    const purgeMsg = el('p', 'form__msg')
+    purgeBtn.addEventListener('click', async () => {
+      if (
+        !confirm(
+          `Supprimer définitivement ${stats.evenements.a_purger} événement(s) des mois passés, ainsi que leurs photos ?\n\nCette action est irréversible.`
+        )
+      )
+        return
+      purgeBtn.disabled = true
+      purgeBtn.textContent = 'Nettoyage…'
+      try {
+        const r = await purgePastMonths()
+        purgeMsg.className = 'form__msg'
+        purgeMsg.textContent = `${r.events} événement(s) et ${r.files} fichier(s) supprimés.`
+        purgeBtn.textContent = 'Nettoyage terminé'
+      } catch (e) {
+        purgeMsg.className = 'form__msg form__msg--err'
+        purgeMsg.textContent = 'Nettoyage impossible : ' + e.message
+        purgeBtn.disabled = false
+        purgeBtn.textContent = 'Réessayer'
+      }
+    })
+    body.appendChild(purgeBtn)
+    body.appendChild(purgeMsg)
+  }
 
   const stamp = new Date(stats.generated_at)
   body.appendChild(

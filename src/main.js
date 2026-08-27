@@ -29,8 +29,11 @@ import { viewJournal } from './ui/viewJournal.js'
 import { viewMember } from './ui/viewMember.js'
 import { viewNotifications } from './ui/viewNotifications.js'
 import { viewDepartements } from './ui/viewDepartements.js'
+import { viewBecomeModerator } from './ui/viewBecomeModerator.js'
+import { viewApplications } from './ui/viewApplications.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 import { recordAnonVisit, recordVisit, resetOwnerCache } from './lib/admins.js'
+import { getMesDepartements } from './lib/mesDepartements.js'
 
 // --- Service worker (offline shell) ---
 // UNIQUEMENT en production : en dev, un SW "cache-first" servirait des modules
@@ -128,6 +131,8 @@ defineRoutes(
     '/membre': viewMember,
     '/notifications': viewNotifications,
     '/mes-departements': viewDepartements,
+    '/devenir-moderateur': viewBecomeModerator,
+    '/candidatures': viewApplications,
     '/connexion': viewAuth,
   },
   {
@@ -162,8 +167,13 @@ defineRoutes(
   // Les non-connectés sont la majorité des passages : les ignorer donnait des
   // statistiques de fréquentation trompeuses.
   const noterPassage = () => {
-    if (getUser()) recordVisit()
-    else recordAnonVisit()
+    // Quand l'appareil n'affiche qu'UN département, il dit d'où l'on vient
+    // aussi sûrement que le GPS — sans géolocalisation. Sinon, la carte
+    // complétera la ligne du jour si le GPS est accordé (tagVisitDept).
+    const mes = getMesDepartements()
+    const dept = mes.length === 1 ? mes[0] : null
+    if (getUser()) recordVisit(dept)
+    else recordAnonVisit(dept)
   }
   // ⚠ CET APPEL DOIT RESTER, même si l'écouteur ci-dessous en fait autant :
   // initAuth() a déjà émis son événement AVANT qu'on ne s'abonne (auth.js:48),

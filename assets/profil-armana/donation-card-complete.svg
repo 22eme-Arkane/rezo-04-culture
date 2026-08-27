@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 170" role="img" aria-label="Faire un don">
+  <defs>
+    <linearGradient id="yellow" x1="0" x2="1"><stop stop-color="#ffc400"/><stop offset="1" stop-color="#ffd83d"/></linearGradient>
+    <clipPath id="card"><rect width="760" height="170" rx="18"/></clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect width="760" height="170" fill="url(#yellow)"/>
+    <image href="armana-logo-officiel.png" x="505" y="14" width="190" height="140" preserveAspectRatio="xMidYMid meet" opacity=".14"/>
+    <path d="M575 170 760 72v98z" fill="#0b55c5"/>
+  </g>
+  <path fill="#064f36" d="M113 128 58 76c-31-30 14-76 47-43l8 8 8-8c33-33 78 13 47 43z"/>
+  <text x="205" y="104" fill="#064f36" font-family="Arial, sans-serif" font-size="49" font-weight="800">Faire un don</text>
+  <circle cx="710" cy="124" r="31" fill="#fffaf0"/>
+  <path d="m699 124 22 0m-9-10 10 10-10 10" fill="none" stroke="#0b55c5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

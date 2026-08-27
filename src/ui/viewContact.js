@@ -14,7 +14,7 @@ export function viewContact() {
     el(
       'p',
       'page__subtitle',
-      'Un bug ? Une idée pour améliorer l’application ? Votre message est transmis aux administrateurs.'
+      'Un bug ? Une idée pour améliorer l’application ? Votre message est transmis à l’équipe d’Armana.'
     )
   )
 
@@ -89,7 +89,7 @@ export function viewContact() {
         localStorage.removeItem(TEXT_KEY)
       } catch {}
       msg.className = 'form__msg form__msg--ok'
-      msg.textContent = 'Merci ! Votre message a bien été transmis aux administrateurs. 🙏'
+      msg.textContent = 'Merci ! Votre message a bien été transmis à l’équipe d’Armana. 🙏'
     } catch (err) {
       msg.className = 'form__msg form__msg--err'
       msg.textContent = 'Envoi impossible : ' + err.message
