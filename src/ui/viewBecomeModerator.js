@@ -20,11 +20,6 @@ export async function viewBecomeModerator() {
   const wrap = el('section', 'page page--studio-sub page--studio-blue')
   wrap.appendChild(studioHeader('Devenir modérateur', { backTo: '/parametres' }))
 
-  if (!isLoggedIn()) {
-    wrap.appendChild(loginPrompt('Connectez-vous pour proposer votre aide.'))
-    return wrap
-  }
-
   if (isAdmin()) {
     wrap.appendChild(
       el(
@@ -75,6 +70,16 @@ export async function viewBecomeModerator() {
     )
   )
   wrap.appendChild(carte)
+
+  // ⚠ L'invitation à s'inscrire vient APRÈS l'explication, pas avant. Quelqu'un
+  // qui arrive sans compte doit d'abord comprendre à quoi il s'engagerait :
+  // afficher « Connectez-vous » en tête ne donnait aucune raison de le faire.
+  if (!isLoggedIn()) {
+    wrap.appendChild(
+      loginPrompt('Créez votre compte pour proposer votre aide — c’est gratuit et sans engagement.')
+    )
+    return wrap
+  }
 
   // --- État d'une éventuelle candidature -------------------------------------
   let demande = null

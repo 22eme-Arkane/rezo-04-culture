@@ -78,8 +78,11 @@ export async function viewSettings() {
     wrap.appendChild(adm)
   }
 
-  // Proposer son aide : pour les membres qui ne modèrent pas encore.
-  if (logged && !isAdmin()) {
+  // Proposer son aide. Visible même DÉCONNECTÉ, comme « Publier un
+  // événement » : c'est un appel à rejoindre le projet, le cacher à ceux qui
+  // n'ont pas encore de compte revenait à ne le proposer qu'à ceux qui sont
+  // déjà là. L'écran invite alors à s'inscrire.
+  if (!isAdmin()) {
     terr.appendChild(rowNav(icon('shield'), 'Devenir modérateur', '/devenir-moderateur'))
   }
 
