@@ -53,7 +53,7 @@ const MARQUEUR_ARMANA = L.divIcon({
     <svg viewBox="0 0 44 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M22 55C22 55 41 33.6 41 21A19 19 0 1 0 3 21C3 33.6 22 55 22 55Z"
             fill="#f4ca15" stroke="#064f36" stroke-width="3.5" stroke-linejoin="round"/>
-      <image href="/assets/studio-affiche/masks-logo.png" x="9" y="8" width="26" height="26"/>
+      <image href="/icons/armana-logo.png" x="9" y="8" width="26" height="26"/>
     </svg>`,
   iconSize: [44, 56],
   // La POINTE de la goutte doit toucher le lieu, pas son centre : sinon tous
@@ -595,8 +595,8 @@ function applyDepartmentMaskPattern(layer) {
     <rect width="132" height="118" fill="#0b55c5"/>
     <path d="M-18 112 112-18M54 142 150 46" stroke="#f4ca15" stroke-width="18" opacity=".09"/>
     <circle cx="112" cy="18" r="17" fill="#539957" opacity=".12"/>
-    <image href="/assets/studio-affiche/masks-logo.png" x="8" y="8" width="46" height="46" opacity=".9" transform="rotate(-9 31 31)"/>
-    <image href="/assets/studio-affiche/masks-logo.png" x="74" y="61" width="39" height="39" opacity=".72" transform="rotate(11 93 80)"/>
+    <image href="/icons/armana-logo.png" x="8" y="8" width="46" height="46" opacity=".9" transform="rotate(-9 31 31)"/>
+    <image href="/icons/armana-logo.png" x="74" y="61" width="39" height="39" opacity=".72" transform="rotate(11 93 80)"/>
   `
   defs.appendChild(pattern)
   path.setAttribute('fill', 'url(#department-04-outside-pattern)')

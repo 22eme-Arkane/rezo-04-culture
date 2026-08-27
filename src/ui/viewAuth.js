@@ -18,13 +18,12 @@ export function viewAuth() {
     return wrap
   }
 
-  // Le LOGO OFFICIEL (masques détourés), et non l'icône d'application au carré
-  // bleu — celle-ci se noyait sur le fond bleu de l'écran.
-  // ⚠ Ce fichier ne fait que 77 × 60 px : au-delà d'environ 110 px il
-  // pixellise. La taille ci-dessous est calée là-dessus, pas sur une envie de
-  // sobriété. Un export plus grand permettrait de l'agrandir.
+  // ⚠ La version 288 px, pas celle des en-têtes : c'est le seul endroit où le
+  // logo s'affiche en grand, et 192 px y paraissaient mous sur un écran fin.
+  // Ce fichier plus lourd (86 Ko) ne se télécharge QUE sur cet écran, vu une
+  // fois par personne — les autres écrans gardent la version de 42 Ko.
   const logo = el('img', 'auth-logo')
-  logo.src = '/assets/studio-affiche/masks-logo.png'
+  logo.src = '/icons/armana-logo-grand.png'
   logo.alt = 'Armana'
   wrap.appendChild(logo)
 

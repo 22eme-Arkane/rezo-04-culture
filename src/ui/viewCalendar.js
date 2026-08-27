@@ -43,7 +43,7 @@ export async function viewCalendar() {
   const head = el('header', 'screen-head screen-head--studio')
   const title = el('h1', 'screen-title screen-title--studio', 'Agenda')
   const logo = el('img')
-  logo.src = '/assets/studio-affiche/masks-logo.png'
+  logo.src = '/icons/armana-logo.png'
   logo.alt = 'Armana'
   logo.addEventListener('error', () => logo.remove())
   head.appendChild(title)

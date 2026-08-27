@@ -41,7 +41,7 @@ export function studioHeader(
   for (const extra of actions) droite.appendChild(extra)
   if (!sansLogo) {
     const logo = el('img', 'studio-head__logo')
-    logo.src = '/assets/studio-affiche/masks-logo.png'
+    logo.src = '/icons/armana-logo.png'
     logo.alt = ''
     logo.setAttribute('aria-hidden', 'true')
     droite.appendChild(logo)

@@ -1138,11 +1138,11 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .support-text--centre { text-align: center; }
 
 /* --- Connexion : le logo accueille, le formulaire suit ------------------- */
-/* 110 px maximum : le logo officiel ne fait que 77 px de large, au-delà il
-   pixellise (c'est le défaut que Matthieu a signalé). */
+/* Source de 288 px pour 150 px affichés : net même sur un écran à double
+   densité. */
 .auth-logo {
   display: block;
-  width: min(110px, 32vw);
+  width: min(150px, 42vw);
   height: auto;
   margin: 0.4rem auto 1rem;
   filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
@@ -1935,7 +1935,7 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
   height: clamp(240px, 74vw, 360px);
   border-radius: 0;
   background:
-    url('/assets/studio-affiche/masks-logo.png') center / 82px no-repeat,
+    url('/icons/armana-logo.png') center / 82px no-repeat,
     var(--studio-blue);
 }
 .page--studio-detail .detail__hero img { object-fit: contain; background: var(--studio-ink); }
