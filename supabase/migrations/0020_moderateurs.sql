@@ -670,10 +670,11 @@ begin
   -- Notifie le propriétaire, par le canal « messages » qu'il a déjà activé.
   select coalesce(display_name, 'Un membre') into demandeur
   from public.profiles where id = auth.uid();
+  -- Les candidatures se traitent dans l'écran « Gérer les modérateurs ».
   insert into public.notification_queue (kind, title, body, url)
   values ('messages', 'Candidature de modérateur',
           demandeur || ' — ' || array_to_string(propre, ', '),
-          '/#/candidatures');
+          '/#/admins');
 
   return demande_id;
 end;

@@ -10,7 +10,7 @@ import { studioHeader } from './studio.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn, getUser } from '../lib/auth.js'
 import { amIOwner, listAdmins, setAdminByEmail } from '../lib/admins.js'
-import { setModerator } from '../lib/moderation.js'
+import { decideModeratorRequest, listModeratorRequests, setModerator } from '../lib/moderation.js'
 import { DEPARTEMENTS } from '../lib/departements.js'
 
 export async function viewAdmins() {
@@ -31,8 +31,81 @@ export async function viewAdmins() {
     )
   )
 
+  // --- Candidatures en attente, EN TÊTE -------------------------------------
+  // Elles vivent ici plutôt que sur un écran à part (décision de Matthieu) :
+  // c'est le même sujet, et une candidature qui dort dans un onglet séparé
+  // finit par ne plus être vue.
+  const zoneDemandes = el('div')
+  wrap.appendChild(zoneDemandes)
+
   const listWrap = el('div')
   wrap.appendChild(listWrap)
+
+  async function refreshDemandes() {
+    zoneDemandes.innerHTML = ''
+    let demandes = []
+    try {
+      demandes = (await listModeratorRequests()).filter((d) => d.status === 'pending')
+    } catch {
+      return // migration pas encore appliquée : la section reste absente
+    }
+    if (!demandes.length) return
+
+    zoneDemandes.appendChild(
+      el('h3', 'support-wall__title', `Candidatures (${demandes.length})`)
+    )
+
+    for (const d of demandes) {
+      // Carte compacte : il peut y en avoir beaucoup, elles ne doivent pas
+      // remplir l'écran à elles seules.
+      const carte = el('div', 'candidature')
+      const tete = el('div', 'candidature__tete')
+      tete.appendChild(el('span', 'candidature__depts', d.depts.join(' · ')))
+      const ident = el('div', 'candidature__ident')
+      ident.appendChild(el('strong', null, d.display_name))
+      ident.appendChild(el('span', 'candidature__mail', d.email))
+      tete.appendChild(ident)
+      carte.appendChild(tete)
+
+      if (d.role_actuel === 'admin') {
+        carte.appendChild(
+          el(
+            'p',
+            'candidature__note',
+            `Déjà modérateur (${(d.depts_actuels ?? []).join(', ') || 'tout'}) — demande une extension.`
+          )
+        )
+      }
+      if (d.message) carte.appendChild(el('p', 'candidature__note', '« ' + d.message + ' »'))
+
+      const rang = el('div', 'candidature__actions')
+      const ok = el('button', 'btn btn--success btn--sm', 'Accepter')
+      ok.type = 'button'
+      const non = el('button', 'btn btn--ghost btn--sm', 'Refuser')
+      non.type = 'button'
+      const decider = async (accept) => {
+        const q = accept
+          ? `Nommer ${d.display_name} modérateur de : ${d.depts.join(', ')} ?`
+          : `Refuser la candidature de ${d.display_name} ?`
+        if (!confirm(q)) return
+        ok.disabled = non.disabled = true
+        try {
+          await decideModeratorRequest(d.id, accept)
+          await refreshDemandes()
+          await refresh() // la personne acceptée apparaît aussitôt dans la liste
+        } catch (e) {
+          alert('Action impossible : ' + e.message)
+          ok.disabled = non.disabled = false
+        }
+      }
+      ok.addEventListener('click', () => decider(true))
+      non.addEventListener('click', () => decider(false))
+      rang.appendChild(ok)
+      rang.appendChild(non)
+      carte.appendChild(rang)
+      zoneDemandes.appendChild(carte)
+    }
+  }
 
   async function refresh() {
     listWrap.innerHTML = ''
@@ -45,25 +118,29 @@ export async function viewAdmins() {
     }
 
     const myId = getUser()?.id
-    const groupe = el('div', 'settings-group')
+    listWrap.appendChild(
+      el('h3', 'support-wall__title', `${admins.length} modérateur${admins.length > 1 ? 's' : ''}`)
+    )
+    const groupe = el('div', 'liste-compacte')
     for (const a of admins) {
-      const ligne = el('div', 'settings-row settings-row--static moderateur')
-      const lab = el('div', 'settings-row__label')
-      lab.appendChild(icon(a.is_owner ? 'shield' : 'user'))
-      const bloc = el('div', 'notif-type')
-      bloc.appendChild(el('strong', null, a.display_name || a.email))
-      bloc.appendChild(
+      const ligne = el('div', 'liste-compacte__ligne liste-compacte__ligne--statique moderateur')
+      const pastille = el('span', 'liste-compacte__pastille')
+      pastille.appendChild(icon(a.is_owner ? 'shield' : 'user'))
+      ligne.appendChild(pastille)
+
+      const corps = el('div', 'liste-compacte__corps')
+      corps.appendChild(el('span', 'liste-compacte__nom', a.display_name || a.email))
+      corps.appendChild(
         el(
           'span',
-          'notif-type__detail',
+          'liste-compacte__detail',
           a.is_owner ? 'Propriétaire — tous les droits' : a.email
         )
       )
-      lab.appendChild(bloc)
-      ligne.appendChild(lab)
+      ligne.appendChild(corps)
 
       if (a.is_owner) {
-        ligne.appendChild(el('span', 'fb-tag fb-tag--avis', 'Propriétaire'))
+        ligne.appendChild(el('span', 'liste-compacte__fin', 'Tout le territoire'))
         groupe.appendChild(ligne)
         continue
       }
@@ -120,7 +197,7 @@ export async function viewAdmins() {
       peindre()
       ligne.appendChild(zone)
 
-      if (a.id === myId) ligne.appendChild(el('span', 'settings-row__value', 'vous'))
+      if (a.id === myId) ligne.appendChild(el('span', 'liste-compacte__fin', 'vous'))
       groupe.appendChild(ligne)
     }
     listWrap.appendChild(groupe)
@@ -191,6 +268,6 @@ export async function viewAdmins() {
     )
   )
 
-  await refresh()
+  await Promise.all([refreshDemandes(), refresh()])
   return wrap
 }

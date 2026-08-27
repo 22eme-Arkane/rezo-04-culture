@@ -13,27 +13,18 @@ import { APP_URL, shareApp } from '../lib/share.js'
 import { studioHeader } from './studio.js'
 
 export async function viewSettings() {
-  const wrap = el('section', 'page page--studio-profile')
-  wrap.appendChild(studioHeader('Profil'))
-
-  const logged = isLoggedIn()
-
-  // --- Bandeau du haut : qui est connecté, et le partage bien en vue ---
-  // Armana ne sert à rien sans utilisateurs : le bouton de partage est placé
-  // tout en haut, à hauteur du regard, plutôt qu'en bas de l'écran.
+  // Armana ne sert à rien sans utilisateurs : le bouton de partage est logé
+  // dans la barre de titre, à hauteur du regard, comme sur la maquette.
   const share = el('button', 'settings-share')
   share.type = 'button'
   share.title = 'Partager Armana'
   share.setAttribute('aria-label', 'Partager Armana')
   share.appendChild(icon('share'))
 
-  const topbar = el('div', 'settings-topbar')
-  if (logged) {
-    const who = getProfile()?.display_name || getUser()?.email || 'Mon compte'
-    topbar.appendChild(el('p', 'settings-connected', 'Connecté : ' + who))
-  }
-  topbar.appendChild(share) // toujours calé à droite (margin-left: auto)
-  wrap.appendChild(topbar)
+  const wrap = el('section', 'page page--studio-profile')
+  wrap.appendChild(studioHeader('Profil', { actions: [share] }))
+
+  const logged = isLoggedIn()
 
   // Sans feuille de partage native (ordinateur, navigateur ancien), le lien est
   // copié : sans ce retour, le bouton semblerait ne rien faire.
@@ -49,21 +40,19 @@ export async function viewSettings() {
     if (shareMsg.textContent) setTimeout(() => (shareMsg.textContent = ''), 4000)
   })
 
-  // --- Groupe 1 : mes publications ---
-  // Vide pour un visiteur non connecté : on n'ajoute alors pas le groupe, sans
-  // quoi un cadre bordé apparaîtrait sans rien dedans.
-  const pub = el('div', 'settings-group')
+  // --- Groupe 1 : créer et gérer ---
+  // « Mes départements » est un filtre de lecture : il reste utile sans compte,
+  // d'où un groupe visible même déconnecté (mais sans les lignes de publication,
+  // qui n'auraient nulle part où mener).
+  wrap.appendChild(ruban('Créer & gérer', 'jaune'))
+  const pub = el('div', 'settings-group settings-group--jaune')
   if (logged) {
     pub.appendChild(rowNav(icon('plus'), 'Publier un événement', '/publier'))
     pub.appendChild(rowNav(icon('ticket'), 'Mes événements', '/mes-evenements'))
-    wrap.appendChild(pub)
   }
-
-  // Territoire affiché : utile même sans compte, puisque c'est un filtre de
-  // lecture de l'agenda et de la carte.
-  const terr = el('div', 'settings-group')
-  terr.appendChild(rowNav(icon('map'), 'Mes départements', '/mes-departements'))
-  wrap.appendChild(terr)
+  pub.appendChild(rowNav(icon('map'), 'Mes départements', '/mes-departements'))
+  const terr = pub
+  wrap.appendChild(pub)
 
   // --- Groupe 2 : modération et administration ---
   // Nouveau partage des rôles : le PROPRIÉTAIRE garde tout ; un MODÉRATEUR ne
@@ -72,7 +61,8 @@ export async function viewSettings() {
   // afficher des portes qui seraient fermées.
   if (logged && isAdmin()) {
     const owner = await amIOwner()
-    const adm = el('div', 'settings-group')
+    wrap.appendChild(ruban('Communauté & administration', 'bleu'))
+    const adm = el('div', 'settings-group settings-group--bleu')
     // Tous les compteurs en parallèle : inutile d'attendre l'un puis l'autre.
     const [pending, messages, demandes] = await Promise.all([
       myPendingCount().catch(() => 0),
@@ -84,10 +74,15 @@ export async function viewSettings() {
         : Promise.resolve(0),
     ])
 
-    if (owner) adm.appendChild(rowNav(icon('shield'), 'Gérer les modérateurs', '/admins'))
+    // Les candidatures vivent DANS « Gérer les modérateurs » (décision de
+    // Matthieu) : c'est le même sujet, ça n'a pas à occuper deux lignes.
     if (owner) {
       adm.appendChild(
-        rowNav(icon('user'), 'Candidatures' + (demandes ? ` (${demandes})` : ''), '/candidatures')
+        rowNav(
+          icon('shield'),
+          'Gérer les modérateurs' + (demandes ? ` (${demandes})` : ''),
+          '/admins'
+        )
       )
       adm.appendChild(
         rowNav(icon('message'), 'Messages reçus' + (messages ? ` (${messages})` : ''), '/messages')
@@ -104,27 +99,32 @@ export async function viewSettings() {
     terr.appendChild(rowNav(icon('shield'), 'Devenir modérateur', '/devenir-moderateur'))
   }
 
-  // --- Trois groupes distincts en bas, volontairement séparés ---
-  // (La recherche de mise à jour est automatique à chaque lancement + bannière ;
-  //  un simple rafraîchissement de la page suffit à récupérer la dernière version.)
-
-  // 3. Installer : action ponctuelle, isolée pour ne pas se noyer dans la liste.
-  const install = el('div', 'settings-group')
-  install.appendChild(rowNav(icon('plus'), 'Installer l’application', '/installer'))
-  install.appendChild(rowNav(icon('message'), 'Notifications', '/notifications'))
+  // 3. Pratique : installer et régler, deux actions ponctuelles.
+  wrap.appendChild(ruban('Pratique', 'vert'))
+  const install = el('div', 'settings-group settings-group--vert')
+  install.appendChild(rowNav(icon('download'), 'Installer l’application', '/installer'))
+  install.appendChild(rowNav(icon('bell'), 'Notifications', '/notifications'))
   wrap.appendChild(install)
 
-  // 4. Soutenir et écrire : les deux façons d'aider le projet.
-  const help = el('div', 'settings-group')
-  const don = rowNav(icon('heart'), 'Faire un don', '/soutenir')
-  don.classList.add('settings-row--don')
-  help.appendChild(don)
+  // 4. Le don, en bannière pleine largeur : c'est ce qui fait vivre le projet,
+  //    il ne doit pas se perdre au milieu d'une liste de réglages.
+  const don = el('button', 'don-banner')
+  don.type = 'button'
+  don.appendChild(icon('heart'))
+  don.appendChild(el('span', 'don-banner__texte', 'Faire un don'))
+  don.appendChild(el('span', 'don-banner__fleche', '→'))
+  don.addEventListener('click', () => navigate('/soutenir'))
+  wrap.appendChild(don)
+
+  // 5. Assistance.
+  wrap.appendChild(ruban('Assistance', 'vert'))
+  const help = el('div', 'settings-group settings-group--vert')
   help.appendChild(rowNav(icon('message'), 'Nous contacter', '/contact'))
   wrap.appendChild(help)
 
-  // 5. Le compte, seul : une déconnexion ne se clique pas par erreur en visant
+  // 6. Le compte, seul : une déconnexion ne se clique pas par erreur en visant
   //    la ligne du dessus.
-  const compte = el('div', 'settings-group')
+  const compte = el('div', 'settings-group settings-group--nu')
   if (logged) {
     const out = rowButton(icon('logOut'), 'Se déconnecter')
     out.classList.add('settings-row--danger')
@@ -144,18 +144,34 @@ export async function viewSettings() {
   }
   wrap.appendChild(compte)
 
-  // Numéro de version : indispensable pour savoir, en cas de souci signalé, si
-  // la personne a bien reçu la dernière mise à jour.
+  // Pied de page : qui est connecté, et le numéro de version — indispensable
+  // pour savoir, en cas de souci signalé, si la personne a bien reçu la
+  // dernière mise à jour.
+  const pied = el('div', 'settings-pied')
+  if (logged) {
+    const who = getProfile()?.display_name || getUser()?.email || 'Mon compte'
+    pied.appendChild(el('p', 'settings-connected', 'Connecté : ' + who))
+  }
   const build = currentBuild()
-  wrap.appendChild(
+  pied.appendChild(
     el(
       'p',
       'form__hint settings-version',
       'Version ' + (build === 'dev' ? 'de développement' : new Date(Number(build)).toLocaleString('fr-FR'))
     )
   )
+  wrap.appendChild(pied)
 
   return wrap
+}
+
+/**
+ * Bandeau de section en forme de ruban (maquette). Purement décoratif pour
+ * l'œil, mais c'est un vrai titre pour un lecteur d'écran : la liste qui suit
+ * n'aurait sinon aucun intitulé.
+ */
+function ruban(titre, ton) {
+  return el('h2', `studio-ruban studio-ruban--${ton}`, titre)
 }
 
 // Ligne d'action avec chevron.

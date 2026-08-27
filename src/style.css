@@ -378,14 +378,15 @@ html, body {
   background: var(--mask-yellow, #f4ca15);
 }
 
-/* Zone d'un modérateur (écran Modérateurs) : pastilles de départements. */
-.moderateur { flex-wrap: wrap; }
-.moderateur__zone { display: flex; gap: 0.3rem; flex: 0 0 auto; }
-.moderateur__zone .recur__day { width: 34px; height: 34px; font-size: 0.72rem; }
-
-/* Carte d'une candidature (écran Candidatures). */
-.candidature { margin-bottom: 0.8rem; }
-.candidature__qui { margin: 0 0 0.4rem; font-size: 0.92rem; }
+/* Zone d'un modérateur : une pastille par département, allumée ou éteinte. */
+.moderateur__zone { display: flex; gap: 0.28rem; flex: 0 0 auto; }
+.moderateur__zone .recur__day {
+  width: 30px;
+  height: 30px;
+  font-size: 0.68rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+}
 
 /* Écran Notifications : intitulé + explication sous chaque interrupteur. */
 .notif-type { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
@@ -535,33 +536,731 @@ a.settings-row .settings-row__label { word-break: break-all; }
   --mask-yellow: #f4ca15;
 }
 
+/* Police d'affichage : grotesque CONDENSÉE, comme les maquettes. Elle ne sert
+   qu'aux titres et aux chiffres mis en avant ; le texte courant reste en
+   Poppins, plus lisible en petit corps. Le repli couvre le hors-ligne. */
+:root {
+  --font-display: 'Oswald', 'Poppins', system-ui, sans-serif;
+}
+
+/* --- En-tête d'écran, version maquette ---------------------------------- */
+/* Bouton retour : pastille ronde claire sur la barre bleue. Le libellé
+   textuel est passé en aria-label — la maquette ne garde que la flèche. */
+.studio-head__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--studio-ink);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.studio-head__back svg { width: 18px; height: 18px; }
+.studio-head__logo { width: 44px; height: 44px; flex: 0 0 auto; }
+
+/* --- Écran à fond bleu (notifications, candidatures, connexion…) --------- */
+.page--studio-blue {
+  background: var(--studio-blue);
+  color: #fff;
+  margin: 0 -1rem;
+  padding: 0 1rem 1.5rem;
+  min-height: 100%;
+}
+.page--studio-blue .studio-head { margin-left: 0; margin-right: 0; }
+.page--studio-blue .page__subtitle,
+.page--studio-blue .form__hint,
+.page--studio-blue .form__label { color: rgba(255, 255, 255, 0.88); }
+.page--studio-blue .empty-state { color: #fff; }
+/* Les cartes crème posées sur le bleu : c'est le motif visuel des maquettes. */
+.page--studio-blue .settings-group,
+.page--studio-blue .support-card,
+.page--studio-blue .card-panel {
+  background: var(--studio-cream);
+  color: var(--studio-ink);
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.page--studio-blue .settings-row,
+.page--studio-blue .support-text { color: var(--studio-ink); }
+.page--studio-blue .settings-row__label { color: var(--studio-ink); }
+.page--studio-blue .support-wall__title { color: #fff; }
+
+/* --- Titres de section, en capitales condensées ------------------------- */
+.studio-title {
+  margin: 0.2rem 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.12;
+  color: var(--studio-ink);
+}
+.page--studio-blue .studio-title { color: #fff; }
+
+/* Bouton de partage dans la barre de titre (Profil, Carte). */
+.studio-head .settings-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--studio-cream);
+  color: var(--studio-blue);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.studio-head .settings-share svg { width: 19px; height: 19px; }
+
+/* Pied du Profil : compte connecté + version, discrets et centrés. */
+.settings-pied { margin-top: 0.9rem; text-align: center; }
+.settings-pied .settings-connected,
+.settings-pied .settings-version {
+  margin: 0;
+  padding: 0;
+  font-size: 0.76rem;
+  color: color-mix(in srgb, var(--studio-ink) 62%, #fff);
+}
+
+/* --- Rubans de section du Profil ---------------------------------------- */
+/* Petit fanion en capitales, encoché à droite comme sur la maquette. */
+.studio-ruban {
+  margin: 1.1rem 0 0;
+  padding: 0.32rem 1.6rem 0.32rem 0.8rem;
+  width: fit-content;
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 0.7rem) 50%, 100% 100%, 0 100%);
+}
+.studio-ruban--jaune { background: var(--mask-yellow); color: var(--studio-ink); }
+.studio-ruban--bleu { background: var(--studio-blue); color: #fff; }
+.studio-ruban--vert { background: var(--studio-green); color: #fff; }
+.page--studio-profile .settings-group + .studio-ruban { margin-top: 1.3rem; }
+
+/* Pastille ronde autour de l'icône de chaque ligne, reliée par un filet
+   vertical : c'est ce qui donne l'allure de « chemin » de la maquette. */
+.page--studio-profile .settings-group--jaune,
+.page--studio-profile .settings-group--bleu,
+.page--studio-profile .settings-group--vert {
+  position: relative;
+  margin-top: 0;
+  border: none;
+  border-radius: 0 0 14px 14px;
+  background: transparent;
+}
+.page--studio-profile .settings-group--jaune::before,
+.page--studio-profile .settings-group--bleu::before,
+.page--studio-profile .settings-group--vert::before {
+  content: '';
+  position: absolute;
+  left: 1.42rem;
+  top: -0.4rem;
+  bottom: 1.4rem;
+  width: 2px;
+  background: var(--studio-green);
+  opacity: 0.55;
+}
+.page--studio-profile .settings-group--jaune .settings-row__label > svg,
+.page--studio-profile .settings-group--bleu .settings-row__label > svg,
+.page--studio-profile .settings-group--vert .settings-row__label > svg {
+  box-sizing: content-box;
+  width: 20px;
+  height: 20px;
+  padding: 8px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+}
+.page--studio-profile .settings-group--jaune .settings-row__label > svg {
+  background: var(--mask-yellow);
+  color: var(--studio-ink);
+}
+.page--studio-profile .settings-group--bleu .settings-row__label > svg {
+  background: var(--studio-blue);
+  color: #fff;
+}
+.page--studio-profile .settings-group--vert .settings-row__label > svg {
+  background: var(--studio-green);
+  color: #fff;
+}
+/* Le fond vert plein des lignes ne s'applique plus qu'au groupe « nu »
+   (connexion / déconnexion) : ailleurs, ce sont les pastilles qui portent la
+   couleur, et un fond plein rendrait l'écran illisible. */
+.page--studio-profile .settings-group--jaune .settings-row,
+.page--studio-profile .settings-group--bleu .settings-row,
+.page--studio-profile .settings-group--vert .settings-row {
+  background: transparent;
+  color: var(--studio-ink);
+  border-bottom: 1px solid rgba(6, 43, 29, 0.1);
+  padding-left: 0.35rem;
+}
+.page--studio-profile .settings-group--jaune .settings-row:last-child,
+.page--studio-profile .settings-group--bleu .settings-row:last-child,
+.page--studio-profile .settings-group--vert .settings-row:last-child {
+  border-bottom: none;
+}
+.page--studio-profile .settings-group--jaune .settings-row__label,
+.page--studio-profile .settings-group--bleu .settings-row__label,
+.page--studio-profile .settings-group--vert .settings-row__label {
+  gap: 0.75rem;
+  color: var(--studio-ink);
+}
+.page--studio-profile .settings-group--jaune .settings-row > svg:last-child,
+.page--studio-profile .settings-group--bleu .settings-row > svg:last-child,
+.page--studio-profile .settings-group--vert .settings-row > svg:last-child {
+  color: var(--studio-blue);
+}
+
+/* Groupe « nu » : la connexion et la déconnexion, seules, sans filet ni ruban. */
+.page--studio-profile .settings-group--nu { border: none; background: transparent; }
+.page--studio-profile .settings-group--nu .settings-row {
+  border-radius: 12px;
+  border-bottom: none;
+  justify-content: center;
+  background: var(--studio-green);
+  color: #fff;
+}
+.page--studio-profile .settings-group--nu .settings-row > svg:last-child { display: none; }
+.page--studio-profile .settings-group--nu .settings-row__label,
+.page--studio-profile .settings-group--nu .settings-row__label svg { color: #fff; }
+.page--studio-profile .settings-group--nu .settings-row--danger { background: var(--studio-red); }
+
+/* Bannière de don : pleine largeur, jaune, coin bleu en biais. */
+.don-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  margin: 1.2rem 0 0.2rem;
+  padding: 1.05rem 1.1rem;
+  border: none;
+  border-radius: 14px;
+  background: var(--mask-yellow);
+  color: var(--studio-ink);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.don-banner > svg { width: 30px; height: 30px; fill: currentColor; flex: 0 0 auto; }
+.don-banner__texte { flex: 1 1 auto; }
+.don-banner__fleche {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--studio-blue);
+  font-size: 1.1rem;
+  flex: 0 0 auto;
+  z-index: 1;
+}
+.don-banner::after {
+  content: '';
+  position: absolute;
+  right: -18px;
+  bottom: -34px;
+  width: 96px;
+  height: 78px;
+  background: var(--studio-blue);
+  transform: rotate(-34deg);
+}
+
+/* --- Statistiques : les trois chiffres en tête --------------------------- */
+.stats-hero { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 1rem; }
+.stats-hero__ligne { display: flex; align-items: baseline; gap: 0.55rem; }
+.stats-hero__valeur {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 12vw, 3.2rem);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--mask-yellow);
+  -webkit-text-stroke: 1px rgba(6, 43, 29, 0.22);
+}
+.stats-hero__mot {
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 4.2vw, 1.2rem);
+  font-weight: 500;
+  color: var(--studio-green);
+}
+
+/* --- Fiche membre : carte de visite compacte ----------------------------- */
+.page--studio-sub .member-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 1rem 0.9rem;
+  border-radius: 16px;
+  background: var(--studio-cream);
+  text-align: center;
+}
+.member-head__pastille {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--studio-green);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.page--studio-sub .member-head__name {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--studio-ink);
+}
+.member-head__mail {
+  margin: 0;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--studio-ink) 62%, #fff);
+  overflow-wrap: anywhere;
+}
+.page--studio-sub .member-head__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+/* --- Messages reçus : la même liste, en plus dense ----------------------- */
+/* « on fait ça plus petit, mais j'aime bien la présentation comme cela » :
+   on garde l'étiquette AVIS/BUG en tête de ligne, on resserre le reste. */
+.page--studio-sub .fb-item {
+  padding: 0.55rem 0.2rem;
+  border-bottom: 1px solid rgba(6, 43, 29, 0.1);
+}
+.page--studio-sub .fb-item:last-child { border-bottom: none; }
+.page--studio-sub .fb-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.74rem;
+  color: color-mix(in srgb, var(--studio-ink) 62%, #fff);
+}
+.page--studio-sub .fb-meta .fb-tag {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.page--studio-sub .fb-item .fb-text {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--studio-ink);
+}
+
+/* --- Publier : parcours en étapes ---------------------------------------- */
+.etape { display: flex; flex-direction: column; gap: 0.85rem; }
+.etape[hidden] { display: none; }
+.etape__titre {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--studio-green);
+}
+.etapes-points { display: flex; justify-content: center; gap: 0.42rem; margin: 0.4rem 0 0.2rem; }
+.etapes-points__pt {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(6, 43, 29, 0.22);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.etapes-points__pt.is-active { background: var(--mask-yellow); transform: scale(1.25); }
+.etapes-barre { display: flex; gap: 0.6rem; }
+.etapes-barre .btn { flex: 1 1 0; }
+.etapes-barre .btn[hidden] { display: none; }
+
+/* L'aperçu est cliquable tant qu'aucune photo n'est posée. */
+.poster-card__media--choisir { cursor: pointer; }
+.poster-card__media--choisir:focus-visible {
+  outline: 3px solid var(--studio-blue);
+  outline-offset: 2px;
+}
+
+/* --- Carte : filtres en pastilles, tout en haut ------------------------- */
+/* Les gros panneaux d'avant prenaient la moitié de la hauteur utile. Ces
+   pastilles tiennent sur une ligne et rendent l'espace à la carte. */
+.map-pills {
+  position: relative;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0 0 0.55rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.map-pills::-webkit-scrollbar { display: none; }
+.map-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+  max-width: 62vw;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid rgba(6, 43, 29, 0.16);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--studio-green);
+  font-size: 0.79rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(6, 43, 29, 0.1);
+}
+.map-pill svg { width: 15px; height: 15px; flex: 0 0 auto; }
+.map-pill__texte { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-pill.is-active { background: var(--mask-yellow); border-color: var(--mask-yellow); }
+.map-menu {
+  position: absolute;
+  top: calc(100% - 0.2rem);
+  left: 0;
+  right: 0;
+  z-index: 500;
+  max-height: 58vh;
+  overflow-y: auto;
+  padding: 0.4rem;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(6, 43, 29, 0.24);
+}
+.map-menu .settings-row { padding: 0.3rem 0.4rem; border-bottom: 1px solid rgba(6, 43, 29, 0.08); }
+.map-menu .settings-row:last-child { border-bottom: none; }
+.map-menu__item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--studio-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+.map-menu__item.is-active { background: var(--mask-yellow); font-weight: 700; }
+.map-menu .map-date {
+  width: 100%;
+  margin-bottom: 0.3rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid rgba(6, 43, 29, 0.18);
+  border-radius: 9px;
+  font: inherit;
+}
+
+/* Recentrage et compteur, POSÉS sur la carte : ils ne lui prennent aucune
+   hauteur, contrairement aux panneaux qu'ils remplacent. */
+.map-recenter {
+  position: absolute;
+  right: 10px;
+  bottom: 78px;
+  z-index: 401;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--studio-blue);
+  box-shadow: 0 3px 10px rgba(6, 43, 29, 0.28);
+  cursor: pointer;
+}
+.map-recenter svg { width: 19px; height: 19px; }
+.map-recenter:disabled { opacity: 0.55; }
+.map-geo-msg {
+  position: absolute;
+  left: 10px;
+  right: 60px;
+  bottom: 12px;
+  z-index: 401;
+  margin: 0;
+  padding: 0 0.5rem;
+  color: var(--studio-ink);
+  text-align: center;
+}
+.map-geo-msg:not(:empty) {
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 3px 10px rgba(6, 43, 29, 0.2);
+}
+
+/* --- Illustrations SVG en tête d'écran ---------------------------------- */
+.illu { display: flex; justify-content: center; margin: 0.3rem 0 0.9rem; }
+.illu__svg { display: block; width: min(150px, 40vw); height: auto; }
+.support-text--centre { text-align: center; }
+
+/* --- Connexion : le logo accueille, le formulaire suit ------------------- */
+.auth-logo {
+  display: block;
+  width: min(150px, 42vw);
+  height: auto;
+  margin: 0.6rem auto 1rem;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
+}
+.page--studio-auth .studio-auth-card { margin-top: 0; }
+
+/* --- Candidature de modérateur (dans « Gérer les modérateurs ») ---------- */
+/* Volontairement compact : il peut y en avoir plusieurs, et elles ne doivent
+   pas repousser la liste des modérateurs hors de l'écran. */
+.candidature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(6, 43, 29, 0.14);
+  border-radius: 12px;
+  background: var(--studio-cream);
+}
+.candidature__tete { display: flex; align-items: center; gap: 0.65rem; }
+.candidature__depts {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--studio-blue);
+}
+.candidature__ident { display: flex; flex-direction: column; min-width: 0; }
+.candidature__ident strong { font-size: 0.92rem; color: var(--studio-ink); }
+.candidature__mail {
+  font-size: 0.74rem;
+  color: color-mix(in srgb, var(--studio-ink) 62%, #fff);
+  overflow-wrap: anywhere;
+}
+.candidature__note {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--studio-ink) 74%, #fff);
+}
+.candidature__actions { display: flex; gap: 0.5rem; }
+.candidature__actions .btn { flex: 1 1 0; }
+
+/* --- Lignes de liste compactes (modérateurs, membres, messages) ---------- */
+/* « on met les noms beaucoup plus petits, car on en aura beaucoup » : ces
+   écrans se parcourent, ils ne se contemplent pas. */
+.liste-compacte { display: flex; flex-direction: column; }
+.liste-compacte__ligne {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.6rem 0.2rem;
+  border: none;
+  border-bottom: 1px solid rgba(6, 43, 29, 0.1);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.liste-compacte__ligne:last-child { border-bottom: none; }
+.liste-compacte__ligne--statique { cursor: default; }
+.liste-compacte__pastille {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--studio-green);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.liste-compacte__pastille svg { width: 17px; height: 17px; }
+.liste-compacte__corps { flex: 1 1 auto; min-width: 0; }
+.liste-compacte__nom {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--studio-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.liste-compacte__detail {
+  display: block;
+  font-size: 0.74rem;
+  color: color-mix(in srgb, var(--studio-ink) 60%, #fff);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.liste-compacte__fin {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--studio-blue);
+}
+
+/* --- Numéro de département, en gros chiffres condensés ------------------- */
+.dept-num {
+  flex: 0 0 auto;
+  min-width: 2.1rem;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--mask-yellow);
+  text-align: center;
+}
+.page--studio-blue .dept-num { color: var(--mask-yellow); }
+.settings-group .dept-num { color: var(--studio-blue); }
+.page--studio-blue .settings-group .dept-num { color: var(--mask-yellow); }
+
+/* --- Vignette du territoire (SVG) --------------------------------------- */
+.carte-depts { margin: 0.2rem 0 0.6rem; }
+.carte-depts__svg { display: block; width: 100%; max-height: 190px; }
+.carte-depts__dept {
+  fill: rgba(255, 255, 255, 0.1);
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 0.006;
+  stroke-linejoin: round;
+  transition: fill 0.15s ease;
+}
+.carte-depts__dept.is-active { fill: var(--mask-yellow); }
+.carte-depts__dept.is-clickable { cursor: pointer; }
+.carte-depts__num {
+  font-family: var(--font-display);
+  font-size: 0.09px;
+  font-weight: 700;
+  fill: #fff;
+  pointer-events: none;
+}
+.carte-depts__dept.is-active + .carte-depts__num { fill: var(--studio-ink); }
+/* Sur fond clair, on inverse : traits sombres sur fond crème. */
+.page--studio-sub:not(.page--studio-blue) .carte-depts__dept {
+  fill: rgba(6, 43, 29, 0.07);
+  stroke: rgba(6, 43, 29, 0.5);
+}
+.page--studio-sub:not(.page--studio-blue) .carte-depts__num { fill: var(--studio-ink); }
+
+/* --- Interrupteur (notifications, départements) -------------------------- */
+/* Le même composant partout : Matthieu veut ces boutons à bascule aussi bien
+   pour les notifications que pour les départements et la zone d'un modérateur. */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 54px;
+  height: 30px;
+  flex: 0 0 auto;
+}
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.toggle__piste {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #cfc9b8;
+  transition: background 0.18s ease;
+}
+.toggle__piste::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(6, 43, 29, 0.3);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.toggle input:checked + .toggle__piste { background: var(--studio-green); }
+.toggle input:checked + .toggle__piste::after {
+  transform: translateX(24px);
+  background: var(--mask-yellow);
+}
+.toggle input:disabled { cursor: default; }
+.toggle input:disabled + .toggle__piste { opacity: 0.55; }
+.toggle input:focus-visible + .toggle__piste {
+  outline: 2px solid var(--studio-blue);
+  outline-offset: 2px;
+}
+.page--studio-blue .toggle input:focus-visible + .toggle__piste { outline-color: #fff; }
+
+/* La barre de titre des maquettes : retour à gauche, titre CENTRÉ, logo à
+   droite. Les deux colonnes latérales ont la même largeur minimale, sinon le
+   titre glisserait selon la présence du bouton retour. */
 .studio-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(3rem, 1fr) auto minmax(3rem, 1fr);
   align-items: center;
-  gap: 0.5rem 0.8rem;
+  gap: 0.5rem;
   margin: 0 -1rem 0.9rem;
-  padding: 1.25rem 1rem 1rem;
+  padding: 0.85rem 0.9rem;
   overflow: hidden;
-  color: var(--studio-cream);
+  color: #fff;
 }
+.studio-head__slot { display: flex; align-items: center; gap: 0.4rem; }
+.studio-head__slot--fin { justify-content: flex-end; }
 .studio-head--blue { background: var(--studio-blue); }
 .studio-head--green { background: var(--studio-green); }
 .studio-head__title {
   margin: 0;
-  color: var(--studio-cream);
-  font-family: 'Poppins', system-ui, sans-serif;
-  font-size: clamp(2.3rem, 11vw, 3.25rem);
-  font-weight: 900;
-  line-height: 0.95;
-  letter-spacing: -0.055em;
+  min-width: 0;
+  color: #fff;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 6.2vw, 1.85rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.005em;
+}
+/* Écran RACINE (Agenda, Carte, Favoris, Profil) : pas de bouton retour, titre
+   grand et calé à gauche, comme les maquettes. Les sous-écrans, eux, gardent
+   le titre centré entre la flèche et le logo. */
+.studio-head:not(.studio-head--sub) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.studio-head:not(.studio-head--sub) .studio-head__slot:first-child { display: none; }
+.studio-head:not(.studio-head--sub) .studio-head__title {
+  text-align: left;
+  font-size: clamp(1.7rem, 8vw, 2.3rem);
 }
 .studio-head__logo {
   display: block;
-  width: 66px;
-  height: 66px;
   object-fit: contain;
-  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.16));
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.18));
 }
 
 body:has(.screen--studio-map),
@@ -950,34 +1649,12 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
   margin: 0 -0.7rem 0.25rem;
   padding: max(0.8rem, env(safe-area-inset-top)) 0.8rem 0.9rem;
 }
-.studio-head--sub {
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.55rem 0.75rem;
-}
-.studio-head__back {
-  grid-column: 1 / -1;
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  min-height: 32px;
-  padding: 0.32rem 0.72rem;
-  border: 1px solid rgba(255, 244, 223, 0.55);
-  border-radius: 999px;
-  color: var(--studio-cream);
-  background: rgba(6, 79, 54, 0.78);
-  font-family: inherit;
-  font-size: 0.74rem;
-  font-weight: 800;
-  cursor: pointer;
-}
-.studio-head__back svg { width: 15px; height: 15px; }
+/* (L'ancien bouton retour en pilule et les titres géants ont laissé place à la
+   barre centrée définie plus haut — voir « En-tête d'écran, version maquette ».) */
 .page--studio-sub .studio-head__title {
   overflow-wrap: normal;
   word-break: normal;
-  font-size: clamp(1.7rem, 8.3vw, 2.8rem);
 }
-.page--studio-sub .studio-head__logo { width: 58px; height: 58px; }
 .page--studio-sub .page__subtitle {
   margin: 0.05rem 0 0.1rem;
   padding: 0 0.35rem;

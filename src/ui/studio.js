@@ -5,27 +5,47 @@ import { navigate } from '../lib/router.js'
 /** En-tête commun aux écrans du thème « Studio Affiche ». */
 export function studioHeader(
   title,
-  { tone = 'blue', backTo = null, backLabel = 'Profil', onBack = null } = {}
+  {
+    tone = 'blue',
+    backTo = null,
+    backLabel = 'Profil',
+    onBack = null,
+    actions = [],
+    // `sansLogo` : les écrans qui affichent DÉJÀ le logo en grand dans leur
+    // corps (la connexion) ne doivent pas le montrer deux fois.
+    sansLogo = false,
+  } = {}
 ) {
+  // Trois colonnes fixes (retour · titre · logo) : le titre reste ainsi
+  // OPTIQUEMENT CENTRÉ sur la barre, même quand il n'y a pas de bouton retour.
+  // Une simple mise en ligne l'aurait décalé d'un écran à l'autre.
   const head = el('header', `studio-head studio-head--${tone}`)
 
+  const gauche = el('div', 'studio-head__slot')
   if (backTo || onBack) {
     head.classList.add('studio-head--sub')
     const back = el('button', 'studio-head__back')
     back.type = 'button'
+    back.setAttribute('aria-label', 'Retour · ' + backLabel)
+    back.title = backLabel
     back.appendChild(icon('arrowLeft'))
-    back.appendChild(document.createTextNode(backLabel))
     back.addEventListener('click', () => (onBack ? onBack() : navigate(backTo)))
-    head.appendChild(back)
+    gauche.appendChild(back)
   }
+  head.appendChild(gauche)
 
   head.appendChild(el('h1', 'studio-head__title', title))
 
-  const logo = el('img', 'studio-head__logo')
-  logo.src = '/assets/studio-affiche/masks-logo.png'
-  logo.alt = ''
-  logo.setAttribute('aria-hidden', 'true')
-  head.appendChild(logo)
+  const droite = el('div', 'studio-head__slot studio-head__slot--fin')
+  for (const extra of actions) droite.appendChild(extra)
+  if (!sansLogo) {
+    const logo = el('img', 'studio-head__logo')
+    logo.src = '/assets/studio-affiche/masks-logo.png'
+    logo.alt = ''
+    logo.setAttribute('aria-hidden', 'true')
+    droite.appendChild(logo)
+  }
+  head.appendChild(droite)
 
   return head
 }

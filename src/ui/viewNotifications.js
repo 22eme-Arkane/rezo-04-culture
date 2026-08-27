@@ -5,9 +5,9 @@
 //      que pour le téléphone ou l'ordinateur sur lequel on se trouve ;
 //   2. CE QUE JE VEUX RECEVOIR — préférences du compte, valables partout.
 // Tout est désactivé au départ : rien ne part sans un choix explicite.
-import { el, emptyState, loginPrompt } from './components.js'
-import { icon } from './icons.js'
+import { el, emptyState, loginPrompt, toggleRow } from './components.js'
 import { studioHeader } from './studio.js'
+import { illustrationNotifications } from './illustrations.js'
 import { navigate, refresh } from '../lib/router.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
 import { amIOwner } from '../lib/admins.js'
@@ -56,7 +56,7 @@ const ETATS = {
 }
 
 export async function viewNotifications() {
-  const wrap = el('section', 'page page--studio-sub')
+  const wrap = el('section', 'page page--studio-sub page--studio-blue')
   wrap.appendChild(studioHeader('Notifications', { backTo: '/parametres' }))
 
   if (!isLoggedIn()) {
@@ -64,13 +64,8 @@ export async function viewNotifications() {
     return wrap
   }
 
-  wrap.appendChild(
-    el(
-      'p',
-      'page__subtitle',
-      'Tout est désactivé par défaut. Vous ne recevrez que ce que vous cochez ici.'
-    )
-  )
+  wrap.appendChild(illustrationNotifications())
+  wrap.appendChild(el('p', 'page__subtitle', 'Tout est désactivé par défaut.'))
 
   const etat = await deviceState()
   let prefs = {}
@@ -81,74 +76,45 @@ export async function viewNotifications() {
     return wrap
   }
 
-  // --- 1. Cet appareil ------------------------------------------------------
-  wrap.appendChild(el('h3', 'support-wall__title', 'Cet appareil'))
+  // Une seule liste d'interrupteurs, comme la maquette : l'autorisation de
+  // l'appareil en tête, puis ce que l'on veut recevoir. L'appareil est à part —
+  // c'est une permission du navigateur, pas une préférence de compte — d'où sa
+  // ligne en évidence et son explication juste dessous.
+  const groupe = el('div', 'settings-group')
+  const message = el('p', 'form__hint')
 
-  if (ETATS[etat]) {
-    const info = ETATS[etat]
-    const box = el('div', `install-note install-note--${info.ton}`)
-    box.appendChild(el('p', 'install-note__title', info.titre))
-    box.appendChild(el('p', 'install-note__text', info.texte))
-    if (info.lien) {
-      const a = el('button', 'btn btn--ghost btn--sm')
-      a.type = 'button'
-      a.textContent = info.lien.libelle
-      a.addEventListener('click', () => navigate(info.lien.vers))
-      box.appendChild(a)
-    }
-    wrap.appendChild(box)
-  } else {
-    const msg = el('p', 'form__msg')
-    const bouton = el('button', etat === 'on' ? 'btn btn--ghost btn--block' : 'btn btn--primary btn--block')
-    bouton.type = 'button'
-    bouton.appendChild(icon(etat === 'on' ? 'check' : 'message'))
-    bouton.appendChild(
-      document.createTextNode(
-        etat === 'on' ? ' Cet appareil est activé — le désactiver' : ' Activer sur cet appareil'
-      )
-    )
-    bouton.addEventListener('click', async () => {
-      bouton.disabled = true
-      msg.className = 'form__msg'
-      msg.textContent = etat === 'on' ? 'Désactivation…' : 'Autorisation…'
-      try {
-        if (etat === 'on') {
-          await disableOnThisDevice()
-        } else {
-          const r = await enableOnThisDevice()
-          if (r === 'denied') {
-            msg.className = 'form__msg form__msg--err'
-            msg.textContent =
-              'Autorisation refusée. Réautorisez les notifications pour ce site, puis réessayez.'
-            bouton.disabled = false
+  // --- 1. Cet appareil ------------------------------------------------------
+  // Empêché (navigateur incompatible, refus, iPhone non installé) : un
+  // interrupteur qui ne s'allumerait jamais serait un mensonge. On explique.
+  const empeche = ETATS[etat]
+  if (!empeche) {
+    groupe.appendChild(
+      toggleRow('Cet appareil', {
+        detail:
+          etat === 'on'
+            ? 'Cet appareil reçoit les notifications cochées ci-dessous.'
+            : 'À autoriser une fois par appareil.',
+        actif: etat === 'on',
+        onChange: async (veut) => {
+          message.textContent = veut ? 'Autorisation…' : 'Désactivation…'
+          if (!veut) {
+            await disableOnThisDevice()
+            refresh()
             return
           }
-        }
-        refresh()
-      } catch (e) {
-        msg.className = 'form__msg form__msg--err'
-        msg.textContent = 'Action impossible : ' + e.message
-        bouton.disabled = false
-      }
-    })
-    wrap.appendChild(bouton)
-    wrap.appendChild(msg)
-    wrap.appendChild(
-      el(
-        'p',
-        'form__hint',
-        etat === 'on'
-          ? 'Cet appareil recevra les notifications que vous cochez ci-dessous. Les autres ' +
-            'appareils doivent être activés séparément.'
-          : 'L’autorisation ne vaut que pour cet appareil. Vos choix ci-dessous, eux, ' +
-            'suivent votre compte partout.'
-      )
+          const r = await enableOnThisDevice()
+          if (r === 'denied') {
+            message.textContent =
+              'Autorisation refusée. Réautorisez les notifications pour ce site, puis réessayez.'
+            return false
+          }
+          refresh()
+        },
+      })
     )
   }
 
   // --- 2. Ce que je veux recevoir -------------------------------------------
-  wrap.appendChild(el('h3', 'support-wall__title', 'Ce que je veux recevoir'))
-
   const admin = isAdmin()
   const owner = admin && (await amIOwner().catch(() => false))
   // Un réglage qui ne produira jamais rien n'a pas à être proposé : le type
@@ -156,44 +122,43 @@ export async function viewNotifications() {
   const visibles = TYPES.filter(
     (t) => (!t.adminSeulement || admin) && (!t.proprietaireSeulement || owner)
   )
-  const groupe = el('div', 'settings-group')
-  const message = el('p', 'form__hint')
 
   for (const t of visibles) {
-    const row = el('label', 'settings-row settings-row--static')
-    const label = el('div', 'settings-row__label')
-    const bloc = el('div', 'notif-type')
-    bloc.appendChild(el('strong', null, t.titre))
-    bloc.appendChild(el('span', 'notif-type__detail', t.detail))
-    label.appendChild(bloc)
-    row.appendChild(label)
-
-    const toggle = el('input')
-    toggle.type = 'checkbox'
-    toggle.checked = prefs[t.cle] === true
-    toggle.addEventListener('change', async () => {
-      const avant = { ...prefs }
-      prefs = { ...prefs, [t.cle]: toggle.checked }
-      toggle.disabled = true
-      message.textContent = 'Enregistrement…'
-      try {
-        prefs = await setPrefs(prefs)
-        message.textContent = 'Réglages enregistrés.'
-        setTimeout(() => (message.textContent = ''), 2500)
-      } catch (e) {
-        // On remet la case dans son état réel : ne jamais laisser croire que
-        // c'est enregistré alors que non.
-        prefs = avant
-        toggle.checked = avant[t.cle] === true
-        message.textContent = 'Enregistrement impossible : ' + e.message
-      } finally {
-        toggle.disabled = false
-      }
-    })
-    row.appendChild(toggle)
-    groupe.appendChild(row)
+    groupe.appendChild(
+      toggleRow(t.titre, {
+        detail: t.detail,
+        actif: prefs[t.cle] === true,
+        onChange: async (veut) => {
+          const avant = { ...prefs }
+          message.textContent = 'Enregistrement…'
+          try {
+            prefs = await setPrefs({ ...prefs, [t.cle]: veut })
+            message.textContent = 'Réglages enregistrés.'
+            setTimeout(() => (message.textContent = ''), 2500)
+          } catch (e) {
+            prefs = avant
+            message.textContent = 'Enregistrement impossible : ' + e.message
+            return false
+          }
+        },
+      })
+    )
   }
   wrap.appendChild(groupe)
+
+  if (empeche) {
+    const box = el('div', `install-note install-note--${empeche.ton}`)
+    box.appendChild(el('p', 'install-note__title', empeche.titre))
+    box.appendChild(el('p', 'install-note__text', empeche.texte))
+    if (empeche.lien) {
+      const a = el('button', 'btn btn--ghost btn--sm')
+      a.type = 'button'
+      a.textContent = empeche.lien.libelle
+      a.addEventListener('click', () => navigate(empeche.lien.vers))
+      box.appendChild(a)
+    }
+    wrap.appendChild(box)
+  }
   wrap.appendChild(message)
 
   if (etat !== 'on') {
@@ -218,3 +183,4 @@ export async function viewNotifications() {
 
   return wrap
 }
+

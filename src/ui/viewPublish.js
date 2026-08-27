@@ -433,6 +433,28 @@ export async function viewPublish({ query } = {}) {
   const framer = createPhotoFramer(previewMedia, previewImg)
   let framingEnabled = false
 
+  // Toucher l'aperçu ouvre le sélecteur de photo (demande de Matthieu) : c'est
+  // le geste que tout le monde tente en premier. Le champ « Parcourir » reste
+  // en dessous — il est le seul chemin au clavier, et certains le cherchent.
+  // ⚠ Une fois une photo posée, l'aperçu sert au CADRAGE (glisser/pincer) :
+  // ouvrir le sélecteur à ce moment-là volerait le geste. On ne l'ouvre donc
+  // que tant que l'emplacement est vide.
+  previewMedia.classList.add('poster-card__media--choisir')
+  previewMedia.setAttribute('role', 'button')
+  previewMedia.setAttribute('tabindex', '0')
+  previewMedia.setAttribute('aria-label', 'Ajouter une photo')
+  const ouvrirSelecteur = () => {
+    if (photos[slotActif]) return
+    slots[slotActif]?.click()
+  }
+  previewMedia.addEventListener('click', ouvrirSelecteur)
+  previewMedia.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      ouvrirSelecteur()
+    }
+  })
+
   /** Données de l'événement telles que saisies, pour l'aperçu. */
   function previewEventData() {
     const startsAt = fStart?.input.value ? new Date(fStart.input.value) : new Date()
@@ -540,20 +562,95 @@ export async function viewPublish({ query } = {}) {
   submit.textContent = existing ? 'Enregistrer les modifications' : 'Publier'
   const msg = el('p', 'form__msg')
 
-  form.appendChild(fTitle.wrap)
-  form.appendChild(fCategory.wrap)
-  form.appendChild(fDesc.wrap)
-  // Dates en pleine largeur (empilées) : en 2 colonnes le champ datetime était
-  // trop étroit sur mobile (« croupi »).
-  form.appendChild(fStart.wrap)
-  form.appendChild(fEnd.wrap)
-  form.appendChild(recurWrap)
-  form.appendChild(paidWrap)
-  form.appendChild(locWrap)
-  form.appendChild(fContact.wrap)
-  form.appendChild(fPhoto)
-  form.appendChild(submit)
-  form.appendChild(msg)
+  // --- Parcours guidé (création) ou page unique (modification) -------------
+  // Publier pour la première fois est intimidant : on avance par petites
+  // étapes, l'aperçu se complétant au fil de la saisie. Corriger une faute de
+  // frappe, en revanche, ne doit pas imposer de retraverser quatre écrans —
+  // d'où la page unique en modification (décision de Matthieu).
+  const ETAPES = [
+    { titre: 'L’essentiel', champs: [fPhoto, fTitle.wrap, fCategory.wrap] },
+    { titre: 'Quand', champs: [fDesc.wrap, fStart.wrap, fEnd.wrap, recurWrap] },
+    { titre: 'Où', champs: [locWrap] },
+    { titre: 'Détails', champs: [paidWrap, fContact.wrap] },
+  ]
+  const guide = !existing
+
+  let pages = []
+  let pageActive = 0
+  const points = el('div', 'etapes-points')
+  const barreEtapes = el('div', 'etapes-barre')
+  const precedent = el('button', 'btn btn--ghost', 'Retour')
+  precedent.type = 'button'
+  const suivant = el('button', 'btn btn--primary', 'Continuer')
+  suivant.type = 'button'
+
+  if (guide) {
+    for (const [i, etape] of ETAPES.entries()) {
+      const page = el('div', 'etape')
+      page.appendChild(el('h2', 'etape__titre', etape.titre))
+      for (const champ of etape.champs) page.appendChild(champ)
+      form.appendChild(page)
+      pages.push(page)
+
+      const pt = el('span', 'etapes-points__pt')
+      pt.title = `Étape ${i + 1} : ${etape.titre}`
+      points.appendChild(pt)
+    }
+
+    barreEtapes.appendChild(precedent)
+    barreEtapes.appendChild(suivant)
+    form.appendChild(points)
+    form.appendChild(barreEtapes)
+    form.appendChild(submit)
+    form.appendChild(msg)
+
+    /** Affiche l'étape n et remet les commandes en cohérence. */
+    const montrer = (n) => {
+      pageActive = Math.max(0, Math.min(ETAPES.length - 1, n))
+      pages.forEach((p, i) => (p.hidden = i !== pageActive))
+      points
+        .querySelectorAll('.etapes-points__pt')
+        .forEach((p, i) => p.classList.toggle('is-active', i === pageActive))
+      const dernier = pageActive === ETAPES.length - 1
+      precedent.hidden = pageActive === 0
+      suivant.hidden = dernier
+      // Le bouton « Publier » n'apparaît qu'à la fin : le voir dès la première
+      // étape laisserait croire qu'on peut publier un formulaire à moitié vide.
+      submit.hidden = !dernier
+      wrap.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    }
+    precedent.addEventListener('click', () => montrer(pageActive - 1))
+    suivant.addEventListener('click', () => {
+      // Le navigateur signale lui-même les champs obligatoires vides ; sans
+      // cela on pouvait arriver à la dernière étape et découvrir seulement là
+      // que le titre manquait.
+      const page = pages[pageActive]
+      const manquant = [...page.querySelectorAll('input, select, textarea')].find(
+        (c) => !c.checkValidity()
+      )
+      if (manquant) {
+        manquant.reportValidity()
+        return
+      }
+      montrer(pageActive + 1)
+    })
+    montrer(0)
+  } else {
+    form.appendChild(fPhoto)
+    form.appendChild(fTitle.wrap)
+    form.appendChild(fCategory.wrap)
+    form.appendChild(fDesc.wrap)
+    // Dates en pleine largeur (empilées) : en 2 colonnes le champ datetime
+    // était trop étroit sur mobile (« croupi »).
+    form.appendChild(fStart.wrap)
+    form.appendChild(fEnd.wrap)
+    form.appendChild(recurWrap)
+    form.appendChild(locWrap)
+    form.appendChild(paidWrap)
+    form.appendChild(fContact.wrap)
+    form.appendChild(submit)
+    form.appendChild(msg)
+  }
   wrap.appendChild(form)
 
   // --- Mini-carte de sélection ---

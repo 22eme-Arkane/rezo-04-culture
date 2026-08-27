@@ -5,13 +5,21 @@ import { studioHeader } from './studio.js'
 import { signIn, signUp, resetPassword, isLoggedIn } from '../lib/auth.js'
 
 export function viewAuth() {
-  const wrap = el('section', 'page page--studio-sub')
-  wrap.appendChild(studioHeader('Bienvenue', { backTo: '/', backLabel: 'Agenda' }))
+  // Le nom du projet est dans la barre de titre, et c'est le LOGO qui accueille
+  // — pas un « Bienvenue sur Armana » géant qui répétait deux fois la même
+  // chose et repoussait le formulaire hors de l'écran (demande de Matthieu).
+  const wrap = el('section', 'page page--studio-sub page--studio-blue page--studio-auth')
+  wrap.appendChild(studioHeader('Armana', { backTo: '/', backLabel: 'Agenda', sansLogo: true }))
 
   if (isLoggedIn()) {
     navigate('/')
     return wrap
   }
+
+  const logo = el('img', 'auth-logo')
+  logo.src = '/assets/studio-affiche/masks-logo.png'
+  logo.alt = 'Armana'
+  wrap.appendChild(logo)
 
   let mode = 'login' // 'login' | 'signup'
   const card = el('div', 'card-panel studio-auth-card')

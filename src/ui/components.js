@@ -151,6 +151,53 @@ export function eventCard(ev, opts = {}) {
 }
 
 /** Grand encart d'invitation à se connecter. */
+/**
+ * Ligne « libellé + interrupteur », le motif des maquettes. Sert aux
+ * notifications, aux départements et à la zone d'un modérateur.
+ *
+ * `onChange(valeur)` peut être asynchrone : l'interrupteur se verrouille
+ * pendant l'enregistrement, et REVIENT À SON ÉTAT RÉEL si ça échoue — ne
+ * jamais laisser croire qu'un réglage est enregistré alors qu'il ne l'est pas.
+ * Renvoyer `false` depuis onChange annule aussi la bascule.
+ */
+export function toggleRow(titre, { detail = null, actif = false, prefix = null, onChange } = {}) {
+  const row = el('label', 'settings-row settings-row--static settings-row--toggle')
+
+  const label = el('div', 'settings-row__label')
+  if (prefix) label.appendChild(prefix)
+  const bloc = el('div', 'notif-type')
+  bloc.appendChild(el('strong', null, titre))
+  if (detail) bloc.appendChild(el('span', 'notif-type__detail', detail))
+  label.appendChild(bloc)
+  row.appendChild(label)
+
+  const boite = el('span', 'toggle')
+  const input = el('input')
+  input.type = 'checkbox'
+  input.checked = actif
+  boite.appendChild(input)
+  boite.appendChild(el('span', 'toggle__piste'))
+  row.appendChild(boite)
+
+  if (onChange) {
+    input.addEventListener('change', async () => {
+      const avant = !input.checked
+      input.disabled = true
+      try {
+        const ok = await onChange(input.checked)
+        if (ok === false) input.checked = avant
+      } catch {
+        input.checked = avant
+      } finally {
+        input.disabled = false
+      }
+    })
+  }
+
+  row.input = input
+  return row
+}
+
 export function loginPrompt(message) {
   const box = el('div', 'empty-state')
   box.appendChild(el('p', null, message || 'Connectez-vous pour accéder à cette section.'))

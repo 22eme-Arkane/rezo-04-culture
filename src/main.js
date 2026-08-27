@@ -30,7 +30,6 @@ import { viewMember } from './ui/viewMember.js'
 import { viewNotifications } from './ui/viewNotifications.js'
 import { viewDepartements } from './ui/viewDepartements.js'
 import { viewBecomeModerator } from './ui/viewBecomeModerator.js'
-import { viewApplications } from './ui/viewApplications.js'
 import { setSharedText, setSharedFile } from './lib/draft.js'
 import { recordAnonVisit, recordVisit, resetOwnerCache } from './lib/admins.js'
 import { getMesDepartements } from './lib/mesDepartements.js'
@@ -132,7 +131,10 @@ defineRoutes(
     '/notifications': viewNotifications,
     '/mes-departements': viewDepartements,
     '/devenir-moderateur': viewBecomeModerator,
-    '/candidatures': viewApplications,
+    // Les candidatures sont désormais DANS « Gérer les modérateurs ». La route
+    // reste servie pour ne pas casser les notifications déjà envoyées, qui
+    // pointent vers /#/candidatures.
+    '/candidatures': viewAdmins,
     '/connexion': viewAuth,
   },
   {

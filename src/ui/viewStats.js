@@ -50,6 +50,24 @@ export async function viewStats() {
   // `const` lu avant sa déclaration lèverait une erreur.
   const anon = stats.visites_anonymes ?? {}
 
+  // --- Les trois chiffres qui comptent, en tête d'écran --------------------
+  // Le coup d'œil de la maquette : visites, membres, événements, en très gros.
+  // Le détail complet suit juste en dessous — rien n'est retiré.
+  const bandeau = el('div', 'stats-hero')
+  const grandChiffre = (valeur, mot) => {
+    const l = el('div', 'stats-hero__ligne')
+    l.appendChild(el('span', 'stats-hero__valeur', String(valeur ?? 0)))
+    l.appendChild(el('span', 'stats-hero__mot', mot))
+    bandeau.appendChild(l)
+  }
+  grandChiffre(
+    (stats.visites.uniques_total ?? 0) + (anon.uniques_total ?? 0),
+    'visiteurs depuis le début'
+  )
+  grandChiffre(stats.membres.total, 'membres')
+  grandChiffre(stats.evenements.a_venir, 'événements à venir')
+  body.appendChild(bandeau)
+
   // --- Chiffres clés -------------------------------------------------------
   const kpis = el('div', 'stats-grid')
   kpis.appendChild(kpi('Membres', stats.membres.total, `+${stats.membres.new_7j} en 7 jours`))

@@ -3,18 +3,21 @@
 // Visible de tous les membres connectés. Un modérateur en place passe par
 // « Mes départements » pour demander une extension de zone (même mécanisme
 // en base, autre porte d'entrée) : cet écran le lui rappelle.
-import { el, loginPrompt } from './components.js'
+import { el, loginPrompt, toggleRow } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { navigate } from '../lib/router.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
 import { DEPARTEMENTS } from '../lib/departements.js'
+import { carteDepartements } from './carteDepts.js'
 import { applyModerator, myModeratorRequest } from '../lib/moderation.js'
 
 const QUAND = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' })
 
 export async function viewBecomeModerator() {
-  const wrap = el('section', 'page page--studio-sub')
+  // Fond bleu et carte du territoire : Matthieu veut que cet écran donne envie,
+  // pas qu'il ressemble à un formulaire administratif de plus.
+  const wrap = el('section', 'page page--studio-sub page--studio-blue')
   wrap.appendChild(studioHeader('Devenir modérateur', { backTo: '/parametres' }))
 
   if (!isLoggedIn()) {
@@ -121,20 +124,32 @@ export async function viewBecomeModerator() {
   wrap.appendChild(el('h3', 'support-wall__title', 'Ma candidature'))
   wrap.appendChild(el('p', 'form__label', 'Département(s) que je connais bien'))
 
-  const rangs = el('div', 'settings-group')
   const cases = []
+  const lus = () => cases.filter((c) => c.checked).map((c) => c.dataset.code)
+
+  // La carte se met à jour à chaque bascule : on voit tout de suite la zone
+  // qu'on propose de couvrir, ce qu'une liste de cases ne montre pas.
+  const vignette = carteDepartements({
+    selection: [],
+    onPick: (code) => {
+      const c = cases.find((x) => x.dataset.code === code)
+      if (c) {
+        c.checked = !c.checked
+        vignette.setSelection(lus())
+      }
+    },
+  })
+  wrap.appendChild(vignette)
+
+  const rangs = el('div', 'settings-group')
   for (const d of DEPARTEMENTS) {
-    const ligne = el('label', 'settings-row settings-row--static')
-    const lab = el('div', 'settings-row__label')
-    lab.appendChild(icon('pin'))
-    lab.appendChild(document.createTextNode(`${d.code} · ${d.nom}`))
-    ligne.appendChild(lab)
-    const c = el('input')
-    c.type = 'checkbox'
-    c.dataset.code = d.code
-    ligne.appendChild(c)
+    const ligne = toggleRow(d.nom, {
+      prefix: el('span', 'dept-num', d.code),
+      onChange: () => vignette.setSelection(lus()),
+    })
+    ligne.input.dataset.code = d.code
     rangs.appendChild(ligne)
-    cases.push(c)
+    cases.push(ligne.input)
   }
   wrap.appendChild(rangs)
 
@@ -153,7 +168,7 @@ export async function viewBecomeModerator() {
   envoyer.appendChild(icon('shield'))
   envoyer.appendChild(document.createTextNode(' Envoyer ma candidature'))
   envoyer.addEventListener('click', async () => {
-    const depts = cases.filter((c) => c.checked).map((c) => c.dataset.code)
+    const depts = lus()
     msg.className = 'form__msg'
     if (!depts.length) {
       msg.classList.add('form__msg--err')

@@ -11,6 +11,7 @@ import { studioHeader } from './studio.js'
 import { navigate, refresh } from '../lib/router.js'
 import { isAdmin, getUser } from '../lib/auth.js'
 import { amIOwner, getMemberProfile } from '../lib/admins.js'
+import { initiales } from './viewMembers.js'
 import { setModerator } from '../lib/moderation.js'
 import { DEPARTEMENTS } from '../lib/departements.js'
 import { copyText } from '../lib/share.js'
@@ -60,8 +61,13 @@ export async function viewMember({ query } = {}) {
   const cestMoi = m.id === getUser()?.id
 
   // --- Identité -------------------------------------------------------------
+  // Format carte de visite : la pastille d'initiales, le nom, l'adresse, le
+  // rôle. Volontairement sobre — cet écran sert à AGIR sur un membre, pas à le
+  // contempler (les grandes lettres de la maquette prenaient tout l'écran).
   const tete = el('div', 'member-head')
+  tete.appendChild(el('span', 'member-head__pastille', initiales(nom)))
   tete.appendChild(el('h2', 'member-head__name', nom))
+  tete.appendChild(el('p', 'member-head__mail', m.email))
   const badges = el('div', 'member-head__badges')
   if (m.is_owner) badges.appendChild(el('span', 'fb-tag fb-tag--avis', 'Propriétaire'))
   else if (estAdmin)

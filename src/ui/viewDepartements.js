@@ -7,7 +7,7 @@
 // Préférence locale à l'appareil, pas au compte : quelqu'un peut vouloir voir
 // les trois départements sur son ordinateur et seulement le sien sur son
 // téléphone.
-import { el } from './components.js'
+import { el, toggleRow } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
@@ -48,29 +48,23 @@ export async function viewDepartements() {
   }
 
   for (const d of DEPARTEMENTS) {
-    const ligne = el('label', 'settings-row settings-row--static')
-    const label = el('div', 'settings-row__label')
-    label.appendChild(icon('pin'))
-    const bloc = el('div', 'notif-type')
-    bloc.appendChild(el('strong', null, `${d.code} · ${d.nom}`))
-    bloc.appendChild(el('span', 'notif-type__detail', ''))
-    label.appendChild(bloc)
-    ligne.appendChild(label)
-
-    const toggle = el('input')
-    toggle.type = 'checkbox'
-    toggle.checked = choisis.includes(d.code)
-    toggle.addEventListener('change', () => {
-      choisis = toggle.checked
-        ? [...new Set([...choisis, d.code])]
-        : choisis.filter((c) => c !== d.code)
-      choisis = setMesDepartements(choisis)
-      // On resynchronise les cases sur ce que le stockage a réellement retenu,
-      // plutôt que sur ce que l'on croit avoir enregistré.
-      for (const [code, e] of cases) e.toggle.checked = choisis.includes(code)
-      majVerrous()
+    // Le numéro en gros chiffres condensés à gauche, comme la maquette : c'est
+    // lui qu'on cherche du regard, pas le nom complet.
+    const ligne = toggleRow(d.nom, {
+      prefix: el('span', 'dept-num', d.code),
+      actif: choisis.includes(d.code),
+      onChange: (veut) => {
+        choisis = veut
+          ? [...new Set([...choisis, d.code])]
+          : choisis.filter((c) => c !== d.code)
+        choisis = setMesDepartements(choisis)
+        // On resynchronise les cases sur ce que le stockage a réellement
+        // retenu, plutôt que sur ce que l'on croit avoir enregistré.
+        for (const [code, e] of cases) e.toggle.checked = choisis.includes(code)
+        majVerrous()
+      },
     })
-    ligne.appendChild(toggle)
+    const toggle = ligne.input
 
     cases.set(d.code, { toggle, ligne })
     groupe.appendChild(ligne)
@@ -135,17 +129,10 @@ export async function viewDepartements() {
     const groupe = el('div', 'settings-group')
     const cases = []
     for (const d of restants) {
-      const ligne = el('label', 'settings-row settings-row--static')
-      const lab = el('div', 'settings-row__label')
-      lab.appendChild(icon('pin'))
-      lab.appendChild(document.createTextNode(`${d.code} · ${d.nom}`))
-      ligne.appendChild(lab)
-      const c = el('input')
-      c.type = 'checkbox'
-      c.dataset.code = d.code
-      ligne.appendChild(c)
+      const ligne = toggleRow(d.nom, { prefix: el('span', 'dept-num', d.code) })
+      ligne.input.dataset.code = d.code
       groupe.appendChild(ligne)
-      cases.push(c)
+      cases.push(ligne.input)
     }
     wrap.appendChild(groupe)
 

@@ -9,6 +9,7 @@
 import { el } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
+import { illustrationDon } from './illustrations.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
 import {
   listSupporters,
@@ -35,36 +36,23 @@ function embleme(nom, rang) {
 
 export async function viewSupport() {
   const wrap = el('section', 'page page--studio-sub')
-  wrap.appendChild(studioHeader('Soutenir', { backTo: '/parametres' }))
+  wrap.appendChild(studioHeader('Faire un don', { backTo: '/parametres' }))
 
+  wrap.appendChild(illustrationDon())
+
+  // Écran volontairement bref : quand on a envie de donner, il ne faut pas se
+  // noyer dans un flot d'explications. Armana RESTERA gratuite — on n'a donc
+  // pas à faire croire que le don la sauve, seulement qu'il aide.
   wrap.appendChild(
     el(
       'p',
-      'page__subtitle',
-      'Armana est et restera gratuite, sans publicité et sans revente de données.'
+      'support-text support-text--centre',
+      'Vos dons couvrent l’hébergement, le nom de domaine et le stockage des photos.'
     )
   )
-
-  const card = el('div', 'support-card')
-  card.appendChild(
-    el(
-      'p',
-      'support-text',
-      'L’application est développée et hébergée par 22eme Arkane. Les frais sont ' +
-        'modestes mais réels : hébergement, nom de domaine, stockage des photos. ' +
-        'Un coup de pouce, même très petit, aide à la garder en ligne et à continuer ' +
-        'de l’améliorer.'
-    )
+  wrap.appendChild(
+    el('p', 'support-text support-text--muted support-text--centre', 'C’est entièrement facultatif.')
   )
-  card.appendChild(
-    el(
-      'p',
-      'support-text support-text--muted',
-      'C’est totalement facultatif : rien n’est bloqué, rien n’est limité, et vous ' +
-        'ne serez jamais relancé.'
-    )
-  )
-  wrap.appendChild(card)
 
   const btn = el('a', 'btn btn--primary btn--block support-btn')
   btn.href = PAYPAL_URL
@@ -77,9 +65,8 @@ export async function viewSupport() {
   wrap.appendChild(
     el(
       'p',
-      'form__hint',
-      'Vous choisissez librement le montant. La carte bancaire est acceptée, sans ' +
-        'compte PayPal.'
+      'form__hint support-text--centre',
+      'Paiement via PayPal · Carte bancaire acceptée sans compte.'
     )
   )
 

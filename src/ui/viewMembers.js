@@ -50,31 +50,50 @@ export async function viewMembers() {
     }.`
 
     const myId = getUser()?.id
+    const liste = el('div', 'liste-compacte')
     for (const m of members) {
       const nom = m.display_name || 'Sans nom'
       const estAdmin = m.role === 'admin'
 
-      const row = el('button', 'settings-row')
+      const row = el('button', 'liste-compacte__ligne')
       row.type = 'button'
-      const label = el('div', 'settings-row__label')
-      label.appendChild(icon(m.is_owner ? 'shield' : 'user'))
-      label.appendChild(document.createTextNode(nom))
-      if (m.is_owner) label.appendChild(el('span', 'fb-tag fb-tag--avis', 'Propriétaire'))
-      else if (estAdmin) label.appendChild(el('span', 'fb-tag fb-tag--avis', 'Modérateur'))
-      row.appendChild(label)
+      row.appendChild(el('span', 'liste-compacte__pastille', initiales(nom)))
+
+      const corps = el('div', 'liste-compacte__corps')
+      corps.appendChild(el('span', 'liste-compacte__nom', nom))
+      corps.appendChild(
+        el(
+          'span',
+          'liste-compacte__detail',
+          m.id === myId ? 'vous' : 'inscrit le ' + DTF.format(new Date(m.created_at))
+        )
+      )
+      row.appendChild(corps)
+
       row.appendChild(
         el(
           'span',
-          'settings-row__value',
-          m.id === myId ? 'vous' : DTF.format(new Date(m.created_at))
+          'liste-compacte__fin',
+          m.is_owner ? 'Propriétaire' : estAdmin ? 'Modérateur' : 'Membre'
         )
       )
-      row.appendChild(icon('chevronRight'))
       row.addEventListener('click', () => navigate('/membre?id=' + m.id))
-      box.appendChild(row)
+      liste.appendChild(row)
     }
+    box.appendChild(liste)
   }
 
   await refresh()
   return wrap
+}
+
+/** Deux lettres pour la pastille : première du prénom, première du nom. */
+export function initiales(nom) {
+  const mots = String(nom || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (!mots.length) return '?'
+  if (mots.length === 1) return mots[0].slice(0, 2).toUpperCase()
+  return (mots[0][0] + mots[mots.length - 1][0]).toUpperCase()
 }

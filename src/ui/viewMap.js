@@ -3,9 +3,9 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import '../lib/leafletIcons.js' // correctif icônes marqueur (Vite)
 
-import { el, formatDate, formatTime, formatPrice } from './components.js'
+import { el, formatDate, formatTime, formatPrice, toggleRow } from './components.js'
 import { icon } from './icons.js'
-import { navigate } from '../lib/router.js'
+import { navigate, refresh } from '../lib/router.js'
 import { DEFAULT_CENTER, getUserLocation, locationErrorMessage } from '../lib/geo.js'
 import { eventsWithinRadius } from '../lib/events.js'
 import { dayKey, eventDayKeys } from '../lib/recurrence.js'
@@ -21,8 +21,9 @@ import {
   nomDepartement,
   estActif,
   CODES_DEPARTEMENTS,
+  DEPARTEMENTS,
 } from '../lib/departements.js'
-import { getMesDepartements } from '../lib/mesDepartements.js'
+import { getMesDepartements, setMesDepartements } from '../lib/mesDepartements.js'
 
 // Le sélecteur de rayon (10/20/50 km) a été retiré : un rayon n'apportait
 // qu'un filtre de plus à comprendre, dont le seul effet était de cacher des
@@ -45,109 +46,164 @@ export async function viewMap() {
   const wrap = el('section', 'screen screen--studio-map')
   const head = studioHeader('Carte', { tone: 'blue' })
 
-  // Chips de catégories (même filtre partagé que le Calendrier).
-  const chipsRow = el('div', 'chips-row chips-row--studio-map')
-  const allChips = []
-  const addChip = (label, value) => {
-    const c = el('button', 'chip', label)
-    c.dataset.value = value ?? ''
-    c.addEventListener('click', () => {
-      setCategory(value)
-      paintChips()
-      loadEvents()
-    })
-    allChips.push(c)
-    chipsRow.appendChild(c)
-  }
-  addChip('Tous', null)
-  for (const cat of CATEGORIES) addChip(cat, cat)
-  const paintChips = () => {
-    const active = getCategory() ?? ''
-    for (const c of allChips) c.classList.toggle('is-active', c.dataset.value === active)
-  }
-  paintChips()
-  head.appendChild(chipsRow)
   wrap.appendChild(head)
 
-  // Panneau de recherche : rayon et date, dans une seule surface éditoriale.
-  const controls = el('section', 'map-search-panel')
-  controls.setAttribute('aria-label', 'Filtres de la carte')
+  // --- Filtres en pastilles, sur UNE ligne ---------------------------------
+  // Les gros panneaux d'avant mangeaient la moitié de l'écran. Trois pastilles
+  // compactes ouvrent chacune leur menu : le territoire, le style, la date.
+  // (Matthieu en voulait deux ; garder la date en troisième évite de perdre un
+  // filtre qui existait et qui sert.)
+  const barre = el('section', 'map-pills')
+  barre.setAttribute('aria-label', 'Filtres de la carte')
+  wrap.appendChild(barre)
 
-  const posControl = el('div', 'map-search-control')
-  const posHeading = el('div', 'map-search-control__heading')
-  const posIcon = el('span', 'map-search-control__icon')
-  posIcon.appendChild(icon('pin'))
-  posHeading.appendChild(posIcon)
-  const posCopy = el('div', 'map-search-control__copy')
-  posCopy.appendChild(el('strong', null, 'Ma position'))
-  const codesAffiches = getMesDepartements()
-  posCopy.appendChild(
-    el(
-      'span',
-      null,
-      codesAffiches.length === CODES_DEPARTEMENTS.length
-        ? 'Tout le territoire est affiché'
-        : 'Départements affichés : ' + codesAffiches.join(', ')
-    )
-  )
-  posHeading.appendChild(posCopy)
-  const recenter = el('button', 'map-search-control__recenter')
-  recenter.type = 'button'
-  recenter.title = 'Recentrer sur ma position'
-  recenter.setAttribute('aria-label', 'Recentrer sur ma position')
-  recenter.appendChild(icon('refresh'))
-  posHeading.appendChild(recenter)
-  posControl.appendChild(posHeading)
-  // Retour de la géolocalisation : refus d'autorisation, position introuvable,
-  // ou hors département. Sans ce message, le bouton semblait ne rien faire.
-  const geoMsg = el('p', 'form__hint map-geo-msg')
-  posControl.appendChild(geoMsg)
-  controls.appendChild(posControl)
-
-  // Sélecteur de date : uniquement les événements actifs ce jour-là.
   let selectedDate = null
-  const dateControl = el('div', 'map-search-control map-search-control--date')
-  const dateHeading = el('label', 'map-search-control__heading')
-  const dateIcon = el('span', 'map-search-control__icon map-search-control__icon--yellow')
-  dateIcon.appendChild(icon('calendar'))
-  dateHeading.appendChild(dateIcon)
-  const dateCopy = el('span', 'map-search-control__copy')
-  dateCopy.appendChild(el('strong', null, 'Date'))
-  dateCopy.appendChild(el('span', null, 'Tous les événements par défaut'))
-  dateHeading.appendChild(dateCopy)
-  dateControl.appendChild(dateHeading)
-  const datePicker = el('div', 'map-date-picker')
-  const dateInput = el('input', 'map-date map-date--studio')
-  dateInput.type = 'date'
-  dateInput.min = ymd(new Date())
-  dateInput.setAttribute('aria-label', 'Filtrer par date')
-  datePicker.appendChild(dateInput)
-  const clearDate = el('button', 'map-date-clear', 'Toutes')
-  clearDate.type = 'button'
-  datePicker.appendChild(clearDate)
-  dateControl.appendChild(datePicker)
-  controls.appendChild(dateControl)
+  let menuOuvert = null
 
+  /** Ferme le menu ouvert, s'il y en a un. */
+  const fermerMenu = () => {
+    if (!menuOuvert) return
+    menuOuvert.panneau.remove()
+    menuOuvert.pastille.setAttribute('aria-expanded', 'false')
+    menuOuvert = null
+  }
+  document.addEventListener('click', (e) => {
+    if (menuOuvert && !menuOuvert.pastille.contains(e.target) && !menuOuvert.panneau.contains(e.target)) {
+      fermerMenu()
+    }
+  })
+
+  /** Une pastille + son menu déroulant. `remplir` peuple le panneau. */
+  function pastilleMenu(iconeNom, remplir) {
+    const p = el('button', 'map-pill')
+    p.type = 'button'
+    p.setAttribute('aria-haspopup', 'true')
+    p.setAttribute('aria-expanded', 'false')
+    p.appendChild(icon(iconeNom))
+    const txt = el('span', 'map-pill__texte')
+    p.appendChild(txt)
+    p.appendChild(icon('chevronDown'))
+    p.addEventListener('click', (e) => {
+      e.stopPropagation()
+      if (menuOuvert?.pastille === p) return fermerMenu()
+      fermerMenu()
+      const panneau = el('div', 'map-menu')
+      remplir(panneau)
+      barre.appendChild(panneau)
+      p.setAttribute('aria-expanded', 'true')
+      menuOuvert = { pastille: p, panneau }
+    })
+    barre.appendChild(p)
+    p.texte = txt
+    return p
+  }
+
+  // 1. Territoire — les mêmes départements que le Profil, réglés ici aussi.
+  const pDepts = pastilleMenu('pin', (panneau) => {
+    for (const d of DEPARTEMENTS) {
+      const ligne = toggleRow(d.nom, {
+        prefix: el('span', 'dept-num', d.code),
+        actif: getMesDepartements().includes(d.code),
+        onChange: (veut) => {
+          const avant = getMesDepartements()
+          const suite = veut ? [...new Set([...avant, d.code])] : avant.filter((c) => c !== d.code)
+          const retenu = setMesDepartements(suite)
+          // Le stockage refuse une liste vide : on reflète ce qu'il a retenu.
+          if (retenu.includes(d.code) !== veut) return false
+          // Le masque et les limites de la carte sont bâtis à l'initialisation
+          // de Leaflet : on re-rend l'écran entier plutôt que de démonter des
+          // couches à la main — un département décoché doit VRAIMENT repasser
+          // sous le masque, pas seulement perdre ses marqueurs.
+          fermerMenu()
+          refresh()
+        },
+      })
+      panneau.appendChild(ligne)
+    }
+  })
+  const majDepts = () => {
+    const c = getMesDepartements()
+    pDepts.texte.textContent =
+      c.length === CODES_DEPARTEMENTS.length ? 'Tout le territoire' : c.join(' · ')
+  }
+  majDepts()
+
+  // 2. Style — filtre partagé avec l'Agenda.
+  const pCat = pastilleMenu('ticket', (panneau) => {
+    const choisir = (label, value) => {
+      const b = el('button', 'map-menu__item', label)
+      b.type = 'button'
+      if ((getCategory() ?? null) === value) b.classList.add('is-active')
+      b.addEventListener('click', () => {
+        setCategory(value)
+        majCat()
+        fermerMenu()
+        loadEvents()
+      })
+      panneau.appendChild(b)
+    }
+    choisir('Tous les styles', null)
+    for (const cat of CATEGORIES) choisir(cat, cat)
+  })
+  const majCat = () => {
+    pCat.texte.textContent = getCategory() ?? 'Tous les styles'
+  }
+  majCat()
+
+  // 3. Date — un jour précis, ou tout.
+  const pDate = pastilleMenu('calendar', (panneau) => {
+    const champ = el('input', 'map-date')
+    champ.type = 'date'
+    champ.min = ymd(new Date())
+    champ.value = selectedDate ?? ''
+    champ.setAttribute('aria-label', 'Filtrer par date')
+    champ.addEventListener('change', () => {
+      selectedDate = champ.value || null
+      majDate()
+      fermerMenu()
+      loadEvents()
+    })
+    panneau.appendChild(champ)
+    const tout = el('button', 'map-menu__item', 'Toutes les dates')
+    tout.type = 'button'
+    if (!selectedDate) tout.classList.add('is-active')
+    tout.addEventListener('click', () => {
+      selectedDate = null
+      majDate()
+      fermerMenu()
+      loadEvents()
+    })
+    panneau.appendChild(tout)
+  })
+  const majDate = () => {
+    pDate.texte.textContent = selectedDate
+      ? new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'short',
+        })
+      : 'Toutes les dates'
+    pDate.classList.toggle('is-active', Boolean(selectedDate))
+  }
+  majDate()
+
+  // Compteur de résultats et retour de géolocalisation, posés SUR la carte
+  // pour ne rien prendre à sa hauteur.
   const resultsBar = el('div', 'map-results-bar')
   resultsBar.appendChild(el('span', 'map-results-bar__dot'))
   const count = el('span', 'map-results-bar__count', '')
   resultsBar.appendChild(count)
-  wrap.appendChild(controls)
+  const geoMsg = el('p', 'form__hint map-geo-msg')
 
-  dateInput.addEventListener('change', () => {
-    selectedDate = dateInput.value || null
-    dateControl.classList.toggle('has-date', Boolean(selectedDate))
-    loadEvents()
-  })
-  clearDate.addEventListener('click', () => {
-    dateInput.value = ''
-    selectedDate = null
-    dateControl.classList.remove('has-date')
-    loadEvents()
-  })
+  const recenter = el('button', 'map-recenter')
+  recenter.type = 'button'
+  recenter.title = 'Recentrer sur ma position'
+  recenter.setAttribute('aria-label', 'Recentrer sur ma position')
+  recenter.appendChild(icon('pin'))
 
   const mapFrame = el('div', 'map-frame-studio')
   mapFrame.appendChild(resultsBar)
+  mapFrame.appendChild(geoMsg)
+  mapFrame.appendChild(recenter)
   const mapDiv = el('div', 'map map--studio')
   mapFrame.appendChild(mapDiv)
   wrap.appendChild(mapFrame)
