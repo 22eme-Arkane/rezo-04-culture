@@ -960,44 +960,48 @@ a.settings-row .settings-row__label { word-break: break-all; }
   color: var(--studio-ink);
 }
 
-/* --- Publier sur fond bleu ---------------------------------------------- */
-/* ⚠ Tout ce qui n'est pas DANS un champ passe en blanc ou en jaune : sur le
-   bleu, le vert et l'encre sombre deviennent illisibles. Les champs de saisie
-   gardent un fond clair — on doit lire ce qu'on tape. */
+/* --- Publier : l'ENCADRÉ du formulaire en bleu --------------------------- */
+/* ⚠ LE BLEU S'ARRÊTE AU CADRE. J'avais d'abord colorié la PAGE entière : les
+   textes passaient en blanc partout, y compris hors du formulaire, où ils
+   devenaient invisibles sur le fond clair. Chaque règle part donc de `.form`,
+   jamais de la page — ce qui vit dehors garde son encre sombre. */
+.page--studio-publish.page--studio-sub .form {
+  background: var(--studio-blue);
+  border-color: var(--studio-blue);
+}
 /* ⚠ DOUBLE CLASSE sur le même élément (`.page--studio-publish.page--studio-sub`).
    Les règles génériques `.page--studio-sub .form__label` sont définies PLUS BAS
    avec la même spécificité : à égalité, la dernière gagne, et le libellé restait
    vert sur bleu — mesuré à 1,24:1, soit invisible. */
-.page--studio-publish.page--studio-sub .form__label,
-.page--studio-publish .switch__text,
-.page--studio-publish .recur__echo,
-.page--studio-publish .photo-slot__jour { color: #fff; }
-.page--studio-publish.page--studio-sub .form__hint,
-.page--studio-publish .photo-preview__hint { color: rgba(255, 255, 255, 0.9); }
-.page--studio-publish .etape__titre { color: var(--mask-yellow); }
-.page--studio-publish .form__input,
-.page--studio-publish .form__textarea,
-.page--studio-publish select.form__input {
+.page--studio-publish.page--studio-sub .form .form__label,
+.page--studio-publish .form .switch__text,
+.page--studio-publish .form .recur__echo,
+.page--studio-publish .form .photo-slot__jour { color: #fff; }
+.page--studio-publish.page--studio-sub .form .form__hint,
+.page--studio-publish .form .photo-preview__hint { color: rgba(255, 255, 255, 0.9); }
+.page--studio-publish .form .etape__titre { color: var(--mask-yellow); }
+.page--studio-publish .form .form__input,
+.page--studio-publish .form .form__textarea,
+.page--studio-publish .form select.form__input {
   background: var(--studio-cream);
   color: var(--studio-ink);
   border-color: rgba(6, 43, 29, 0.2);
 }
-.page--studio-publish .form__input::placeholder { color: rgba(6, 43, 29, 0.5); }
-/* Jours de répétition : la pastille éteinte doit rester visible sur le bleu. */
-/* Fond OPAQUE, pas un blanc translucide : sur une superposition semi-transparente
-   le contraste réel devient impossible à garantir d'un thème à l'autre. */
-.page--studio-publish .recur__day {
+.page--studio-publish .form .form__input::placeholder { color: rgba(6, 43, 29, 0.5); }
+/* Jours de répétition : fond OPAQUE, pas un blanc translucide — sur une
+   superposition semi-transparente le contraste réel n'est pas garantissable. */
+.page--studio-publish .form .recur__day {
   background: #1b62cf;
   border-color: rgba(255, 255, 255, 0.55);
   color: #fff;
 }
-.page--studio-publish .recur__day.is-active {
+.page--studio-publish .form .recur__day.is-active {
   background: var(--mask-yellow);
   border-color: var(--mask-yellow);
   color: var(--studio-ink);
 }
 /* Le message d'erreur reste rouge, mais sur une pastille claire pour ressortir. */
-.page--studio-publish .form__msg--err {
+.page--studio-publish .form .form__msg--err {
   padding: 0.4rem 0.6rem;
   border-radius: 8px;
   background: #fff;
@@ -1024,7 +1028,13 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .etapes-points__pt.is-active { background: var(--mask-yellow); transform: scale(1.25); }
 .etapes-barre { display: flex; gap: 0.6rem; }
 .etapes-barre .btn { flex: 1 1 0; }
-.etapes-barre .btn[hidden] { display: none; }
+/* ⚠ RÈGLE GÉNÉRALE, et non plus limitée à la barre d'étapes. `.btn` déclare
+   `display: inline-flex`, ce qui BAT le `display: none` que le navigateur
+   applique à l'attribut `hidden` : tout bouton masqué en JS restait visible.
+   Le correctif ne visait que la barre Retour/Continuer, si bien que le bouton
+   « Publier » s'affichait dès la première étape — on croyait pouvoir publier
+   un formulaire à moitié vide. */
+.btn[hidden] { display: none; }
 
 /* L'aperçu est cliquable tant qu'aucune photo n'est posée. */
 .poster-card__media--choisir { cursor: pointer; }

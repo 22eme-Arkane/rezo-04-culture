@@ -66,10 +66,11 @@ export async function viewPublish({ query } = {}) {
   // Photo reçue via le partage natif (WhatsApp…), en création uniquement.
   const sharedPhoto = existing ? null : consumeSharedFile()
 
-  // Fond bleu : publier doit être une petite fête, pas un formulaire
-  // administratif. Le blanc n'est conservé QUE sous les champs de saisie et
-  // l'aperçu, là où il faut du contraste pour lire ce qu'on tape.
-  const wrap = el('section', 'page page--studio-sub page--studio-blue page--studio-publish')
+  // ⚠ C'est l'ENCADRÉ du formulaire qui est bleu, pas la page. J'avais fait
+  // l'inverse au premier essai : tout l'écran devenait bleu et les textes
+  // passaient en blanc, y compris hors de l'encadré, où ils devenaient
+  // invisibles sur le fond clair.
+  const wrap = el('section', 'page page--studio-sub page--studio-publish')
   wrap.appendChild(
     studioHeader(existing ? 'Modifier' : 'Publier', {
       backTo: existing ? '/mes-evenements' : '/parametres',
