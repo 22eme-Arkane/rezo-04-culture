@@ -135,14 +135,19 @@ export async function viewStats() {
     body.appendChild(go)
   }
 
-  // --- Fréquentation -------------------------------------------------------
+  // --- Les tableaux de détail, FABRIQUÉS ICI mais POSÉS PLUS BAS -----------
+  // Matthieu les veut sous « Contenus » : les graphiques racontent l'activité,
+  // ces listes ne servent qu'à vérifier un chiffre précis. On les construit ici,
+  // où les données sont sous la main, et on les ajoute à l'écran tout en bas.
+  //
   // ⚠ Deux choses distinctes, autrefois mélangées dans un seul tableau :
   //   * QUI VIENT — passages réellement observés, mesurés depuis peu ;
   //   * L'ÉTAT DES COMPTES — historique d'authentification, qui remonte à la
   //     création de chaque compte.
   // Côte à côte sans explication, on lisait « 36 connectés sur 7 jours » sous
   // « 26 visiteurs sur 30 jours » et l'on croyait le tableau faux.
-  body.appendChild(section('Qui vient'))
+  const detail = document.createDocumentFragment()
+  detail.appendChild(section('Qui vient'))
   const freq = el('div', 'settings-group')
   freq.appendChild(line('Navigateurs sans compte (7 jours)', anon.uniques_7j ?? 0))
   freq.appendChild(line('Navigateurs sans compte (30 jours)', anon.uniques_30j ?? 0))
@@ -153,16 +158,15 @@ export async function viewStats() {
   // compte est compté DEUX fois — définitivement. C'est un plafond, pas un
   // nombre de personnes.
   freq.appendChild(line('Membres + navigateurs sans compte (majorant)', totalVisiteurs))
-  body.appendChild(freq)
+  detail.appendChild(freq)
 
-  // --- État des comptes ----------------------------------------------------
-  body.appendChild(section('État des comptes'))
+  detail.appendChild(section('État des comptes'))
   const comptes = el('div', 'settings-group')
   comptes.appendChild(line('Dernière connexion il y a moins de 24 h', stats.connexions.actifs_24h))
   comptes.appendChild(line('Dernière connexion il y a moins de 7 jours', stats.connexions.actifs_7j))
   comptes.appendChild(line('Dernière connexion il y a moins de 30 jours', stats.connexions.actifs_30j))
   comptes.appendChild(line('E-mails confirmés', stats.connexions.emails_confirmes))
-  body.appendChild(comptes)
+  detail.appendChild(comptes)
 
   // Courbe : les deux publics cumulés, c'est la fréquentation réelle.
   const parJour = new Map()
@@ -200,8 +204,7 @@ export async function viewStats() {
     body.appendChild(barChart(daily))
   }
 
-  // --- Événements ----------------------------------------------------------
-  body.appendChild(section('Événements'))
+  detail.appendChild(section('Événements'))
   const evs = el('div', 'settings-group')
   evs.appendChild(line('Publiés (approuvés)', stats.evenements.approuves))
   evs.appendChild(line('En attente', stats.evenements.en_attente))
@@ -211,7 +214,7 @@ export async function viewStats() {
   // « ce mois-ci » remontait jusqu'au mois précédent sans le dire.
   evs.appendChild(line('Créés ces 7 jours', stats.evenements.new_7j))
   evs.appendChild(line('Créés ces 30 jours', stats.evenements.new_30j))
-  body.appendChild(evs)
+  detail.appendChild(evs)
 
   const parMois = (stats.par_mois ?? []).map((m) => ({
     label: MOIS.format(new Date(m.label + '-01T12:00:00')),
@@ -241,6 +244,9 @@ export async function viewStats() {
   cont.appendChild(line('— dont bugs', stats.retours.bugs))
   cont.appendChild(line('— dont avis', stats.retours.avis))
   body.appendChild(cont)
+
+  // Les trois tableaux de détail, enfin posés.
+  body.appendChild(detail)
 
   // --- Entretien du stockage : PROPRIÉTAIRE UNIQUEMENT ----------------------
   // La purge est irréversible et globale : elle n'a rien à faire entre les
