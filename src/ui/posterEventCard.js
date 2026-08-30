@@ -48,13 +48,15 @@ export function posterEventCard(ev, opts = {}) {
     date.appendChild(el('span', 'poster-card__month', mois(d)))
     // Le mois de fin n'est répété que s'il diffère : « → 20 » suffit à
     // l'intérieur d'un même mois.
-    date.appendChild(
-      el(
-        'span',
-        'poster-card__jusqua',
-        memeMois ? `→ ${deuxChiffres(f)}` : `→ ${deuxChiffres(f)} ${mois(f)}`
-      )
+    // La flèche dans son propre élément : elle doit être plus grosse que le
+    // texte pour ne pas paraître flotter, ce qu'un seul nœud de texte ne
+    // permettait pas.
+    const jusqua = el('span', 'poster-card__jusqua')
+    jusqua.appendChild(el('span', 'poster-card__fleche', '→'))
+    jusqua.appendChild(
+      document.createTextNode(memeMois ? deuxChiffres(f) : `${deuxChiffres(f)} ${mois(f)}`)
     )
+    date.appendChild(jusqua)
   } else {
     date.appendChild(el('span', 'poster-card__day', String(startsAt.getDate()).padStart(2, '0')))
     date.appendChild(

@@ -838,11 +838,13 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .don-banner__fleche svg { width: 17px; height: 17px; }
 
 /* --- Statistiques : fond bleu ------------------------------------------- */
-/* ⚠ CONTRASTE FRANC EXIGÉ. Matthieu est légèrement daltonien : sur ce fond
-   bleu, tout vert lui devient illisible. Rien de vert ne subsiste donc hors
-   des cartes claires — uniquement du blanc et du jaune, jamais de nuance
-   intermédiaire, et jamais d'opacité réduite qui rognerait le contraste.
-   Les cartes crème, elles, gardent leur encre sombre. */
+/* ⚠ CONTRASTE FRANC EXIGÉ, demandé par Matthieu : sur ce fond bleu, le vert
+   de la charte tombe à 2,1:1 et devient illisible. Rien de vert ne subsiste
+   donc hors des cartes claires — uniquement du blanc et du jaune, jamais de
+   nuance intermédiaire, et jamais d'opacité réduite qui rognerait encore le
+   contraste. Les cartes crème, elles, gardent leur encre sombre.
+   ⚠ Ces règles restent LIMITÉES à cet écran : Matthieu ne veut pas qu'elles
+   touchent les écrans publics. */
 .page--studio-stats .stats-section {
   color: var(--mask-yellow);
 }
@@ -2471,6 +2473,14 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    devenait une masse — surtout en blanc sur couleur, où l'œil n'a aucun repos
    entre les jambages. Oswald est condensée elle aussi, mais dessinée pour
    rester lisible : espacement remis à zéro, et tout le bloc réduit. */
+/* La flèche est plus grosse que le texte qu'elle annonce : à taille égale, sa
+   barre fine la faisait disparaître et la ligne semblait décalée à droite. */
+.poster-card__fleche {
+  font-size: 1.45em;
+  line-height: 0.7;
+  font-weight: 400;
+}
+
 .poster-card__day,
 .poster-card__month {
   position: relative;
@@ -2502,6 +2512,9 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 .poster-card__jusqua {
   position: relative;
   z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
   font-family: var(--font-display);
   font-weight: 600;
   text-transform: uppercase;
@@ -2516,8 +2529,12 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   letter-spacing: 0;
   transform: scaleX(0.95);
 }
+/* ⚠ `overflow: visible` et une marge suffisante : le circonflexe de « AOÛT »
+   se faisait rogner par le chiffre du dessus, dont la boîte de ligne très
+   serrée (0,88) empiétait sur celle du mois. */
 .poster-card__month {
-  margin-top: 0.08rem;
+  overflow: visible;
+  margin-top: 0.22rem;
   font-size: clamp(1.35rem, 6.4vw, 1.6rem);
   line-height: 1;
   letter-spacing: 0.02em;
@@ -2526,16 +2543,29 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    grand vide entre le mois et elle. Le bloc est desormais groupe et centre :
    l'air se repartit egalement au-dessus du jour de la semaine et sous
    l'heure, comme Matthieu le demandait. */
+/* ⚠ LE BADGE JOUE SUR LA CLARTÉ, PAS SUR LA TEINTE. Il était vert sur toutes
+   les cartes et s'effaçait donc sur les cartes vertes. Alterner
+   SOMBRE-SUR-CLAIR et CLAIR-SUR-SOMBRE tient sur les quatre tons sans avoir à
+   choisir une teinte complémentaire pour chacun — et le contraste mesuré ne
+   dépend alors plus de la teinte : 3,3:1 au pire, 9,6:1 au mieux. */
 .poster-card__time {
   position: relative;
   z-index: 2;
   margin-top: 0.3rem;
   padding: 0.16rem 0.4rem;
   border-radius: 999px;
+  /* Ton JAUNE, clair : badge sombre. */
   color: var(--studio-cream);
-  background: var(--studio-green);
+  background: var(--studio-ink);
   font-size: 0.61rem;
   font-weight: 800;
+}
+/* Tons ROUGE, VERT et BLEU, tous sombres : badge clair, texte encre. */
+.poster-card[data-tone='red'] .poster-card__time,
+.poster-card[data-tone='green'] .poster-card__time,
+.poster-card[data-tone='blue'] .poster-card__time {
+  color: var(--studio-ink);
+  background: var(--studio-cream);
 }
 .poster-card__media {
   position: relative;
@@ -2579,7 +2609,7 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   min-width: 0;
   min-height: 0;
   height: 100%;
-  padding: 0.62rem 0.4rem 0.48rem;
+  padding: 0.62rem 0.4rem 1.45rem;
   overflow: hidden;
   background: var(--studio-cream);
 }
@@ -2614,12 +2644,14 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
      limite, et le titre entier attend sur la fiche. */
   -webkit-line-clamp: 3;
 }
-/* `margin-top: auto` pousse l'adresse en bas du cadre : elle garde sa place
-   quoi qu'il arrive au-dessus, et c'est la mention des jours qui cède. */
+/* ⚠ `margin: auto 0` des DEUX côtés : l'adresse se centre dans l'espace libre
+   entre le titre et le badge de prix, au lieu d'être collée au bas. Le même
+   équilibre que le bloc de date. Le badge étant posé en absolu, on lui réserve
+   sa place par le `padding-bottom` du cadre. */
 .poster-card__place {
   display: -webkit-box;
   flex: 0 0 auto;
-  margin: auto 0 1.55rem;
+  margin: auto 0;
   overflow: hidden;
   color: var(--studio-ink);
   font-size: 0.62rem;
