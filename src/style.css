@@ -2485,6 +2485,12 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   width: 1.15em;
   height: 0.72em;
   display: block;
+  /* ⚠ Descendue de ~0,14em. `align-items: center` centre sur la BOÎTE DE
+     LIGNE, qui inclut l'espace des jambages ascendants et descendants ; or les
+     capitales d'Oswald n'occupent que le haut de cette boîte. La flèche
+     paraissait donc flotter au-dessus des chiffres. Ce décalage la ramène à
+     mi-hauteur des capitales, exprimé en em pour suivre la taille du texte. */
+  transform: translateY(0.14em);
 }
 
 .poster-card__day,
