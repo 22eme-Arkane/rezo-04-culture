@@ -4,6 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#f9d44d" />
+    <!--
+      Aperçu du lien quand on partage Armana (WhatsApp, Messenger, SMS…).
+      Sans ces balises, le partage n'affichait qu'une adresse nue.
+      ⚠ La description est reprise à l'identique dans manifest.webmanifest et
+      dans src/lib/share.js : les trois changent ensemble.
+      ⚠ og:url et og:image DOIVENT être absolus — un chemin relatif n'est pas
+      résolu par les robots. Ce sont donc deux adresses de plus à reprendre le
+      jour où le nom de domaine change (voir aussi share.js, viewInstall.js et
+      la fonction notify).
+    -->
+    <meta
+      name="description"
+      content="L’agenda culturel du Sud-Est de la France : calendrier, carte et favoris."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Armana" />
+    <meta property="og:title" content="Armana" />
+    <meta
+      property="og:description"
+      content="L’agenda culturel du Sud-Est de la France : calendrier, carte et favoris."
+    />
+    <meta property="og:url" content="https://armana04.vercel.app" />
+    <meta property="og:image" content="https://armana04.vercel.app/icons/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

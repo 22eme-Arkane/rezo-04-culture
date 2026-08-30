@@ -7,7 +7,13 @@
 export const APP_URL = 'https://armana04.vercel.app'
 
 const TITRE = 'Armana'
-const TEXTE = 'L’agenda culturel des Alpes-de-Haute-Provence.'
+// ⚠ PAS DE DÉPARTEMENT NI DE RÉGION DANS CE TEXTE. Armana est partie du seul
+// 04, couvre aujourd'hui PACA plus la Drôme, et le territoire continuera de
+// bouger : une formule géographique précise redevient fausse à chaque
+// ouverture. « Sud-Est de la France » reste juste sans avoir à y revenir.
+// La même phrase est reprise dans manifest.webmanifest et dans les balises
+// Open Graph d'index.html : les trois doivent changer ensemble.
+const TEXTE = 'L’agenda culturel du Sud-Est de la France.'
 
 /**
  * Copie un texte, avec repli pour les navigateurs sans presse-papiers

@@ -1,10 +1,11 @@
 # Armana
 
-PWA d'agenda culturel du **département 04** (Alpes-de-Haute-Provence). Objectif :
-remplacer un groupe WhatsApp de 1000+ personnes par une appli claire — à l'ouverture,
-les événements culturels de la région sur un **calendrier** + une **carte** interactive
-avec **filtre par rayon** (10/20/50 km autour de la ville de l'utilisateur, façon
-Leboncoin). Les inscrits publient un événement et « **Gemment** » leurs favoris.
+PWA d'**agenda culturel du Sud-Est de la France** — les six départements de PACA
+(04, 05, 06, 13, 83, 84) et la Drôme (26). Objectif : remplacer un groupe WhatsApp
+de 1000+ personnes par une appli claire — à l'ouverture, les événements culturels
+du territoire sur un **calendrier** + une **carte** interactive. Chacun choisit les
+départements qu'il veut suivre dans **Profil → Mes départements**. Les inscrits
+publient un événement et « **Gemment** » leurs favoris.
 
 > Projet **isolé**. Aucune dépendance ni fichier partagé avec PANDORA, ORAKLE, Arkanyx.
 

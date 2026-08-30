@@ -37,10 +37,11 @@ export const DEPARTEMENTS_URL = `/data/departements.geojson?v=${DEPARTEMENTS_VER
  *
  * ⚠ `actif` est l'INTERRUPTEUR d'ouverture d'un département.
  *
- * Depuis le 29 août 2026, Armana couvre TOUTE LA RÉGION PACA : 04, 05, 06, 13,
- * 83 et 84. La Drôme reste embarquée mais fermée — elle n'appartient pas à
- * PACA (Auvergne-Rhône-Alpes) ; son contour est prêt si l'on veut l'ouvrir un
- * jour, il suffira de passer `actif` à true et d'élargir CADRE_RECHERCHE.
+ * Depuis le 29 août 2026, Armana couvre toute la RÉGION PACA : 04, 05, 06, 13,
+ * 83 et 84. La Drôme (26) s'y est ajoutée le 30 août, à la demande de
+ * Matthieu : elle n'appartient pas à PACA mais à Auvergne-Rhône-Alpes, et
+ * c'est un choix assumé — le territoire d'Armana n'est plus exactement une
+ * région administrative.
  *
  * ⚠ TOUT CHANGEMENT ICI SE RÉPERCUTE EN BASE. La liste des codes valides est
  * répétée dans les fonctions SQL (record_visit, record_anon_visit,
@@ -54,7 +55,7 @@ export const TOUS_DEPARTEMENTS = [
   { code: '05', nom: 'Hautes-Alpes', actif: true },
   { code: '06', nom: 'Alpes-Maritimes', actif: true },
   { code: '13', nom: 'Bouches-du-Rhône', actif: true },
-  { code: '26', nom: 'Drôme', actif: false },
+  { code: '26', nom: 'Drôme', actif: true },
   { code: '83', nom: 'Var', actif: true },
   { code: '84', nom: 'Vaucluse', actif: true },
 ]
@@ -69,11 +70,11 @@ export const CODES_DEPARTEMENTS = DEPARTEMENTS.map((d) => d.code)
  * d'adresse (voir lib/geo.js). Volontairement placé ICI, à côté des
  * interrupteurs : les deux doivent changer ensemble, sinon on chercherait des
  * adresses dans un département qu'on n'affiche pas.
- *   04+05+84 (avant)      : 4.499,45.277,7.227,43.509
- *   PACA entière (actuel) : 4.230,45.127,7.719,42.982
- *   avec la Drôme         : 4.080,45.494,7.719,42.982
+ *   04+05+84                    : 4.499,45.277,7.227,43.509
+ *   PACA entière                : 4.230,45.127,7.719,42.982
+ *   PACA + la Drôme (actuel)    : 4.080,45.494,7.719,42.982
  */
-export const CADRE_RECHERCHE = '4.230,45.127,7.719,42.982'
+export const CADRE_RECHERCHE = '4.080,45.494,7.719,42.982'
 
 export function nomDepartement(code) {
   return TOUS_DEPARTEMENTS.find((d) => d.code === code)?.nom || code
