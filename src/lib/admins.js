@@ -179,6 +179,29 @@ export async function getVisitsTotal() {
   return data ?? null
 }
 
+/**
+ * Événements APPROUVÉS et non terminés — ce que le public voit réellement.
+ * `admin_stats.evenements.a_venir` compte tous les statuts, rejetés compris :
+ * son total ne pouvait donc pas correspondre au graphique par département.
+ * Renvoie `null` tant que la migration 0024 n'est pas appliquée.
+ */
+export async function getUpcomingPublished() {
+  const { data, error } = await supabase.rpc('events_upcoming_published')
+  if (error) return null
+  return data ?? null
+}
+
+/**
+ * Date à laquelle la mesure de fréquentation a commencé. Sans elle, « depuis
+ * le début » laissait croire « depuis la création d'Armana » — d'où des
+ * comparaisons impossibles avec les fenêtres de 30 jours.
+ */
+export async function getVisitsSince() {
+  const { data, error } = await supabase.rpc('visits_since')
+  if (error) return null
+  return data ?? null
+}
+
 export async function getAdminStats() {
   const { data, error } = await supabase.rpc('admin_stats')
   if (error) throw error

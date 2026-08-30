@@ -2044,7 +2044,14 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
   padding: 0.58rem;
   background: #fff;
 }
-.studio-event-item__actions .btn { flex: 1 1 auto; min-height: 36px; }
+/* `flex: 1 1 0` et non `auto` : la base zéro fait fi de la longueur du texte,
+   donc « Approuver » et « Rejeter » occupent exactement la même largeur. Avec
+   `auto`, le plus long des deux mangeait 24 px de plus. */
+.studio-event-item__actions .btn { flex: 1 1 0; min-height: 36px; }
+/* L'étiquette du département prend sa propre ligne : « Approuver » et
+   « Rejeter » restent ainsi seuls côte à côte en bas de la carte, à parts
+   égales, sans se faire pousser par une pastille de largeur variable. */
+.moderation-dept { flex: 1 0 100%; width: max-content; max-width: 100%; }
 .studio-event-status {
   flex: 1 0 100%;
   justify-self: flex-start;

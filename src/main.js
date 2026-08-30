@@ -183,6 +183,21 @@ defineRoutes(
   // une session restaurée ne serait jamais comptée du tout.
   noterPassage()
 
+  // ⚠ RETOUR D'ARRIÈRE-PLAN. Sur une application installée, on ne recharge
+  // presque jamais la page : on la quitte et on y revient. Sans cet écouteur,
+  // « ouvertures » n'aurait compté que les rechargements — soit une petite
+  // minorité des usages réels, et le chiffre aurait été faux dès le premier
+  // jour. L'anti-rebond évite qu'un aller-retour de trois secondes vers une
+  // notification compte pour une visite de plus.
+  const ANTI_REBOND_MS = 30 * 60 * 1000
+  let dernierPassage = Date.now()
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return
+    if (Date.now() - dernierPassage < ANTI_REBOND_MS) return
+    dernierPassage = Date.now()
+    noterPassage()
+  })
+
   // Sur login/logout UNIQUEMENT : reconstruire la nav + re-rendre la vue courante.
   // ⚠ Supabase émet aussi des événements au simple retour dans l'app (rafraîchissement
   // de jeton) : re-rendre à ce moment-là VIDAIT les formulaires en cours de saisie.
@@ -198,7 +213,12 @@ defineRoutes(
     // ignorer les connexions.
     // Rien à rejouer à la DÉCONNEXION : le passage a déjà été noté à
     // l'ouverture, le recompter en anonyme gonflerait le chiffre.
-    if (uid) recordVisit()
+    // ⚠ Le département était OUBLIÉ ici, alors que noterPassage() le
+    // transmet : la ligne créée à la connexion n'en portait jamais.
+    if (uid) {
+      const mes = getMesDepartements()
+      recordVisit(mes.length === 1 ? mes[0] : null)
+    }
     resetOwnerCache() // sinon le compte suivant hériterait du drapeau du précédent
     renderNav()
     refresh()

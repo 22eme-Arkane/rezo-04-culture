@@ -10,7 +10,7 @@ import { el, emptyState } from './components.js'
 import { posterEventCard } from './posterEventCard.js'
 import { studioEventItem, studioHeader } from './studio.js'
 import { isAdmin } from '../lib/auth.js'
-import { listPendingEvents, setEventStatus, deleteEvent } from '../lib/events.js'
+import { listPendingEvents, setEventStatus } from '../lib/events.js'
 import { myModDepts } from '../lib/moderation.js'
 import { nomDepartement } from '../lib/departements.js'
 
@@ -57,17 +57,19 @@ export async function viewAdmin() {
 
   for (const ev of events) {
     let item
+    // ⚠ Deux boutons seulement. « Supprimer » a été retiré : à côté de
+    // « Rejeter », il invitait à effacer définitivement l'événement de
+    // quelqu'un d'un geste irréversible, là où rejeter suffit et laisse une
+    // trace. La suppression reste possible depuis la fiche de l'événement.
     const approve = el('button', 'btn btn--success btn--sm')
     approve.textContent = 'Approuver'
     const reject = el('button', 'btn btn--ghost btn--sm')
     reject.textContent = 'Rejeter'
-    const del = el('button', 'btn btn--danger btn--sm')
-    del.textContent = 'Supprimer'
 
     // D'où vient l'événement : précieux dès qu'on modère plusieurs départements.
     const dept = el(
       'span',
-      'fb-tag' + (ev.dept ? '' : ' fb-tag--bug'),
+      'fb-tag moderation-dept' + (ev.dept ? '' : ' fb-tag--bug'),
       ev.dept ? `${ev.dept} · ${nomDepartement(ev.dept)}` : 'hors territoire'
     )
 
@@ -79,25 +81,21 @@ export async function viewAdmin() {
     }
 
     async function moderate(action) {
-      ;[approve, reject, del].forEach((b) => (b.disabled = true))
+      ;[approve, reject].forEach((b) => (b.disabled = true))
       try {
         await action()
         done()
       } catch (e) {
         alert('Action impossible : ' + e.message)
-        ;[approve, reject, del].forEach((b) => (b.disabled = false))
+        ;[approve, reject].forEach((b) => (b.disabled = false))
       }
     }
 
     approve.addEventListener('click', () => moderate(() => setEventStatus(ev.id, 'approved')))
     reject.addEventListener('click', () => moderate(() => setEventStatus(ev.id, 'rejected')))
-    del.addEventListener('click', () => {
-      if (!confirm('Supprimer définitivement cet événement ?')) return
-      moderate(() => deleteEvent(ev.id))
-    })
 
     const card = posterEventCard(ev, { showGem: false, index: events.indexOf(ev) })
-    item = studioEventItem(card, [dept, approve, reject, del], { status: ev.status })
+    item = studioEventItem(card, [dept, approve, reject], { status: ev.status })
     list.appendChild(item)
   }
   return wrap

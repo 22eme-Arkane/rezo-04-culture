@@ -6,7 +6,14 @@ import { el } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
-import { amIOwner, getAdminStats, getVisitsTotal } from '../lib/admins.js'
+import {
+  amIOwner,
+  getAdminStats,
+  getUpcomingPublished,
+  getVisitsSince,
+  getVisitsTotal,
+} from '../lib/admins.js'
+import { myPendingCount } from '../lib/moderation.js'
 import { nomDepartement } from '../lib/departements.js'
 import { purgePastMonths } from '../lib/events.js'
 import { navigate } from '../lib/router.js'
@@ -29,10 +36,19 @@ export async function viewStats() {
 
   let stats
   let visitesTotal = null
+  let aVenirPublies = null
+  let mesureDepuis = null
+  let enAttenteZone = null
   try {
     // Les deux en parallèle : le total vit dans sa propre fonction (0023),
     // inutile d'attendre l'un puis l'autre.
-    ;[stats, visitesTotal] = await Promise.all([getAdminStats(), getVisitsTotal()])
+    ;[stats, visitesTotal, aVenirPublies, mesureDepuis, enAttenteZone] = await Promise.all([
+      getAdminStats(),
+      getVisitsTotal(),
+      getUpcomingPublished(),
+      getVisitsSince(),
+      myPendingCount().catch(() => null),
+    ])
   } catch (e) {
     body.innerHTML = ''
     body.appendChild(el('p', 'form__msg form__msg--err', 'Statistiques indisponibles : ' + e.message))
@@ -62,17 +78,25 @@ export async function viewStats() {
     l.appendChild(el('span', 'stats-hero__mot', mot))
     bandeau.appendChild(l)
   }
-  // Deux chiffres distincts, et c'est le fond du sujet :
-  //   VISITES  — chaque ouverture de l'application, retours compris ;
-  //   VISITEURS UNIQUES — les personnes, comptées une seule fois.
-  // Les visites arrivent en tête parce que c'est le chiffre qui monte.
-  if (visitesTotal != null) grandChiffre(visitesTotal, 'visites au total')
+  // ⚠ CHAQUE LIBELLÉ PORTE SON UNITÉ ET SA PÉRIODE. C'est la leçon de l'écart
+  // 1130 / 2079 signalé par Matthieu : les deux chiffres étaient justes, mais
+  // rien ne disait que l'un comptait des PERSONNES depuis le début de la
+  // mesure et l'autre des JOURS DE PRÉSENCE sur 30 jours. Une note en bas de
+  // page ne suffit pas — elle se perd, et j'en ai moi-même supprimé cinq d'un
+  // commit de mise en forme. La définition doit voyager AVEC le chiffre.
+  const depuisCourt = mesureDepuis
+    ? ' depuis le ' + JOUR.format(new Date(mesureDepuis + 'T12:00:00'))
+    : ''
+  if (visitesTotal != null) grandChiffre(visitesTotal, 'ouvertures' + depuisCourt)
   grandChiffre(
     (stats.visites.uniques_total ?? 0) + (anon.uniques_total ?? 0),
-    'visiteurs uniques'
+    'visiteurs différents' + depuisCourt
   )
-  grandChiffre(stats.membres.total, 'membres')
-  grandChiffre(stats.evenements.a_venir, 'événements à venir')
+  grandChiffre(stats.membres.total, 'membres inscrits')
+  // Les APPROUVÉS seulement : c'est ce que le public voit, et c'est ce que
+  // totalise le graphique par département plus bas. `a_venir` comptait aussi
+  // les rejetés, si bien que les deux ne tombaient jamais juste.
+  grandChiffre(aVenirPublies ?? stats.evenements.a_venir, 'événements publiés à venir')
   body.appendChild(bandeau)
 
   // --- Chiffres clés -------------------------------------------------------
@@ -90,14 +114,23 @@ export async function viewStats() {
     )
   )
   kpis.appendChild(
-    kpi('Événements à venir', stats.evenements.a_venir, `${stats.evenements.total} au total`)
+    kpi(
+      'Événements publiés à venir',
+      aVenirPublies ?? stats.evenements.a_venir,
+      `${stats.evenements.total} encore en base`
+    )
   )
-  kpis.appendChild(
-    kpi('En attente', stats.evenements.en_attente, 'à modérer', stats.evenements.en_attente > 0)
-  )
+  // ⚠ MA ZONE, pas tout le territoire. La tuile comptait les événements des
+  // six départements alors que le bouton juste dessous mène à une file
+  // cloisonnée : un modérateur du 04 lisait 7 et n'en trouvait que 3 à
+  // traiter. `myPendingCount()` applique can_moderate(), comme la file.
+  const enAttente = enAttenteZone ?? stats.evenements.en_attente
+  kpis.appendChild(kpi('En attente dans ma zone', enAttente, 'à modérer', enAttente > 0))
   body.appendChild(kpis)
 
-  if (stats.evenements.en_attente > 0) {
+  // Le bouton suit la tuile : il ne s'affiche que s'il y a vraiment quelque
+  // chose à traiter DANS SA ZONE, sinon il menait à une file vide.
+  if (enAttente > 0) {
     const go = el('button', 'btn btn--primary btn--block', 'Aller à la modération')
     go.type = 'button'
     go.addEventListener('click', () => navigate('/moderation'))
@@ -113,19 +146,23 @@ export async function viewStats() {
   // « 26 visiteurs sur 30 jours » et l'on croyait le tableau faux.
   body.appendChild(section('Qui vient'))
   const freq = el('div', 'settings-group')
-  freq.appendChild(line('Visiteurs sans compte (7 jours)', anon.uniques_7j ?? 0))
-  freq.appendChild(line('Visiteurs sans compte (30 jours)', anon.uniques_30j ?? 0))
+  freq.appendChild(line('Navigateurs sans compte (7 jours)', anon.uniques_7j ?? 0))
+  freq.appendChild(line('Navigateurs sans compte (30 jours)', anon.uniques_30j ?? 0))
   // Cumul depuis le début de la mesure, inscrits et non-inscrits réunis.
   const totalVisiteurs = (stats.visites.uniques_total ?? 0) + (anon.uniques_total ?? 0)
-  freq.appendChild(line('Visiteurs au total', totalVisiteurs))
+  // ⚠ « majorant » et non « total » : rien ne relie un navigateur anonyme au
+  // compte créé ensuite, donc quelqu'un qui s'inscrit après être passé sans
+  // compte est compté DEUX fois — définitivement. C'est un plafond, pas un
+  // nombre de personnes.
+  freq.appendChild(line('Membres + navigateurs sans compte (majorant)', totalVisiteurs))
   body.appendChild(freq)
 
   // --- État des comptes ----------------------------------------------------
   body.appendChild(section('État des comptes'))
   const comptes = el('div', 'settings-group')
-  comptes.appendChild(line('Session ouverte dans les 24 h', stats.connexions.actifs_24h))
-  comptes.appendChild(line('Session ouverte dans les 7 jours', stats.connexions.actifs_7j))
-  comptes.appendChild(line('Session ouverte dans les 30 jours', stats.connexions.actifs_30j))
+  comptes.appendChild(line('Dernière connexion il y a moins de 24 h', stats.connexions.actifs_24h))
+  comptes.appendChild(line('Dernière connexion il y a moins de 7 jours', stats.connexions.actifs_7j))
+  comptes.appendChild(line('Dernière connexion il y a moins de 30 jours', stats.connexions.actifs_30j))
   comptes.appendChild(line('E-mails confirmés', stats.connexions.emails_confirmes))
   body.appendChild(comptes)
 
@@ -146,7 +183,7 @@ export async function viewStats() {
     n: d.n,
   }))
   if (parDept.length) {
-    body.appendChild(section('Passages par département (30 jours)'))
+    body.appendChild(section('Jours de présence par département (30 derniers jours)'))
     body.appendChild(barChart(parDept))
   }
 
@@ -156,12 +193,12 @@ export async function viewStats() {
     n: d.n,
   }))
   if (evtDept.length) {
-    body.appendChild(section('Événements à venir par département'))
+    body.appendChild(section('Événements publiés à venir, par département'))
     body.appendChild(barChart(evtDept))
   }
 
   if (daily.length) {
-    body.appendChild(section('Passages par jour, tous publics (30 jours)'))
+    body.appendChild(section('Jours de présence par jour, tous publics (30 derniers jours)'))
     body.appendChild(barChart(daily))
   }
 
@@ -171,7 +208,7 @@ export async function viewStats() {
   evs.appendChild(line('Publiés (approuvés)', stats.evenements.approuves))
   evs.appendChild(line('En attente', stats.evenements.en_attente))
   evs.appendChild(line('Rejetés', stats.evenements.rejetes))
-  evs.appendChild(line('Payants', stats.evenements.payants))
+  evs.appendChild(line('Payants (tous statuts)', stats.evenements.payants))
   // ⚠ Fenêtres GLISSANTES, pas semaine ni mois calendaires : le 3 du mois,
   // « ce mois-ci » remontait jusqu'au mois précédent sans le dire.
   evs.appendChild(line('Créés ces 7 jours', stats.evenements.new_7j))
