@@ -443,12 +443,32 @@ export async function viewMap() {
     }).addTo(map)
     applyDepartmentMaskPattern(departmentMask)
     appliquerFonduDeBord(map, departmentMask)
+    // DEUX traits, et il en faut bien deux.
+    // Le premier, fin, dessine TOUTES les frontières, y compris celles qui
+    // séparent deux départements retenus. Le second, épais, est rogné à
+    // l'extérieur du territoire : ces frontières-là, entièrement intérieures,
+    // en disparaîtraient complètement — on ne verrait plus où finit le 04 et
+    // où commence le 05.
     L.geoJSON(contoursActifs, {
       pane: 'departmentMask',
       interactive: false,
       style: {
         color: '#f4ca15',
-        weight: 4,
+        weight: 2.5,
+        opacity: 1,
+        fillOpacity: 0,
+        className: 'department-outline-fine',
+      },
+    }).addTo(map)
+    L.geoJSON(contoursActifs, {
+      pane: 'departmentMask',
+      interactive: false,
+      style: {
+        color: '#f4ca15',
+        // ⚠ ÉPAISSEUR DOUBLE, ET C'EST VOLONTAIRE. Le trait est rogné à
+        // l'extérieur du territoire (voir `territoire-dehors` plus bas) : seule
+        // la moitié externe se voit. 8 ici = 4 à l'écran, comme avant.
+        weight: 8,
         opacity: 1,
         fillOpacity: 0,
         className: 'department-outline',
@@ -685,7 +705,28 @@ function appliquerFonduDeBord(map, layer) {
   bord.setAttribute('stroke-linejoin', 'round')
   bord.setAttribute('filter', 'url(#territoire-flou)')
   masque.append(fond, bord)
-  defs.append(filtre, masque)
+
+  /**
+   * Découpe « tout sauf le territoire », qui sert au liseré jaune.
+   *
+   * Un trait SVG est CENTRÉ sur son tracé : la moitié de ses 4 px mordait donc
+   * à l'intérieur du département, pile là où la carte pose les noms de villes.
+   * Marseille et Avignon, posées sur leur frontière, se retrouvaient barrées.
+   * On dessine désormais un trait deux fois plus épais, rogné à l'extérieur :
+   * l'épaisseur vue est la même, mais plus rien n'empiète sur le territoire.
+   *
+   * Même géométrie que le masque — monde plus départements, règle `evenodd` —
+   * mais sur une COPIE : viser le tracé du masque, qui porte lui-même ce
+   * découpage, créerait une référence circulaire que le navigateur ignore.
+   */
+  const decoupe = document.createElementNS(ns, 'clipPath')
+  decoupe.id = 'territoire-dehors'
+  decoupe.setAttribute('clipPathUnits', 'userSpaceOnUse')
+  const dehors = document.createElementNS(ns, 'path')
+  dehors.setAttribute('clip-rule', 'evenodd')
+  decoupe.appendChild(dehors)
+
+  defs.append(filtre, masque, decoupe)
   path.setAttribute('mask', 'url(#territoire-fondu)')
 
   /**
@@ -697,6 +738,7 @@ function appliquerFonduDeBord(map, layer) {
     const d = path.getAttribute('d') || ''
     const sousTraces = d.split('M').filter((s) => s.trim())
     bord.setAttribute('d', sousTraces.length > 1 ? 'M' + sousTraces.slice(1).join('M') : '')
+    dehors.setAttribute('d', d)
 
     const vue = map.getPixelBounds()
     const origine = map.getPixelOrigin()

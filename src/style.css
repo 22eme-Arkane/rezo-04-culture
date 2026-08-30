@@ -1818,9 +1818,20 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
 .map-geo-msg { margin: 0.45rem 0 0; }
 .map-geo-msg:empty { display: none; }
 .department-mask { fill-opacity: 1; }
+/* Trait fin, NON rogné : il porte à lui seul les frontières entre deux
+   départements retenus, que la découpe du liseré efface entièrement. */
+.department-outline-fine {
+  stroke-linejoin: round;
+}
 .department-outline {
   filter: drop-shadow(0 2px 2px rgba(6, 43, 29, 0.55));
   stroke-linejoin: round;
+  /* Le liseré ne déborde QUE vers l'extérieur : sa moitié intérieure barrait
+     les noms de villes posés sur la frontière. Découpe construite en JS
+     (appliquerFonduDeBord), donc absente tant que la carte n'est pas bâtie —
+     une règle CSS pointant sur un identifiant introuvable est simplement
+     ignorée, le liseré reste alors entier. */
+  clip-path: url(#territoire-dehors);
 }
 .screen--studio-map .leaflet-control-zoom a { color: var(--studio-green); }
 .screen--studio-map .popup .btn--primary {
