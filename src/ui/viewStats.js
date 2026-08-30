@@ -21,6 +21,7 @@ import { navigate } from '../lib/router.js'
 
 const MOIS = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: '2-digit' })
 const JOUR = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' })
+const MOIS_LONG = new Intl.DateTimeFormat('fr-FR', { month: 'long' })
 
 export async function viewStats() {
   const wrap = el('section', 'page page--studio-sub page--studio-blue page--studio-stats')
@@ -114,7 +115,9 @@ export async function viewStats() {
   kpis.appendChild(kpi('Visites aujourd’hui', visitesDuJour))
   kpis.appendChild(kpi('Visites hier', visitesHier))
   kpis.appendChild(kpi('Visites cette semaine', visites?.semaine ?? '—', 'depuis lundi'))
-  kpis.appendChild(kpi('Visites ce mois-ci', visites?.mois ?? '—', 'depuis le 1er'))
+  // Le NOM du mois plutôt que « depuis le 1er » : « août » se lit d'un coup
+  // d'œil et lève l'ambiguïté quand on consulte l'écran un 2 du mois.
+  kpis.appendChild(kpi('Visites ce mois-ci', visites?.mois ?? '—', MOIS_LONG.format(new Date())))
   body.appendChild(kpis)
 
   // ⚠ MA ZONE, pas tout le territoire. La tuile comptait les événements des
