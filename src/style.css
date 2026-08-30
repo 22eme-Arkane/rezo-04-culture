@@ -2465,6 +2465,23 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   font-weight: 900;
   text-transform: uppercase;
 }
+/* ESSAI — événement qui dure : « 02→10 » tient sur la même ligne que le
+   chiffre unique, mais en cinq caractères au lieu de deux. Sans réduction, il
+   débordait de la colonne de date. */
+.poster-card__date--plage .poster-card__day {
+  font-size: clamp(1.9rem, 9vw, 2.4rem);
+  letter-spacing: -0.02em;
+}
+.poster-card__jusqua {
+  position: relative;
+  z-index: 1;
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1rem, 4.6vw, 1.2rem);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
 .poster-card__day {
   font-size: clamp(4.7rem, 23vw, 5.8rem);
   line-height: 0.75;

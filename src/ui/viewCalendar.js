@@ -358,6 +358,46 @@ export async function viewCalendar() {
       shown = shown.slice(0, 300)
     }
 
+    // --- ESSAI : les événements qui DURENT, regroupés en tête ---------------
+    // Une exposition ouverte dix jours produisait dix cartes, noyant les
+    // rendez-vous d'un soir. On n'en garde qu'UNE, portant la plage restante
+    // (« du 2 au 10 septembre »), et on la remonte en haut de la liste.
+    //
+    // ⚠ Regroupement fait ICI, au rendu, et non dans occurrences() : les
+    // pastilles du calendrier ont besoin, elles, du détail jour par jour.
+    // Les toucher ferait disparaître les points des jours intermédiaires.
+    const aujourdHui = dayKey(new Date())
+    const dejaVu = new Map()
+    const longs = []
+    const ponctuels = []
+    for (const o of shown) {
+      if (!o._occ) {
+        ponctuels.push(o)
+        continue
+      }
+      if (dejaVu.has(o.id)) continue
+      // ⚠ La plage part du PREMIER JOUR VISIBLE DANS LA VUE COURANTE, et court
+      // jusqu'à la fin de l'événement. `o` est une occurrence : son `starts_at`
+      // a été réécrit à la date de ce jour-là, donc eventDayKeys() repart de là.
+      // C'est voulu, et cohérent dans les trois vues :
+      //   · liste « à venir »   → « du 30 août au 20 septembre » ;
+      //   · mois de septembre   → « du 1er au 20 septembre » ;
+      //   · jour du 5 septembre → « du 5 au 20 septembre ».
+      // Le resserrement demandé par Matthieu en découle : demain, la même
+      // exposition annoncera « du 31 août au 20 septembre ».
+      const restants = eventDayKeys(o).filter((k) => k >= aujourdHui)
+      const carte = {
+        ...o,
+        _plage: restants.length > 1 ? { debut: restants[0], fin: restants[restants.length - 1] } : null,
+        // « Jour 2 sur 3 » n'a plus de sens sur une carte unique ; pour un
+        // événement récurrent, en revanche, savoir QUELS jours reste utile.
+        _occ: isRecurring(o) ? recurrenceDaysLabel(o) : null,
+      }
+      dejaVu.set(o.id, carte)
+      longs.push(carte)
+    }
+    shown = [...longs, ...ponctuels]
+
     if (!shown.length) {
       list.appendChild(emptyState(vide))
       return

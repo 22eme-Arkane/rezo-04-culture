@@ -8,6 +8,14 @@ import { icon } from './icons.js'
 
 const MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
 
+/** Une clé AAAA-MM-JJ en Date locale, à midi pour éviter tout décalage. */
+function jourDe(cle) {
+  const [a, m, j] = cle.split('-').map(Number)
+  return new Date(a, m - 1, j, 12, 0, 0, 0)
+}
+
+const deuxChiffres = (d) => String(d.getDate()).padStart(2, '0')
+
 export function posterEventCard(ev, opts = {}) {
   const card = el('article', 'poster-card')
   const tones = ['yellow', 'red', 'green', 'blue']
@@ -20,10 +28,40 @@ export function posterEventCard(ev, opts = {}) {
 
   const startsAt = new Date(ev.starts_at)
   const date = el('div', 'poster-card__date')
-  date.appendChild(el('span', 'poster-card__day', String(startsAt.getDate()).padStart(2, '0')))
-  date.appendChild(
-    el('span', 'poster-card__month', MONTH.format(startsAt).replace('.', '').toUpperCase())
-  )
+  if (ev._plage) {
+    // ÉVÉNEMENT QUI DURE : la plage restante, pas la date de départ. Elle se
+    // resserre d'elle-même au fil des jours, puisqu'elle est recalculée à
+    // chaque affichage à partir d'aujourd'hui.
+    const d = jourDe(ev._plage.debut)
+    const f = jourDe(ev._plage.fin)
+    const memeMois = d.getMonth() === f.getMonth() && d.getFullYear() === f.getFullYear()
+    date.classList.add('poster-card__date--plage')
+    if (memeMois) {
+      // « 02 → 10 » puis « SEPT » : le mois n'est écrit qu'une fois.
+      date.appendChild(el('span', 'poster-card__day', `${deuxChiffres(d)}→${deuxChiffres(f)}`))
+      date.appendChild(
+        el('span', 'poster-card__month', MONTH.format(d).replace('.', '').toUpperCase())
+      )
+    } else {
+      // À cheval sur deux mois, chacun porte le sien.
+      date.appendChild(el('span', 'poster-card__day', deuxChiffres(d)))
+      date.appendChild(
+        el('span', 'poster-card__month', MONTH.format(d).replace('.', '').toUpperCase())
+      )
+      date.appendChild(
+        el(
+          'span',
+          'poster-card__jusqua',
+          `→ ${deuxChiffres(f)} ${MONTH.format(f).replace('.', '').toUpperCase()}`
+        )
+      )
+    }
+  } else {
+    date.appendChild(el('span', 'poster-card__day', String(startsAt.getDate()).padStart(2, '0')))
+    date.appendChild(
+      el('span', 'poster-card__month', MONTH.format(startsAt).replace('.', '').toUpperCase())
+    )
+  }
   date.appendChild(el('span', 'poster-card__time', formatTime(ev.starts_at)))
   card.appendChild(date)
 
