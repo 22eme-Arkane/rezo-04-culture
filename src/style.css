@@ -2485,13 +2485,13 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   width: 1.15em;
   height: 0.72em;
   display: block;
-  /* ⚠ VALEUR MESURÉE, pas estimée. `align-items: center` centre la flèche sur
-     la BOÎTE DE LIGNE, qui réserve la place des jambages descendants — or
-     « 20 SEPT » n'en a aucun. La flèche se retrouvait donc SOUS le milieu des
-     capitales, de 4,8 px exactement (ligne de base relevée dans le DOM, hauteur
-     de capitale mesurée sur les pixels peints). Ce décalage négatif la ramène à
-     mi-hauteur des lettres. En em, pour suivre le corps du texte. */
-  transform: translateY(-0.126em);
+  /* ⚠ VALEUR RÉGLÉE À L'ŒIL, ET C'EST VOLONTAIRE. Le centrage géométrique sur
+     la hauteur des capitales — que j'ai mesuré deux fois — donne 0, et Matthieu
+     l'a trouvé trop haut à chaque essai. Il a raison : une flèche horizontale a
+     toute sa masse sur une seule ligne, là où un chiffre en répartit sur toute
+     sa hauteur ; l'œil la remonte donc, et il faut la descendre pour qu'elle
+     paraisse au milieu. Ne pas « corriger » cette valeur d'après un calcul. */
+  transform: translateY(0.14em);
 }
 
 .poster-card__day,
