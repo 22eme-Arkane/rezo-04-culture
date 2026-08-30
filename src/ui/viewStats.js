@@ -15,7 +15,7 @@ import {
   getVisitsTotal,
 } from '../lib/admins.js'
 import { myPendingCount } from '../lib/moderation.js'
-import { nomDepartement } from '../lib/departements.js'
+import { DEPARTEMENTS, nomDepartement } from '../lib/departements.js'
 import { purgePastMonths } from '../lib/events.js'
 import { navigate } from '../lib/router.js'
 
@@ -180,21 +180,15 @@ export async function viewStats() {
     }))
   // D'où viennent les gens : passages des 30 derniers jours par département
   // (position GPS quand elle est donnée — seul le département est enregistré).
-  const parDept = (stats.par_departement ?? []).map((d) => ({
-    label: d.code === '—' ? 'non renseigné' : `${d.code} ${nomDepartement(d.code)}`,
-    n: d.n,
-  }))
-  if (parDept.length) {
+  const parDept = repartitionParDept(stats.par_departement, 'non renseigné')
+  if (parDept.some((d) => d.n)) {
     body.appendChild(section('Jours de présence par département (30 derniers jours)'))
     body.appendChild(barChart(parDept))
   }
 
   // Où se passe l'activité : les événements à venir, par département.
-  const evtDept = (stats.evenements_par_departement ?? []).map((d) => ({
-    label: d.code === '—' ? 'hors territoire' : `${d.code} ${nomDepartement(d.code)}`,
-    n: d.n,
-  }))
-  if (evtDept.length) {
+  const evtDept = repartitionParDept(stats.evenements_par_departement, 'hors territoire')
+  if (evtDept.some((d) => d.n)) {
     body.appendChild(section('Événements publiés à venir, par département'))
     body.appendChild(barChart(evtDept))
   }
@@ -319,6 +313,38 @@ function line(label, value) {
 }
 
 /** Histogramme horizontal en CSS pur — aucune bibliothèque, aucun réseau. */
+/**
+ * Répartition par département, COMPLÉTÉE par les départements ouverts que le
+ * SQL n'a pas renvoyés — à zéro.
+ *
+ * ⚠ Sans cela, un département sans activité DISPARAÎT du graphique. On ne
+ * distingue alors plus « aucun événement ici » de « ce département n'est pas
+ * ouvert », ce qui a fait croire à une ouverture PACA ratée. Le SQL regroupe
+ * les lignes existantes : il ne peut pas inventer celles qui sont vides, c'est
+ * donc ici que la liste complète doit être rétablie.
+ *
+ * Les codes hors de la liste ouverte (« — » sans position, ou un département
+ * fermé qui porte encore des données) sont conservés et rejetés en fin.
+ */
+function repartitionParDept(lignes, libelleHorsListe) {
+  const trouves = new Map((lignes ?? []).map((d) => [d.code, d.n]))
+  const ouverts = DEPARTEMENTS.map((d) => ({
+    label: `${d.code} ${d.nom}`,
+    n: trouves.get(d.code) ?? 0,
+  }))
+  ouverts.sort((a, b) => b.n - a.n || a.label.localeCompare(b.label))
+
+  const autres = []
+  for (const [code, n] of trouves) {
+    if (code === '—') autres.push({ label: libelleHorsListe, n })
+    else if (!DEPARTEMENTS.some((d) => d.code === code)) {
+      autres.push({ label: `${code} ${nomDepartement(code)}`, n })
+    }
+  }
+  autres.sort((a, b) => b.n - a.n)
+  return [...ouverts, ...autres]
+}
+
 function barChart(rows) {
   const max = Math.max(1, ...rows.map((r) => r.n))
   const box = el('div', 'bars')
