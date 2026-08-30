@@ -87,8 +87,12 @@ export function posterEventCard(ev, opts = {}) {
   // et chassait le lieu — or c'est le lieu qui fait décider d'y aller. Les
   // trois choses qui comptent sont le titre, le style et l'adresse ; le reste
   // s'efface, et la fiche complète est à un doigt de là.
-  if (ev.address) info.appendChild(el('p', 'poster-card__place', ev.address))
+  // La mention des jours vient JUSTE APRÈS LE TITRE, sur une ligne. Placée en
+  // dernier, elle tombait sur le badge de prix et le chevauchait.
   if (ev._occ) info.appendChild(el('span', 'poster-card__occ', ev._occ))
+  // L'adresse est poussée en bas du cadre (margin-top auto) : elle garde sa
+  // place quoi qu'il arrive au-dessus.
+  if (ev.address) info.appendChild(el('p', 'poster-card__place', ev.address))
   info.appendChild(el('span', 'poster-card__price', formatPrice(ev)))
   card.appendChild(info)
 
