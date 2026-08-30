@@ -161,7 +161,7 @@ export async function viewDetail({ query } = {}) {
     const tete = el('p', 'detail-lieu__adresse')
     // Le marqueur d'Armana, celui-là même qui pique l'événement sur la carte :
     // on reconnaît le repère avant d'avoir lu l'adresse.
-    tete.appendChild(marqueurArmana({ size: 26 }))
+    tete.appendChild(marqueurArmana({ size: 20 }))
     tete.appendChild(document.createTextNode(' ' + ev.address))
     lieu.appendChild(tete)
 

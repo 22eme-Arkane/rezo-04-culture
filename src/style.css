@@ -2566,16 +2566,28 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   font-size: 0.61rem;
   font-weight: 800;
 }
-/* Ton ROUGE → badge VERT BOUTEILLE. ⚠ Le vert de la charte (#26784c) a
-   presque la MÊME CLARTÉ que le rouge : mesuré à 1,49:1, le badge s'y
-   effaçait. Complémentaire en teinte ne suffit pas, il faut aussi l'écart de
-   clarté — d'où ce vert nettement plus sombre. */
+/* Ton ROUGE → badge VERT, ton VERT → badge ROUGE : les vraies paires
+   complémentaires, comme demandé.
+   ⚠ LA NUANCE COMPTE. Le vert de la charte (#26784c) a presque la même clarté
+   que le rouge — mesuré à 1,49:1, le badge s'y effaçait. On prend donc le vert
+   CLAIR du masque, franchement plus lumineux que le rouge : la teinte reste
+   complémentaire, et l'écart de clarté rend le badge visible. */
+/* ⚠ ROUGE ET VERT SONT COMPLÉMENTAIRES EN TEINTE MAIS DE CLARTÉ QUASI ÉGALE :
+   1,5:1 mesuré, quelle que soit la nuance choisie. C'est une propriété de ces
+   deux couleurs, pas un mauvais choix — aucune paire rouge/vert ne se détache
+   par la seule clarté. Le liseré rétablit donc la séparation que la teinte ne
+   peut pas donner, sans toucher aux couleurs demandées. */
 .poster-card[data-tone='red'] .poster-card__time {
-  color: var(--studio-cream);
-  background: #073b27;
+  color: var(--studio-ink);
+  background: var(--mask-green-light);
+  box-shadow: 0 0 0 1.5px var(--studio-ink);
 }
-/* Tons VERT et BLEU → badge JAUNE, texte encre. */
-.poster-card[data-tone='green'] .poster-card__time,
+.poster-card[data-tone='green'] .poster-card__time {
+  color: var(--studio-cream);
+  background: var(--studio-red);
+  box-shadow: 0 0 0 1.5px var(--studio-cream);
+}
+/* Ton BLEU → badge JAUNE (l'autre paire complémentaire). */
 .poster-card[data-tone='blue'] .poster-card__time {
   color: var(--studio-ink);
   background: var(--mask-yellow);
@@ -2715,6 +2727,14 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 .poster-card__favorite.is-on { color: var(--studio-cream); background: var(--studio-blue); }
 .poster-card__favorite:disabled { opacity: 0.6; }
 
+/* Marqueur d'Armana dans les vignettes de l'agenda : discret, aligné sur la
+   ligne de texte plutôt que sur sa ligne de base. */
+.poster-card__place svg {
+  display: inline-block;
+  vertical-align: -0.22em;
+  margin-right: 0.05rem;
+}
+
 /* --- Fiche événement : le lieu, mis en avant ---------------------------- */
 /* Encadré à part, juste avant « À propos » : l'adresse était noyée entre la
    date, le contact et l'auteur, alors que c'est elle qui décide si l'on y va. */
@@ -2725,21 +2745,27 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   border: 2px solid rgba(11, 85, 197, 0.18);
   background: var(--studio-cream);
 }
+/* Adresse CENTRÉE dans son encadré, marqueur compris : sur une ligne unique
+   comme sur trois, le bloc reste d'aplomb. */
 .detail-lieu__adresse {
   display: flex;
-  align-items: flex-start;
-  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   margin: 0 0 0.7rem;
   color: var(--studio-ink);
   font-size: 0.98rem;
   font-weight: 700;
   line-height: 1.35;
+  text-align: center;
 }
 /* Le marqueur porte ses propres couleurs : ni largeur ni teinte imposées ici,
-   sans quoi la goutte jaune serait écrasée ou repeinte. */
+   sans quoi la goutte jaune serait écrasée ou repeinte. Sa pointe descend plus
+   bas que son centre optique, d'où ce léger relèvement pour qu'il paraisse
+   aligné sur le texte plutôt que de flotter. */
 .detail-lieu__adresse svg {
   flex: 0 0 auto;
-  margin-top: -0.1rem;
+  margin-top: -0.18rem;
 }
 .detail-lieu__aller { text-decoration: none; }
 

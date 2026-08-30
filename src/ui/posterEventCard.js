@@ -4,7 +4,7 @@ import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { addGem, removeGem } from '../lib/events.js'
 import { el, formatPrice, formatTime } from './components.js'
-import { icon } from './icons.js'
+import { icon, marqueurArmana } from './icons.js'
 
 const MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
 const JOUR_SEMAINE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long' })
@@ -102,7 +102,14 @@ export function posterEventCard(ev, opts = {}) {
   // « Tous les lundis, mardis… » écrasait le titre et l'adresse pour une
   // information qu'on ne lit pas en parcourant une liste. Trois choses
   // suffisent ici : le style, le nom, le lieu. Le détail est sur la fiche.
-  if (ev.address) info.appendChild(el('p', 'poster-card__place', ev.address))
+  if (ev.address) {
+    // Le même marqueur que la carte et la fiche, en tout petit : il signale
+    // « c'est ici que ça se passe » sans qu'on ait à lire.
+    const lieu = el('p', 'poster-card__place')
+    lieu.appendChild(marqueurArmana({ size: 12 }))
+    lieu.appendChild(document.createTextNode(' ' + ev.address))
+    info.appendChild(lieu)
+  }
   info.appendChild(el('span', 'poster-card__price', formatPrice(ev)))
   card.appendChild(info)
 
