@@ -18,21 +18,29 @@
 export const DEPARTEMENTS_URL = '/data/departements.geojson'
 
 /**
- * Les six départements dont le contour est embarqué, par numéro.
+ * Les sept départements dont le contour est embarqué, par numéro.
  *
- * ⚠ `actif` est l'INTERRUPTEUR d'ouverture d'un département. Les contours du
- * 13, du 26 et du 83 sont déjà en place et prêts : les activer ne demandera
- * que de passer `actif` à true ici, d'élargir CADRE_RECHERCHE ci-dessous, et
- * de redéployer. Aucune migration, aucun nouveau fichier.
- * Décision de Matthieu : on n'ouvre ces trois-là qu'une fois le nom de domaine
- * acheté.
+ * ⚠ `actif` est l'INTERRUPTEUR d'ouverture d'un département.
+ *
+ * Depuis le 29 août 2026, Armana couvre TOUTE LA RÉGION PACA : 04, 05, 06, 13,
+ * 83 et 84. La Drôme reste embarquée mais fermée — elle n'appartient pas à
+ * PACA (Auvergne-Rhône-Alpes) ; son contour est prêt si l'on veut l'ouvrir un
+ * jour, il suffira de passer `actif` à true et d'élargir CADRE_RECHERCHE.
+ *
+ * ⚠ TOUT CHANGEMENT ICI SE RÉPERCUTE EN BASE. La liste des codes valides est
+ * répétée dans les fonctions SQL (record_visit, record_anon_visit,
+ * tag_visit_dept, set_moderator, apply_moderator) et dans la table
+ * `dept_contours`, qui sert au calcul de `events.dept`. Ouvrir un département
+ * sans migration donnerait des événements sans département : invisibles pour
+ * les modérateurs et absents des notifications.
  */
 export const TOUS_DEPARTEMENTS = [
   { code: '04', nom: 'Alpes-de-Haute-Provence', actif: true },
   { code: '05', nom: 'Hautes-Alpes', actif: true },
-  { code: '13', nom: 'Bouches-du-Rhône', actif: false },
+  { code: '06', nom: 'Alpes-Maritimes', actif: true },
+  { code: '13', nom: 'Bouches-du-Rhône', actif: true },
   { code: '26', nom: 'Drôme', actif: false },
-  { code: '83', nom: 'Var', actif: false },
+  { code: '83', nom: 'Var', actif: true },
   { code: '84', nom: 'Vaucluse', actif: true },
 ]
 
@@ -46,10 +54,11 @@ export const CODES_DEPARTEMENTS = DEPARTEMENTS.map((d) => d.code)
  * d'adresse (voir lib/geo.js). Volontairement placé ICI, à côté des
  * interrupteurs : les deux doivent changer ensemble, sinon on chercherait des
  * adresses dans un département qu'on n'affiche pas.
- *   04+05+84 (actuel)  : 4.499,45.277,7.227,43.509
- *   les six            : 4.080,45.494,7.227,42.832
+ *   04+05+84 (avant)      : 4.499,45.277,7.227,43.509
+ *   PACA entière (actuel) : 4.230,45.127,7.719,42.982
+ *   avec la Drôme         : 4.080,45.494,7.719,42.982
  */
-export const CADRE_RECHERCHE = '4.499,45.277,7.227,43.509'
+export const CADRE_RECHERCHE = '4.230,45.127,7.719,42.982'
 
 export function nomDepartement(code) {
   return TOUS_DEPARTEMENTS.find((d) => d.code === code)?.nom || code
