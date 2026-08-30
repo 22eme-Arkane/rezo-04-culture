@@ -366,13 +366,17 @@ export async function viewCalendar() {
     // ⚠ Regroupement fait ICI, au rendu, et non dans occurrences() : les
     // pastilles du calendrier ont besoin, elles, du détail jour par jour.
     // Les toucher ferait disparaître les points des jours intermédiaires.
+    // ⚠ ORDRE CHRONOLOGIQUE CONSERVÉ. Ces cartes étaient remontées en tête ;
+    // Matthieu l'a corrigé : une exposition qui commence le 31 doit se lire
+    // après les rendez-vous du 30. On parcourt donc `shown`, déjà trié par
+    // date, en ne gardant que la PREMIÈRE occurrence de chaque événement —
+    // sa place dans la liste est celle de son premier jour visible.
     const aujourdHui = dayKey(new Date())
-    const dejaVu = new Map()
-    const longs = []
-    const ponctuels = []
+    const dejaVu = new Set()
+    const cartes = []
     for (const o of shown) {
       if (!o._occ) {
-        ponctuels.push(o)
+        cartes.push(o)
         continue
       }
       if (dejaVu.has(o.id)) continue
@@ -393,10 +397,10 @@ export async function viewCalendar() {
         // événement récurrent, en revanche, savoir QUELS jours reste utile.
         _occ: isRecurring(o) ? recurrenceDaysLabel(o) : null,
       }
-      dejaVu.set(o.id, carte)
-      longs.push(carte)
+      dejaVu.add(o.id)
+      cartes.push(carte)
     }
-    shown = [...longs, ...ponctuels]
+    shown = cartes
 
     if (!shown.length) {
       list.appendChild(emptyState(vide))

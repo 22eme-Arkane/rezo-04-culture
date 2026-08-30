@@ -89,12 +89,10 @@ export async function viewDetail({ query } = {}) {
     facts.appendChild(prochaine)
   }
 
-  if (ev.address) {
-    const where = el('p', 'detail__meta')
-    where.appendChild(icon('pin'))
-    where.appendChild(document.createTextNode(' ' + ev.address))
-    facts.appendChild(where)
-  }
+  // ⚠ L'adresse ne figure PLUS dans cette liste : elle a son propre bloc, mis
+  // en avant juste avant « À propos » (voir plus bas). Noyée parmi la date,
+  // le contact et l'auteur, c'était pourtant l'information qui décide si l'on
+  // y va — et celle qu'on cherche au moment de partir.
 
   if (ev.contact) {
     const brut = String(ev.contact).trim()
@@ -155,6 +153,32 @@ export async function viewDetail({ query } = {}) {
       }
     })
     body.appendChild(favBtn)
+  }
+
+  // --- L'ADRESSE, mise en avant -------------------------------------------
+  if (ev.address) {
+    const lieu = el('section', 'detail-lieu')
+    const tete = el('p', 'detail-lieu__adresse')
+    tete.appendChild(icon('pin'))
+    tete.appendChild(document.createTextNode(' ' + ev.address))
+    lieu.appendChild(tete)
+
+    const aller = el('a', 'btn btn--primary btn--block detail-lieu__aller')
+    // ⚠ Les COORDONNÉES d'abord, l'adresse écrite seulement à défaut. C'est
+    // l'événement lui-même qui porte le point choisi sur la carte à la
+    // publication ; rechercher le texte exposerait aux homonymes, comme cette
+    // fois où « Chahut-Chahut » s'est retrouvé dans l'Orne.
+    const q =
+      Number.isFinite(Number(ev.lat)) && Number.isFinite(Number(ev.lng))
+        ? `${ev.lat},${ev.lng}`
+        : ev.address
+    aller.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q)
+    aller.target = '_blank'
+    aller.rel = 'noopener noreferrer'
+    aller.appendChild(icon('map'))
+    aller.appendChild(document.createTextNode(' Ouvrir dans Maps'))
+    lieu.appendChild(aller)
+    body.appendChild(lieu)
   }
 
   if (ev.description) {

@@ -51,8 +51,17 @@ export function posterEventCard(ev, opts = {}) {
     // La flèche dans son propre élément : elle doit être plus grosse que le
     // texte pour ne pas paraître flotter, ce qu'un seul nœud de texte ne
     // permettait pas.
+    // ⚠ FLÈCHE DESSINÉE, pas le caractère « → ». Le glyphe d'Oswald a une barre
+    // bien plus fine que les jambages des lettres : à côté d'un « T », il
+    // paraissait fluet quelle que soit sa taille. Ici l'épaisseur du trait est
+    // réglée à la main pour égaler celle des lettres.
     const jusqua = el('span', 'poster-card__jusqua')
-    jusqua.appendChild(el('span', 'poster-card__fleche', '→'))
+    const fleche = el('span', 'poster-card__fleche')
+    fleche.innerHTML =
+      '<svg viewBox="0 0 22 12" aria-hidden="true" focusable="false">' +
+      '<path d="M1.6 6h16M12.4 1.4 17.9 6l-5.5 4.6" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    jusqua.appendChild(fleche)
     jusqua.appendChild(
       document.createTextNode(memeMois ? deuxChiffres(f) : `${deuxChiffres(f)} ${mois(f)}`)
     )

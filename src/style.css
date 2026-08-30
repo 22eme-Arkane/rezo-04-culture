@@ -2473,12 +2473,18 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    devenait une masse — surtout en blanc sur couleur, où l'œil n'a aucun repos
    entre les jambages. Oswald est condensée elle aussi, mais dessinée pour
    rester lisible : espacement remis à zéro, et tout le bloc réduit. */
-/* La flèche est plus grosse que le texte qu'elle annonce : à taille égale, sa
-   barre fine la faisait disparaître et la ligne semblait décalée à droite. */
+/* Flèche dessinée (voir posterEventCard.js) : son trait égale l'épaisseur des
+   jambages, et `align-items: center` du parent la cale au MILIEU de « 20 SEPT »
+   au lieu de la laisser reposer sur la ligne de base. */
 .poster-card__fleche {
-  font-size: 1.45em;
-  line-height: 0.7;
-  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.poster-card__fleche svg {
+  width: 1.15em;
+  height: 0.72em;
+  display: block;
 }
 
 .poster-card__day,
@@ -2543,29 +2549,36 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    grand vide entre le mois et elle. Le bloc est desormais groupe et centre :
    l'air se repartit egalement au-dessus du jour de la semaine et sous
    l'heure, comme Matthieu le demandait. */
-/* ⚠ LE BADGE JOUE SUR LA CLARTÉ, PAS SUR LA TEINTE. Il était vert sur toutes
-   les cartes et s'effaçait donc sur les cartes vertes. Alterner
-   SOMBRE-SUR-CLAIR et CLAIR-SUR-SOMBRE tient sur les quatre tons sans avoir à
-   choisir une teinte complémentaire pour chacun — et le contraste mesuré ne
-   dépend alors plus de la teinte : 3,3:1 au pire, 9,6:1 au mieux. */
+/* ⚠ UNE COULEUR COMPLÉMENTAIRE PAR TON, comme demandé — pas du noir et blanc.
+   Le badge était vert sur les quatre cartes et disparaissait donc sur les
+   vertes. Les paires suivent la roue chromatique : jaune ↔ bleu, rouge ↔ vert.
+   Le texte du badge prend l'encre ou la crème selon la clarté du fond retenu,
+   pour rester lisible dans les deux cas. */
 .poster-card__time {
   position: relative;
   z-index: 2;
   margin-top: 0.3rem;
   padding: 0.16rem 0.4rem;
   border-radius: 999px;
-  /* Ton JAUNE, clair : badge sombre. */
+  /* Ton JAUNE → badge BLEU. */
   color: var(--studio-cream);
-  background: var(--studio-ink);
+  background: var(--studio-blue);
   font-size: 0.61rem;
   font-weight: 800;
 }
-/* Tons ROUGE, VERT et BLEU, tous sombres : badge clair, texte encre. */
-.poster-card[data-tone='red'] .poster-card__time,
+/* Ton ROUGE → badge VERT BOUTEILLE. ⚠ Le vert de la charte (#26784c) a
+   presque la MÊME CLARTÉ que le rouge : mesuré à 1,49:1, le badge s'y
+   effaçait. Complémentaire en teinte ne suffit pas, il faut aussi l'écart de
+   clarté — d'où ce vert nettement plus sombre. */
+.poster-card[data-tone='red'] .poster-card__time {
+  color: var(--studio-cream);
+  background: #073b27;
+}
+/* Tons VERT et BLEU → badge JAUNE, texte encre. */
 .poster-card[data-tone='green'] .poster-card__time,
 .poster-card[data-tone='blue'] .poster-card__time {
   color: var(--studio-ink);
-  background: var(--studio-cream);
+  background: var(--mask-yellow);
 }
 .poster-card__media {
   position: relative;
@@ -2624,9 +2637,12 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* ⚠ La marge haute descend le titre SOUS le cœur de favori, posé en absolu au
+   coin. Sa première ligne passait derrière et s'y faisait tronquer — visible
+   sur « cinéma du sud sur écran géant ». */
 .poster-card__title {
   display: -webkit-box;
-  margin: 0.42rem 0 0;
+  margin: 1rem 0 0;
   overflow: hidden;
   color: var(--studio-ink);
   /* Oswald plutôt qu'Impact, et sans resserrement. Matthieu trouve la nouvelle
@@ -2648,6 +2664,9 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    entre le titre et le badge de prix, au lieu d'être collée au bas. Le même
    équilibre que le bloc de date. Le badge étant posé en absolu, on lui réserve
    sa place par le `padding-bottom` du cadre. */
+/* ⚠ `line-height` DESSERRÉE. À 1,2, la découpe à deux lignes tranchait le bas
+   des lettres qui descendent — le « p » de « Dauphin », les cédilles, les
+   accents graves. Une boîte de ligne plus haute laisse passer les jambages. */
 .poster-card__place {
   display: -webkit-box;
   flex: 0 0 auto;
@@ -2655,7 +2674,7 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   overflow: hidden;
   color: var(--studio-ink);
   font-size: 0.62rem;
-  line-height: 1.2;
+  line-height: 1.42;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -2695,6 +2714,35 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 .poster-card__favorite svg { width: 15px; height: 15px; }
 .poster-card__favorite.is-on { color: var(--studio-cream); background: var(--studio-blue); }
 .poster-card__favorite:disabled { opacity: 0.6; }
+
+/* --- Fiche événement : le lieu, mis en avant ---------------------------- */
+/* Encadré à part, juste avant « À propos » : l'adresse était noyée entre la
+   date, le contact et l'auteur, alors que c'est elle qui décide si l'on y va. */
+.detail-lieu {
+  margin: 1.1rem 0 0.2rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 2px solid rgba(11, 85, 197, 0.18);
+  background: var(--studio-cream);
+}
+.detail-lieu__adresse {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0 0 0.7rem;
+  color: var(--studio-ink);
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.detail-lieu__adresse svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: var(--studio-blue);
+}
+.detail-lieu__aller { text-decoration: none; }
 
 /* --- Tableau de bord (Statistiques, admin) --- */
 .stats { display: flex; flex-direction: column; gap: 0.6rem; }
