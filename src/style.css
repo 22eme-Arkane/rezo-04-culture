@@ -2490,8 +2490,9 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
      l'a trouvé trop haut à chaque essai. Il a raison : une flèche horizontale a
      toute sa masse sur une seule ligne, là où un chiffre en répartit sur toute
      sa hauteur ; l'œil la remonte donc, et il faut la descendre pour qu'elle
-     paraisse au milieu. Ne pas « corriger » cette valeur d'après un calcul. */
-  transform: translateY(0.14em);
+     paraisse au milieu. Ne pas « corriger » cette valeur d'après un calcul.
+     Réglée par encadrement : 0 trop haut, 0,14em trop bas, 0,07em juste. */
+  transform: translateY(0.07em);
 }
 
 .poster-card__day,
