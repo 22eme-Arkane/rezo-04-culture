@@ -43,6 +43,20 @@ function coversDay(ev, day) {
   return eventDayKeys(ev).includes(day)
 }
 
+/**
+ * Liseré jaune sur les frontières — INTERRUPTEUR.
+ *
+ * Coupé, le territoire n'est plus dessiné que par le fondu du motif : une
+ * silhouette douce, sans trait. Essai demandé par Matthieu, le liseré barrant
+ * les noms de villes posés sur les frontières.
+ *
+ * ⚠ Le remettre à `true` restaure les DEUX traits et leur découpe. Ne pas
+ * supprimer le code correspondant : il porte des contraintes qui se
+ * redécouvrent mal (trait centré sur son tracé, frontières internes effacées
+ * par la découpe, référence circulaire du clipPath).
+ */
+const LISERE_JAUNE = false
+
 // Marqueur aux couleurs d'Armana : la goutte jaune cerclée de vert, avec les
 // masques au centre. Plus gros que le marqueur bleu de Leaflet, qu'on
 // distinguait mal du fond de carte (demande de Matthieu).
@@ -443,12 +457,27 @@ export async function viewMap() {
     }).addTo(map)
     applyDepartmentMaskPattern(departmentMask)
     appliquerFonduDeBord(map, departmentMask)
-    // DEUX traits, et il en faut bien deux.
-    // Le premier, fin, dessine TOUTES les frontières, y compris celles qui
-    // séparent deux départements retenus. Le second, épais, est rogné à
-    // l'extérieur du territoire : ces frontières-là, entièrement intérieures,
-    // en disparaîtraient complètement — on ne verrait plus où finit le 04 et
-    // où commence le 05.
+    if (LISERE_JAUNE) dessinerLisere(contoursActifs)
+
+    // La carte occupe la place restante (flex) : sa taille définitive n'est
+    // connue qu'APRÈS la mise en page. On cadre donc APRÈS mesure, sinon le
+    // zoom est calculé sur un conteneur encore vide et l'affichage est décadré.
+    fitToViewport()
+    cadrerSurPosition()
+  }
+
+  /**
+   * Liseré jaune des frontières — DEUX traits, et il en faut bien deux.
+   *
+   * Le premier, fin, dessine TOUTES les frontières, y compris celles qui
+   * séparent deux départements retenus. Le second, épais, est rogné à
+   * l'extérieur du territoire : ces frontières-là, entièrement intérieures,
+   * en disparaîtraient complètement — on ne verrait plus où finit le 04 et
+   * où commence le 05.
+   *
+   * Appelé seulement si `LISERE_JAUNE`.
+   */
+  function dessinerLisere(contoursActifs) {
     L.geoJSON(contoursActifs, {
       pane: 'departmentMask',
       interactive: false,
@@ -466,20 +495,14 @@ export async function viewMap() {
       style: {
         color: '#f4ca15',
         // ⚠ ÉPAISSEUR DOUBLE, ET C'EST VOLONTAIRE. Le trait est rogné à
-        // l'extérieur du territoire (voir `territoire-dehors` plus bas) : seule
-        // la moitié externe se voit. 8 ici = 4 à l'écran, comme avant.
+        // l'extérieur du territoire (voir `territoire-dehors`) : seule la
+        // moitié externe se voit. 8 ici = 4 à l'écran.
         weight: 8,
         opacity: 1,
         fillOpacity: 0,
         className: 'department-outline',
       },
     }).addTo(map)
-
-    // La carte occupe la place restante (flex) : sa taille définitive n'est
-    // connue qu'APRÈS la mise en page. On cadre donc APRÈS mesure, sinon le
-    // zoom est calculé sur un conteneur encore vide et l'affichage est décadré.
-    fitToViewport()
-    cadrerSurPosition()
   }
 
   /**
