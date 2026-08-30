@@ -166,6 +166,19 @@ export async function tagVisitDept(dept) {
 }
 
 /** Statistiques complètes du tableau de bord (admin uniquement). */
+/**
+ * Nombre TOTAL de visites depuis le début — la même personne compte autant de
+ * fois qu'elle est venue, contrairement aux « visiteurs uniques ».
+ *
+ * ⚠ Renvoie `null` si la migration 0023 n'est pas encore appliquée : l'écran
+ * masque alors simplement la ligne, plutôt que d'afficher un zéro trompeur.
+ */
+export async function getVisitsTotal() {
+  const { data, error } = await supabase.rpc('visits_total')
+  if (error) return null
+  return data ?? null
+}
+
 export async function getAdminStats() {
   const { data, error } = await supabase.rpc('admin_stats')
   if (error) throw error

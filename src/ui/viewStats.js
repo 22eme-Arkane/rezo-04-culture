@@ -6,7 +6,7 @@ import { el } from './components.js'
 import { icon } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn } from '../lib/auth.js'
-import { amIOwner, getAdminStats } from '../lib/admins.js'
+import { amIOwner, getAdminStats, getVisitsTotal } from '../lib/admins.js'
 import { nomDepartement } from '../lib/departements.js'
 import { purgePastMonths } from '../lib/events.js'
 import { navigate } from '../lib/router.js'
@@ -28,8 +28,11 @@ export async function viewStats() {
   wrap.appendChild(body)
 
   let stats
+  let visitesTotal = null
   try {
-    stats = await getAdminStats()
+    // Les deux en parallèle : le total vit dans sa propre fonction (0023),
+    // inutile d'attendre l'un puis l'autre.
+    ;[stats, visitesTotal] = await Promise.all([getAdminStats(), getVisitsTotal()])
   } catch (e) {
     body.innerHTML = ''
     body.appendChild(el('p', 'form__msg form__msg--err', 'Statistiques indisponibles : ' + e.message))
@@ -59,9 +62,14 @@ export async function viewStats() {
     l.appendChild(el('span', 'stats-hero__mot', mot))
     bandeau.appendChild(l)
   }
+  // Deux chiffres distincts, et c'est le fond du sujet :
+  //   VISITES  — chaque ouverture de l'application, retours compris ;
+  //   VISITEURS UNIQUES — les personnes, comptées une seule fois.
+  // Les visites arrivent en tête parce que c'est le chiffre qui monte.
+  if (visitesTotal != null) grandChiffre(visitesTotal, 'visites au total')
   grandChiffre(
     (stats.visites.uniques_total ?? 0) + (anon.uniques_total ?? 0),
-    'visiteurs depuis le début'
+    'visiteurs uniques'
   )
   grandChiffre(stats.membres.total, 'membres')
   grandChiffre(stats.evenements.a_venir, 'événements à venir')
