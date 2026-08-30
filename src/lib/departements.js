@@ -15,7 +15,22 @@
 // Tout le code ci-dessous raisonne donc en liste de polygones, chacun pouvant
 // avoir des trous — jamais en polygone unique et plein.
 
-export const DEPARTEMENTS_URL = '/data/departements.geojson'
+/**
+ * ⚠ VERSION DANS L'URL — OBLIGATOIRE, À INCRÉMENTER À CHAQUE MODIFICATION DU
+ * GEOJSON.
+ *
+ * Le fichier garde le même nom d'une livraison à l'autre, et il est demandé en
+ * `force-cache` (voir `loadDepartements`) : le navigateur ressert alors
+ * l'entrée qu'il a en cache SANS JAMAIS la revalider, même périmée. Un
+ * téléphone déjà installé garde donc les anciens contours indéfiniment.
+ *
+ * C'est exactement ce qui est arrivé à l'ouverture de PACA le 30/08/2026 : le
+ * code JavaScript était bien à jour — il proposait les six départements — mais
+ * la carte restait dessinée sur les trois anciens contours. Changer l'URL est
+ * le seul moyen de forcer le renouvellement.
+ */
+export const DEPARTEMENTS_VERSION = '2026-08-30-paca'
+export const DEPARTEMENTS_URL = `/data/departements.geojson?v=${DEPARTEMENTS_VERSION}`
 
 /**
  * Les sept départements dont le contour est embarqué, par numéro.

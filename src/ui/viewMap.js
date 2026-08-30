@@ -707,11 +707,21 @@ function appliquerFonduDeBord(map, layer) {
 
   const filtre = document.createElementNS(ns, 'filter')
   filtre.id = 'territoire-flou'
-  // Marge autour des anneaux : le flou et le trait débordent de leur cadre.
-  filtre.setAttribute('x', '-10%')
-  filtre.setAttribute('y', '-10%')
-  filtre.setAttribute('width', '120%')
-  filtre.setAttribute('height', '120%')
+  /**
+   * ⚠ RÉGION EN PIXELS, JAMAIS EN POURCENTAGE.
+   *
+   * Un filtre est COUPÉ NET aux bords de sa région. Exprimée en pourcentage du
+   * cadre des frontières (`-10% / 120%`), cette région rétrécit avec le
+   * territoire : une fois dézoomé, ses 10 % valaient moins que la portée du
+   * flou (17 px de trait + ~33 px d'étalement), qui se retrouvait tranché — de
+   * grands rectangles apparaissaient autour du territoire. Invisible zoomé,
+   * flagrant dézoomé, exactement ce que Matthieu a vu.
+   *
+   * La région suit donc la VUE, en pixels, comme le masque : recalée dans
+   * `suivre()`, avec la même marge. Ce qui serait coupé l'est alors largement
+   * hors de l'écran.
+   */
+  filtre.setAttribute('filterUnits', 'userSpaceOnUse')
   filtre.innerHTML = '<feGaussianBlur stdDeviation="11"/>'
 
   // Masque de luminance : blanc = motif visible, noir = motif effacé.
@@ -775,6 +785,7 @@ function appliquerFonduDeBord(map, layer) {
     for (const [cle, valeur] of Object.entries(boite)) {
       masque.setAttribute(cle, String(valeur))
       fond.setAttribute(cle, String(valeur))
+      filtre.setAttribute(cle, String(valeur))
     }
   }
   suivre()

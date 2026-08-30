@@ -12,14 +12,13 @@
 // Version incrémentée à chaque changement du shell : l'activation supprime les
 // caches précédents, ce qui garantit que les appareils déjà installés basculent
 // bien sur la nouvelle version (renommage Armana compris).
-const CACHE = 'armana-shell-v1'
+const CACHE = 'armana-shell-v2'
 const SHARE_CACHE = 'rezo-share-v1'
-const SHELL = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/data/departements.geojson',
-]
+// ⚠ PLUS DE GEOJSON ICI. Il y était préchargé sans jamais être servi (le
+// gestionnaire `fetch` ne traitait pas /data/), et cette copie figée survivait
+// aux livraisons. Les contours passent désormais par la branche /data/
+// ci-dessous, avec une version dans l'URL — voir lib/departements.js.
+const SHELL = ['/', '/index.html', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -145,7 +144,10 @@ self.addEventListener('fetch', (event) => {
   // ⚠ /assets/studio-affiche/… est copié tel quel depuis public/ : le nom ne
   // change JAMAIS. En cache-first, un logo remplacé resterait figé à vie sur les
   // téléphones déjà installés → on le sert en « cache, puis rafraîchit ».
-  if (url.pathname.startsWith('/assets/')) {
+  // /data/… suit la même règle : son URL porte une version (?v=…), elle est
+  // donc immuable comme un nom haché. C'est aussi ce qui rend la carte
+  // disponible hors ligne.
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/data/')) {
     const unhashed = url.pathname.startsWith('/assets/studio-affiche/')
     event.respondWith(
       caches.match(request).then((cached) => {
