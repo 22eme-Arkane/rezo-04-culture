@@ -198,6 +198,21 @@ export async function getVisitsSummary() {
 }
 
 /**
+ * Fréquentation des 30 derniers jours, par jour et par département, EN VISITES.
+ *
+ * ⚠ Ne pas revenir aux `par_jour` / `par_departement` d'`admin_stats` : ceux-là
+ * comptent des LIGNES, soit un visiteur par jour, donc des VISITEURS. Les avoir
+ * affichés à côté de tuiles en visites donnait 59 face à 115 pour le même jour,
+ * sans que rien n'explique l'écart.
+ * Renvoie `null` tant que la migration 0027 n'est pas appliquée.
+ */
+export async function getVisitsBreakdown() {
+  const { data, error } = await supabase.rpc('visits_breakdown')
+  if (error) return null
+  return data ?? null
+}
+
+/**
  * Événements publiés depuis la création d'Armana. Vient d'un compteur que la
  * purge mensuelle ne touche pas — compter la table `events` donnerait un total
  * qui rétrécit à chaque purge.

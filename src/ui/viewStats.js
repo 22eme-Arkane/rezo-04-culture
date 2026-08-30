@@ -11,6 +11,7 @@ import {
   getAdminStats,
   getPublishedTotal,
   getUpcomingPublished,
+  getVisitsBreakdown,
   getVisitsSummary,
   getVisitsTotal,
 } from '../lib/admins.js'
@@ -42,10 +43,11 @@ export async function viewStats() {
   let visitesTotal = null
   let aVenirPublies = null
   let enAttenteZone = null
+  let frequentation = null
   try {
-    // Les deux en parallèle : le total vit dans sa propre fonction (0023),
-    // inutile d'attendre l'un puis l'autre.
-    ;[stats, visites, publiesTotal, visitesTotal, aVenirPublies, enAttenteZone] =
+    // Tout en parallèle : chaque total vit dans sa propre fonction, au fil des
+    // migrations, inutile de les attendre l'une après l'autre.
+    ;[stats, visites, publiesTotal, visitesTotal, aVenirPublies, enAttenteZone, frequentation] =
       await Promise.all([
         getAdminStats(),
         getVisitsSummary(),
@@ -53,6 +55,7 @@ export async function viewStats() {
         getVisitsTotal(),
         getUpcomingPublished(),
         myPendingCount().catch(() => null),
+        getVisitsBreakdown(),
       ])
   } catch (e) {
     body.innerHTML = ''
@@ -168,21 +171,41 @@ export async function viewStats() {
   comptes.appendChild(line('E-mails confirmés', stats.connexions.emails_confirmes))
   detail.appendChild(comptes)
 
-  // Courbe : les deux publics cumulés, c'est la fréquentation réelle.
+  // ⚠ DEUX UNITÉS POSSIBLES, ET LE TITRE DOIT DIRE LAQUELLE.
+  // `visits_breakdown` (migration 0027) compte des VISITES — `sum(passages)` —
+  // comme les quatre tuiles du haut. Les `par_jour` / `par_departement`
+  // d'`admin_stats`, eux, comptent des LIGNES : une par visiteur et par jour,
+  // donc des VISITEURS. Affichés côte à côte sans le dire, ils donnaient 59
+  // face à 115 pour le même 30 août. On préfère les visites ; tant que la
+  // migration n'est pas appliquée on retombe sur les visiteurs, et le titre
+  // change avec la donnée — jamais l'un sans l'autre.
+  const enVisites = Boolean(frequentation)
+  const periode = '(30 derniers jours)'
+
   const parJour = new Map()
-  for (const d of stats.visites.par_jour ?? []) parJour.set(d.label, d.n)
-  for (const d of anon.par_jour ?? []) parJour.set(d.label, (parJour.get(d.label) ?? 0) + d.n)
+  if (enVisites) {
+    for (const d of frequentation.par_jour ?? []) parJour.set(d.label, d.n)
+  } else {
+    // Les deux publics cumulés : inscrits et visiteurs sans compte.
+    for (const d of stats.visites.par_jour ?? []) parJour.set(d.label, d.n)
+    for (const d of anon.par_jour ?? []) parJour.set(d.label, (parJour.get(d.label) ?? 0) + d.n)
+  }
   const daily = [...parJour.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([label, n]) => ({
       label: JOUR.format(new Date(label + 'T12:00:00')),
       n,
     }))
-  // D'où viennent les gens : passages des 30 derniers jours par département
-  // (position GPS quand elle est donnée — seul le département est enregistré).
-  const parDept = repartitionParDept(stats.par_departement, 'non renseigné')
+  // D'où viennent les gens (position GPS quand elle est donnée — seul le
+  // département est enregistré, jamais la position elle-même).
+  const parDept = repartitionParDept(
+    enVisites ? frequentation.par_departement : stats.par_departement,
+    'non renseigné'
+  )
   if (parDept.some((d) => d.n)) {
-    body.appendChild(section('Jours de présence par département (30 derniers jours)'))
+    body.appendChild(
+      section(`${enVisites ? 'Visites' : 'Visiteurs'} par département ${periode}`)
+    )
     body.appendChild(barChart(parDept))
   }
 
@@ -194,7 +217,9 @@ export async function viewStats() {
   }
 
   if (daily.length) {
-    body.appendChild(section('Jours de présence par jour, tous publics (30 derniers jours)'))
+    body.appendChild(
+      section(`${enVisites ? 'Visites' : 'Visiteurs'} par jour, tous publics ${periode}`)
+    )
     body.appendChild(barChart(daily))
   }
 
