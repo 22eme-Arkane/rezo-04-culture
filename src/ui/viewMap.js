@@ -442,6 +442,7 @@ export async function viewMap() {
       className: 'department-mask',
     }).addTo(map)
     applyDepartmentMaskPattern(departmentMask)
+    appliquerFonduDeBord(map, departmentMask)
     L.geoJSON(contoursActifs, {
       pane: 'departmentMask',
       interactive: false,
@@ -631,4 +632,86 @@ function applyDepartmentMaskPattern(layer) {
   defs.appendChild(pattern)
   path.setAttribute('fill', 'url(#department-04-outside-pattern)')
   path.setAttribute('fill-opacity', '1')
+}
+
+/**
+ * Fondu du motif le long de la frontière, pour laisser respirer la carte.
+ *
+ * Coupé net, le masque tranchait les noms de villes posés SUR la frontière —
+ * Marseille, Toulon, Avignon. Le motif ne commence donc plus à la frontière :
+ * il démarre une vingtaine de pixels plus loin et monte en puissance sur une
+ * quarantaine. La bande ainsi dégagée montre la carte en clair.
+ *
+ * ⚠ ON NE FLOUTE QUE LES FRONTIÈRES, JAMAIS LE MASQUE LUI-MÊME.
+ * Non pour le coût — Leaflet découpe déjà son tracé à la vue, vérifié : le
+ * cadre du masque mesure 412 × 782 px pour une vue de 406 × 776, et son `d`
+ * commence par un simple rectangle aux dimensions de l'écran. Mais parce que
+ * ce rectangle EST le bord de l'écran : le flouter dégraderait le motif tout
+ * autour du cadre de la carte, pas seulement le long des départements.
+ * D'où le découpage du `d` ci-dessous : le premier sous-tracé est ce
+ * rectangle, on le jette et on ne garde que les frontières.
+ *
+ * Le trait noir de 34 px creuse le trou de 17 px vers l'extérieur AVANT le
+ * flou : sans lui, le fondu serait centré sur la frontière et voilerait
+ * l'intérieur du territoire, exactement ce qu'on cherche à éviter.
+ */
+function appliquerFonduDeBord(map, layer) {
+  const path = layer.getElement()
+  const svg = path?.ownerSVGElement
+  const defs = svg?.querySelector('defs')
+  if (!path || !svg || !defs) return
+  const ns = 'http://www.w3.org/2000/svg'
+
+  const filtre = document.createElementNS(ns, 'filter')
+  filtre.id = 'territoire-flou'
+  // Marge autour des anneaux : le flou et le trait débordent de leur cadre.
+  filtre.setAttribute('x', '-10%')
+  filtre.setAttribute('y', '-10%')
+  filtre.setAttribute('width', '120%')
+  filtre.setAttribute('height', '120%')
+  filtre.innerHTML = '<feGaussianBlur stdDeviation="11"/>'
+
+  // Masque de luminance : blanc = motif visible, noir = motif effacé.
+  const masque = document.createElementNS(ns, 'mask')
+  masque.id = 'territoire-fondu'
+  masque.setAttribute('maskUnits', 'userSpaceOnUse')
+  const fond = document.createElementNS(ns, 'rect')
+  fond.setAttribute('fill', '#fff')
+  const bord = document.createElementNS(ns, 'path')
+  bord.setAttribute('fill', '#000')
+  bord.setAttribute('fill-rule', 'evenodd')
+  bord.setAttribute('stroke', '#000')
+  bord.setAttribute('stroke-width', '34')
+  bord.setAttribute('stroke-linejoin', 'round')
+  bord.setAttribute('filter', 'url(#territoire-flou)')
+  masque.append(fond, bord)
+  defs.append(filtre, masque)
+  path.setAttribute('mask', 'url(#territoire-fondu)')
+
+  /**
+   * Le `d` du masque et les coordonnées de l'écran changent à chaque zoom : on
+   * les recopie. Un masque plus petit que la vue rendrait le motif INVISIBLE
+   * au-delà de ses bornes — d'où la marge, et le recalage sur la vue réelle.
+   */
+  const suivre = () => {
+    const d = path.getAttribute('d') || ''
+    const sousTraces = d.split('M').filter((s) => s.trim())
+    bord.setAttribute('d', sousTraces.length > 1 ? 'M' + sousTraces.slice(1).join('M') : '')
+
+    const vue = map.getPixelBounds()
+    const origine = map.getPixelOrigin()
+    const marge = 300
+    const boite = {
+      x: vue.min.x - origine.x - marge,
+      y: vue.min.y - origine.y - marge,
+      width: vue.max.x - vue.min.x + marge * 2,
+      height: vue.max.y - vue.min.y + marge * 2,
+    }
+    for (const [cle, valeur] of Object.entries(boite)) {
+      masque.setAttribute(cle, String(valeur))
+      fond.setAttribute(cle, String(valeur))
+    }
+  }
+  suivre()
+  map.on('zoomend viewreset moveend', suivre)
 }
