@@ -2485,12 +2485,13 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   width: 1.15em;
   height: 0.72em;
   display: block;
-  /* ⚠ Descendue de ~0,14em. `align-items: center` centre sur la BOÎTE DE
-     LIGNE, qui inclut l'espace des jambages ascendants et descendants ; or les
-     capitales d'Oswald n'occupent que le haut de cette boîte. La flèche
-     paraissait donc flotter au-dessus des chiffres. Ce décalage la ramène à
-     mi-hauteur des capitales, exprimé en em pour suivre la taille du texte. */
-  transform: translateY(0.14em);
+  /* ⚠ VALEUR MESURÉE, pas estimée. `align-items: center` centre la flèche sur
+     la BOÎTE DE LIGNE, qui réserve la place des jambages descendants — or
+     « 20 SEPT » n'en a aucun. La flèche se retrouvait donc SOUS le milieu des
+     capitales, de 4,8 px exactement (ligne de base relevée dans le DOM, hauteur
+     de capitale mesurée sur les pixels peints). Ce décalage négatif la ramène à
+     mi-hauteur des lettres. En em, pour suivre le corps du texte. */
+  transform: translateY(-0.126em);
 }
 
 .poster-card__day,
@@ -2521,6 +2522,9 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 .poster-card__date--plage .poster-card__day {
   font-size: clamp(3.1rem, 15vw, 3.7rem);
 }
+.poster-card__date--plage .poster-card__month {
+  font-size: clamp(1.35rem, 6.4vw, 1.6rem);
+}
 .poster-card__jusqua {
   position: relative;
   z-index: 1;
@@ -2536,7 +2540,9 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   margin-top: 0.1rem;
 }
 .poster-card__day {
-  font-size: clamp(3.6rem, 17.5vw, 4.3rem);
+  /* Date UNIQUE : elle a toute la colonne, aucune ligne de fin à loger en
+     dessous. Les cartes à plage gardent un corps plus mesuré (règles --plage). */
+  font-size: clamp(4.3rem, 21vw, 5.2rem);
   line-height: 0.88;
   letter-spacing: 0;
   transform: scaleX(0.95);
@@ -2547,7 +2553,7 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 .poster-card__month {
   overflow: visible;
   margin-top: 0.22rem;
-  font-size: clamp(1.35rem, 6.4vw, 1.6rem);
+  font-size: clamp(1.55rem, 7.4vw, 1.85rem);
   line-height: 1;
   letter-spacing: 0.02em;
 }
@@ -2583,15 +2589,17 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    deux couleurs, pas un mauvais choix — aucune paire rouge/vert ne se détache
    par la seule clarté. Le liseré rétablit donc la séparation que la teinte ne
    peut pas donner, sans toucher aux couleurs demandées. */
+/* ⚠ SANS CONTOUR, comme les deux autres tons — décision de Matthieu, qui a vu
+   le rendu. J'avais ajouté un liseré parce que rouge et vert, complémentaires
+   en teinte, ont une clarté quasi identique (1,5:1 mesuré) : le badge s'y
+   détache donc mal. Il l'assume, et l'uniformité prime. */
 .poster-card[data-tone='red'] .poster-card__time {
   color: var(--studio-ink);
   background: var(--mask-green-light);
-  box-shadow: 0 0 0 1.5px var(--studio-ink);
 }
 .poster-card[data-tone='green'] .poster-card__time {
   color: var(--studio-cream);
   background: var(--studio-red);
-  box-shadow: 0 0 0 1.5px var(--studio-cream);
 }
 /* Ton BLEU → badge JAUNE (l'autre paire complémentaire). */
 .poster-card[data-tone='blue'] .poster-card__time {
