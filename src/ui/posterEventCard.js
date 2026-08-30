@@ -7,6 +7,7 @@ import { el, formatPrice, formatTime } from './components.js'
 import { icon } from './icons.js'
 
 const MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
+const JOUR_SEMAINE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long' })
 
 /** Une clé AAAA-MM-JJ en Date locale, à midi pour éviter tout décalage. */
 function jourDe(cle) {
@@ -28,34 +29,32 @@ export function posterEventCard(ev, opts = {}) {
 
   const startsAt = new Date(ev.starts_at)
   const date = el('div', 'poster-card__date')
+  // Le jour de la semaine, en tête et en petit : « samedi 30 août » se situe
+  // d'un coup d'œil, là où « 30 août » oblige à compter.
+  date.appendChild(el('span', 'poster-card__weekday', JOUR_SEMAINE.format(startsAt)))
   if (ev._plage) {
     // ÉVÉNEMENT QUI DURE : la plage restante, pas la date de départ. Elle se
     // resserre d'elle-même au fil des jours, puisqu'elle est recalculée à
-    // chaque affichage à partir d'aujourd'hui.
+    // chaque affichage.
+    // Le PREMIER jour garde toute sa taille — c'est la date qu'on cherche — et
+    // la fin s'inscrit dessous, plus petite. Les serrer sur une même ligne
+    // rapetissait les deux pour rien : la colonne a la place.
     const d = jourDe(ev._plage.debut)
     const f = jourDe(ev._plage.fin)
     const memeMois = d.getMonth() === f.getMonth() && d.getFullYear() === f.getFullYear()
+    const mois = (x) => MONTH.format(x).replace('.', '').toUpperCase()
     date.classList.add('poster-card__date--plage')
-    if (memeMois) {
-      // « 02 → 10 » puis « SEPT » : le mois n'est écrit qu'une fois.
-      date.appendChild(el('span', 'poster-card__day', `${deuxChiffres(d)}→${deuxChiffres(f)}`))
-      date.appendChild(
-        el('span', 'poster-card__month', MONTH.format(d).replace('.', '').toUpperCase())
+    date.appendChild(el('span', 'poster-card__day', deuxChiffres(d)))
+    date.appendChild(el('span', 'poster-card__month', mois(d)))
+    // Le mois de fin n'est répété que s'il diffère : « → 20 » suffit à
+    // l'intérieur d'un même mois.
+    date.appendChild(
+      el(
+        'span',
+        'poster-card__jusqua',
+        memeMois ? `→ ${deuxChiffres(f)}` : `→ ${deuxChiffres(f)} ${mois(f)}`
       )
-    } else {
-      // À cheval sur deux mois, chacun porte le sien.
-      date.appendChild(el('span', 'poster-card__day', deuxChiffres(d)))
-      date.appendChild(
-        el('span', 'poster-card__month', MONTH.format(d).replace('.', '').toUpperCase())
-      )
-      date.appendChild(
-        el(
-          'span',
-          'poster-card__jusqua',
-          `→ ${deuxChiffres(f)} ${MONTH.format(f).replace('.', '').toUpperCase()}`
-        )
-      )
-    }
+    )
   } else {
     date.appendChild(el('span', 'poster-card__day', String(startsAt.getDate()).padStart(2, '0')))
     date.appendChild(
@@ -83,10 +82,13 @@ export function posterEventCard(ev, opts = {}) {
   // Titre COMPLET : le tronquer à la première virgule amputait « Fête votive,
   // feu d'artifice et bal » sans le moindre signe. Le CSS gère l'ellipse.
   info.appendChild(el('h3', 'poster-card__title', ev.title))
-  // « Jour 2 sur 3 » ou « Tous les vendredis » : dit pourquoi le même événement
-  // revient à plusieurs dates.
-  if (ev._occ) info.appendChild(el('span', 'poster-card__occ', ev._occ))
+  // ⚠ L'ADRESSE PASSE AVANT LA MENTION DES JOURS. « Tous les lundis, mardis,
+  // mercredis, jeudis, vendredis et samedis » remplissait le cadre à lui seul
+  // et chassait le lieu — or c'est le lieu qui fait décider d'y aller. Les
+  // trois choses qui comptent sont le titre, le style et l'adresse ; le reste
+  // s'efface, et la fiche complète est à un doigt de là.
   if (ev.address) info.appendChild(el('p', 'poster-card__place', ev.address))
+  if (ev._occ) info.appendChild(el('span', 'poster-card__occ', ev._occ))
   info.appendChild(el('span', 'poster-card__price', formatPrice(ev)))
   card.appendChild(info)
 

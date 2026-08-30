@@ -404,14 +404,22 @@ a.settings-row { text-decoration: none; }
 a.settings-row .settings-row__label { word-break: break-all; }
 
 /* « Jour 2 sur 3 » / « Tous les vendredis » sur une carte de l'agenda. */
+/* ⚠ UNE SEULE LIGNE, coupée par des points de suspension. « Tous les lundis,
+   mardis, mercredis, jeudis, vendredis et samedis » occupait cinq lignes et
+   chassait l'adresse hors du cadre. Le titre, le style et le lieu passent
+   d'abord ; la liste complète des jours attend sur la fiche. */
 .poster-card__occ {
-  display: inline-block;
+  display: block;
   margin: 0.1rem 0 0.15rem;
   font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 0 auto;
 }
 
 /* Aides sous un champ de formulaire (span dans un label → doit passer bloc). */
@@ -2465,12 +2473,26 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   font-weight: 900;
   text-transform: uppercase;
 }
-/* ESSAI — événement qui dure : « 02→10 » tient sur la même ligne que le
-   chiffre unique, mais en cinq caractères au lieu de deux. Sans réduction, il
-   débordait de la colonne de date. */
+/* Jour de la semaine, en petit au-dessus de la date. */
+.poster-card__weekday {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-size: clamp(0.72rem, 3.4vw, 0.86rem);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 0.18rem;
+  opacity: 0.82;
+}
+
+/* Événement qui dure. Le PREMIER jour reste gros — c'est celui qu'on cherche —
+   et la fin passe en dessous, plus discrète. La colonne a la place : l'ancien
+   « 02→10 » sur une seule ligne bridait inutilement les deux chiffres. */
 .poster-card__date--plage .poster-card__day {
-  font-size: clamp(1.9rem, 9vw, 2.4rem);
-  letter-spacing: -0.02em;
+  font-size: clamp(3.4rem, 17vw, 4.3rem);
+  letter-spacing: -0.05em;
 }
 .poster-card__jusqua {
   position: relative;
@@ -2478,9 +2500,10 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
   font-weight: 900;
   text-transform: uppercase;
-  font-size: clamp(1rem, 4.6vw, 1.2rem);
-  letter-spacing: -0.01em;
-  line-height: 1.1;
+  font-size: clamp(1.05rem, 5vw, 1.3rem);
+  letter-spacing: 0;
+  line-height: 1.15;
+  margin-top: 0.1rem;
 }
 .poster-card__day {
   font-size: clamp(4.7rem, 23vw, 5.8rem);
@@ -2566,16 +2589,24 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   margin: 0.42rem 0 0;
   overflow: hidden;
   color: var(--studio-ink);
-  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  /* Oswald plutôt qu'Impact, et sans resserrement. Matthieu trouve la nouvelle
+     police plus jolie mais les lettres trop collées : Impact est déjà très
+     étroite, un letter-spacing négatif par-dessus faisait se toucher les
+     jambages. Graisse ramenée de 800 à 600 et interligne desserré — plus léger,
+     plus lisible en petit corps. */
+  font-family: var(--font-display);
   font-size: clamp(1.02rem, 4.8vw, 1.2rem);
-  font-weight: 800;
-  line-height: 0.98;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: 0.005em;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
+/* `margin-top: auto` pousse l'adresse en bas du cadre : elle garde sa place
+   quoi qu'il arrive au-dessus, et c'est la mention des jours qui cède. */
 .poster-card__place {
   display: -webkit-box;
+  flex: 0 0 auto;
   margin: auto 0 1.55rem;
   overflow: hidden;
   color: var(--studio-ink);
