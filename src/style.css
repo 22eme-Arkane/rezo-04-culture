@@ -2735,12 +2735,11 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   font-weight: 700;
   line-height: 1.35;
 }
+/* Le marqueur porte ses propres couleurs : ni largeur ni teinte imposées ici,
+   sans quoi la goutte jaune serait écrasée ou repeinte. */
 .detail-lieu__adresse svg {
-  width: 19px;
-  height: 19px;
   flex: 0 0 auto;
-  margin-top: 0.1rem;
-  color: var(--studio-blue);
+  margin-top: -0.1rem;
 }
 .detail-lieu__aller { text-decoration: none; }
 

@@ -1,6 +1,6 @@
 // Armana — écran détail d'un événement (photo pleine résolution + infos).
 import { el, formatDateFull, formatTime, formatPrice, emptyState } from './components.js'
-import { icon } from './icons.js'
+import { icon, marqueurArmana } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn, getUser } from '../lib/auth.js'
 import { amIOwner } from '../lib/admins.js'
@@ -159,7 +159,9 @@ export async function viewDetail({ query } = {}) {
   if (ev.address) {
     const lieu = el('section', 'detail-lieu')
     const tete = el('p', 'detail-lieu__adresse')
-    tete.appendChild(icon('pin'))
+    // Le marqueur d'Armana, celui-là même qui pique l'événement sur la carte :
+    // on reconnaît le repère avant d'avoir lu l'adresse.
+    tete.appendChild(marqueurArmana({ size: 26 }))
     tete.appendChild(document.createTextNode(' ' + ev.address))
     lieu.appendChild(tete)
 

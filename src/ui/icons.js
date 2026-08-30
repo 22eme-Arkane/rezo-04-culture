@@ -37,6 +37,28 @@ const PATHS = {
     '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/>',
 }
 
+/**
+ * Le marqueur de position d'Armana : la goutte jaune cerclée de vert, avec les
+ * masques au centre. Le MÊME dessin que les points de la carte — défini ici
+ * pour que les deux ne puissent pas diverger.
+ *
+ * ⚠ Ce n'est pas une icône du jeu Lucide : elle porte ses couleurs propres et
+ * ne suit pas `currentColor`, d'où sa fonction à part.
+ */
+export function marqueurArmana({ size = 26 } = {}) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('viewBox', '0 0 44 56')
+  svg.setAttribute('width', String(size))
+  svg.setAttribute('height', String(Math.round((size * 56) / 44)))
+  svg.setAttribute('aria-hidden', 'true')
+  svg.setAttribute('focusable', 'false')
+  svg.innerHTML =
+    '<path d="M22 55C22 55 41 33.6 41 21A19 19 0 1 0 3 21C3 33.6 22 55 22 55Z" ' +
+    'fill="#f4ca15" stroke="#064f36" stroke-width="3.5" stroke-linejoin="round"/>' +
+    '<image href="/icons/armana-logo.png" x="9" y="8" width="26" height="26"/>'
+  return svg
+}
+
 export function icon(name, { size } = {}) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('viewBox', '0 0 24 24')
