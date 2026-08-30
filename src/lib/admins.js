@@ -185,22 +185,38 @@ export async function getVisitsTotal() {
  * son total ne pouvait donc pas correspondre au graphique par département.
  * Renvoie `null` tant que la migration 0024 n'est pas appliquée.
  */
+/**
+ * Les VISITES par période — aujourd'hui, hier, cette semaine, ce mois-ci, et
+ * le total. Ce sont bien des visites (somme des ouvertures), pas des visiteurs
+ * uniques : quelqu'un venu trois fois aujourd'hui compte trois fois.
+ * Semaine et mois sont CALENDAIRES (lundi, 1er du mois), pas glissants.
+ */
+export async function getVisitsSummary() {
+  const { data, error } = await supabase.rpc('visits_summary')
+  if (error) return null
+  return data ?? null
+}
+
+/**
+ * Événements publiés depuis la création d'Armana. Vient d'un compteur que la
+ * purge mensuelle ne touche pas — compter la table `events` donnerait un total
+ * qui rétrécit à chaque purge.
+ */
+export async function getPublishedTotal() {
+  const { data, error } = await supabase.rpc('events_published_total')
+  if (error) return null
+  return data ?? null
+}
+
 export async function getUpcomingPublished() {
   const { data, error } = await supabase.rpc('events_upcoming_published')
   if (error) return null
   return data ?? null
 }
 
-/**
- * Date à laquelle la mesure de fréquentation a commencé. Sans elle, « depuis
- * le début » laissait croire « depuis la création d'Armana » — d'où des
- * comparaisons impossibles avec les fenêtres de 30 jours.
- */
-export async function getVisitsSince() {
-  const { data, error } = await supabase.rpc('visits_since')
-  if (error) return null
-  return data ?? null
-}
+// (La date de début de mesure n'est plus affichée : les grands chiffres sont
+//  désormais des cumuls depuis la création, sans borne à rappeler. La fonction
+//  `visits_since()` reste disponible en base si le besoin revenait.)
 
 export async function getAdminStats() {
   const { data, error } = await supabase.rpc('admin_stats')

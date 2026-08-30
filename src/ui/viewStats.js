@@ -9,8 +9,9 @@ import { isAdmin, isLoggedIn } from '../lib/auth.js'
 import {
   amIOwner,
   getAdminStats,
+  getPublishedTotal,
   getUpcomingPublished,
-  getVisitsSince,
+  getVisitsSummary,
   getVisitsTotal,
 } from '../lib/admins.js'
 import { myPendingCount } from '../lib/moderation.js'
@@ -35,20 +36,23 @@ export async function viewStats() {
   wrap.appendChild(body)
 
   let stats
+  let visites = null
+  let publiesTotal = null
   let visitesTotal = null
   let aVenirPublies = null
-  let mesureDepuis = null
   let enAttenteZone = null
   try {
     // Les deux en parallèle : le total vit dans sa propre fonction (0023),
     // inutile d'attendre l'un puis l'autre.
-    ;[stats, visitesTotal, aVenirPublies, mesureDepuis, enAttenteZone] = await Promise.all([
-      getAdminStats(),
-      getVisitsTotal(),
-      getUpcomingPublished(),
-      getVisitsSince(),
-      myPendingCount().catch(() => null),
-    ])
+    ;[stats, visites, publiesTotal, visitesTotal, aVenirPublies, enAttenteZone] =
+      await Promise.all([
+        getAdminStats(),
+        getVisitsSummary(),
+        getPublishedTotal(),
+        getVisitsTotal(),
+        getUpcomingPublished(),
+        myPendingCount().catch(() => null),
+      ])
   } catch (e) {
     body.innerHTML = ''
     body.appendChild(el('p', 'form__msg form__msg--err', 'Statistiques indisponibles : ' + e.message))
@@ -78,55 +82,46 @@ export async function viewStats() {
     l.appendChild(el('span', 'stats-hero__mot', mot))
     bandeau.appendChild(l)
   }
-  // ⚠ CHAQUE LIBELLÉ PORTE SON UNITÉ ET SA PÉRIODE. C'est la leçon de l'écart
-  // 1130 / 2079 signalé par Matthieu : les deux chiffres étaient justes, mais
-  // rien ne disait que l'un comptait des PERSONNES depuis le début de la
-  // mesure et l'autre des JOURS DE PRÉSENCE sur 30 jours. Une note en bas de
-  // page ne suffit pas — elle se perd, et j'en ai moi-même supprimé cinq d'un
-  // commit de mise en forme. La définition doit voyager AVEC le chiffre.
-  const depuisCourt = mesureDepuis
-    ? ' depuis le ' + JOUR.format(new Date(mesureDepuis + 'T12:00:00'))
-    : ''
-  if (visitesTotal != null) grandChiffre(visitesTotal, 'ouvertures' + depuisCourt)
+  // ⚠ CHAQUE LIBELLÉ DIT SON UNITÉ. C'est la leçon de l'écart 1130 / 2079 :
+  // les deux chiffres étaient justes, mais rien ne distinguait les VISITES
+  // (chaque ouverture) des VISITEURS (les personnes). Ces quatre-là sont des
+  // cumuls DEPUIS LA CRÉATION d'Armana ; les tuiles du dessous découpent par
+  // période. Ne jamais mélanger les deux unités sans le dire dans le mot.
+  grandChiffre(visites?.total ?? visitesTotal ?? 0, 'visites totales')
   grandChiffre(
     (stats.visites.uniques_total ?? 0) + (anon.uniques_total ?? 0),
-    'visiteurs différents' + depuisCourt
+    'visiteurs uniques'
   )
   grandChiffre(stats.membres.total, 'membres inscrits')
-  // Les APPROUVÉS seulement : c'est ce que le public voit, et c'est ce que
-  // totalise le graphique par département plus bas. `a_venir` comptait aussi
-  // les rejetés, si bien que les deux ne tombaient jamais juste.
-  grandChiffre(aVenirPublies ?? stats.evenements.a_venir, 'événements publiés à venir')
+  // ⚠ Depuis la CRÉATION d'Armana, purges comprises. Compter la table donnerait
+  // un total qui RÉTRÉCIT à chaque purge mensuelle : ce chiffre vient donc d'un
+  // compteur que rien n'efface. Repli sur les seuls à venir tant que la
+  // migration 0025 n'est pas appliquée.
+  grandChiffre(publiesTotal ?? aVenirPublies ?? stats.evenements.a_venir, 'événements publiés')
   body.appendChild(bandeau)
 
-  // --- Chiffres clés -------------------------------------------------------
+  // --- Les quatre tuiles : LES VISITES, par période ------------------------
+  // ⚠ Des VISITES, jamais des visiteurs uniques : quelqu'un qui ouvre
+  // l'application trois fois aujourd'hui compte trois fois. Et la tuile
+  // « Membres » a disparu — elle répétait mot pour mot le grand chiffre situé
+  // juste au-dessus.
+  // Semaine et mois sont CALENDAIRES : depuis lundi, depuis le 1er. Ce sont les
+  // bornes auxquelles on pense en lisant ces mots ; des fenêtres glissantes de
+  // 7 ou 30 jours auraient donné des chiffres qu'on n'aurait pas su recouper.
   const kpis = el('div', 'stats-grid')
-  kpis.appendChild(kpi('Membres', stats.membres.total, `+${stats.membres.new_7j} en 7 jours`))
-  kpis.appendChild(
-    // ⚠ Cette tuile ne comptait QUE les membres, alors que les visiteurs sans
-    // compte sont la majorité des passages : elle affichait donc un chiffre
-    // bien plus bas que la réalité, et contredisait le graphique de la même
-    // page, qui lui additionne déjà les deux publics.
-    kpi(
-      'Visiteurs aujourd’hui',
-      (stats.visites.aujourdhui ?? 0) + (anon.aujourdhui ?? 0),
-      `${(stats.visites.hier ?? 0) + (anon.hier ?? 0)} hier`
-    )
-  )
-  kpis.appendChild(
-    kpi(
-      'Événements publiés à venir',
-      aVenirPublies ?? stats.evenements.a_venir,
-      `${stats.evenements.total} encore en base`
-    )
-  )
+  const visitesDuJour = visites?.aujourdhui ?? (stats.visites.aujourdhui ?? 0) + (anon.aujourdhui ?? 0)
+  const visitesHier = visites?.hier ?? (stats.visites.hier ?? 0) + (anon.hier ?? 0)
+  kpis.appendChild(kpi('Visites aujourd’hui', visitesDuJour))
+  kpis.appendChild(kpi('Visites hier', visitesHier))
+  kpis.appendChild(kpi('Visites cette semaine', visites?.semaine ?? '—', 'depuis lundi'))
+  kpis.appendChild(kpi('Visites ce mois-ci', visites?.mois ?? '—', 'depuis le 1er'))
+  body.appendChild(kpis)
+
   // ⚠ MA ZONE, pas tout le territoire. La tuile comptait les événements des
   // six départements alors que le bouton juste dessous mène à une file
   // cloisonnée : un modérateur du 04 lisait 7 et n'en trouvait que 3 à
   // traiter. `myPendingCount()` applique can_moderate(), comme la file.
   const enAttente = enAttenteZone ?? stats.evenements.en_attente
-  kpis.appendChild(kpi('En attente dans ma zone', enAttente, 'à modérer', enAttente > 0))
-  body.appendChild(kpis)
 
   // Le bouton suit la tuile : il ne s'affiche que s'il y a vraiment quelque
   // chose à traiter DANS SA ZONE, sinon il menait à une file vide.
