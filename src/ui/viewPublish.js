@@ -424,7 +424,7 @@ export async function viewPublish({ query } = {}) {
   const detailInput = el('input', 'form__input')
   detailInput.type = 'text'
   detailInput.maxLength = 40
-  detailInput.placeholder = 'ex. les 9 séances, par personne…'
+  detailInput.placeholder = 'ex. tarif réduit 12 €, par personne…'
   if (init.price_detail) detailInput.value = init.price_detail
   detailInput.addEventListener('input', refreshPreview)
   paidRow.appendChild(detailInput)
@@ -441,7 +441,7 @@ export async function viewPublish({ query } = {}) {
         ? ''
         : tarif === 'libre'
           ? 'Chacun donne ce qu’il veut. La précision est facultative : « à partir de 5 € »…'
-          : 'La précision est facultative : « les 9 séances », « par personne », « tarif réduit 12 € ».'
+          : 'La précision est facultative : « tarif réduit 12 € », « par personne »…'
   }
   majTarif()
 
