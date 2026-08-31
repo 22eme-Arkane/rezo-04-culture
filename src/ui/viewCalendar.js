@@ -1,6 +1,6 @@
 // Armana — écran Calendrier (défaut) : en-tête, chips de catégories,
 // calendrier mensuel (jours à événements marqués), liste des événements.
-import { el, emptyState, formatMonthLabel, formatDateFull } from './components.js'
+import { el, emptyState, formatMonthLabel, formatDateFull, tarifMode } from './components.js'
 import { posterEventCard } from './posterEventCard.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
@@ -170,7 +170,12 @@ export async function viewCalendar() {
       })
     }
 
-    return quickFilter === 'free' ? events.filter((event) => !event.is_paid) : events
+    // ⚠ « Gratuit » veut dire GRATUIT, pas « prix libre ». Les deux ont
+    // `is_paid` à false : filtrer dessus aurait fait apparaître ici des
+    // événements où l'on attend tout de même une participation.
+    return quickFilter === 'free'
+      ? events.filter((event) => tarifMode(event) === 'gratuit')
+      : events
   }
 
   /** Filtres portant sur le JOUR — appliqués aux occurrences, pas aux événements. */

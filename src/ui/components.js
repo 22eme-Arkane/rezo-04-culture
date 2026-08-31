@@ -32,11 +32,40 @@ export function formatMonthLabel(d) {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
+/**
+ * Le tarif, en une ligne.
+ *
+ * ⚠ `price_mode` (migration 0028) fait autorité ; `is_paid` n'est là que pour
+ * les événements publiés AVANT elle, et pour les navigateurs qui gardent
+ * l'ancien bundle en cache.
+ *
+ * ⚠ « PAYANT » DISPARAÎT DÈS QU'IL Y A UNE PRÉCISION. « Payant · 200 € · les
+ * 9 séances » ne tient pas sur la vignette d'agenda : c'est la précision, en
+ * bout de ligne, qui serait tronquée — soit exactement l'information qu'on
+ * vient d'ajouter. Le montant seul se comprend sans le mot.
+ */
+/**
+ * Le tarif d'un événement : 'gratuit', 'libre' ou 'payant'.
+ *
+ * ⚠ UN SEUL ENDROIT décide de cette lecture. `is_paid` ne distingue pas
+ * « gratuit » de « prix libre » — les deux y valent false — et s'en servir
+ * directement rangeait le prix libre parmi les gratuits, dans le filtre comme
+ * dans la couleur du badge.
+ */
+export function tarifMode(ev) {
+  return ev?.price_mode || (ev?.is_paid ? 'payant' : 'gratuit')
+}
+
 export function formatPrice(ev) {
-  if (!ev.is_paid) return 'Gratuit'
-  if (ev.price == null) return 'Payant'
+  const mode = tarifMode(ev)
+  const detail = (ev.price_detail || '').trim()
+
+  if (mode === 'gratuit') return 'Gratuit'
+  if (mode === 'libre') return detail ? `Prix libre · ${detail}` : 'Prix libre'
+  if (ev.price == null) return detail ? `Payant · ${detail}` : 'Payant'
+
   const n = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(Number(ev.price))
-  return `Payant · ${n} €`
+  return detail ? `${n} € · ${detail}` : `Payant · ${n} €`
 }
 
 /** Crée un élément avec classe + texte optionnels. */
@@ -107,7 +136,13 @@ export function eventCard(ev, opts = {}) {
   const badges = el('div', 'ecard__badges')
   if (ev.category) badges.appendChild(el('span', 'ecard__badge ecard__badge--cat', ev.category))
   badges.appendChild(
-    el('span', ev.is_paid ? 'ecard__badge ecard__badge--paid' : 'ecard__badge ecard__badge--free', formatPrice(ev))
+    el(
+      'span',
+      tarifMode(ev) === 'gratuit'
+        ? 'ecard__badge ecard__badge--free'
+        : 'ecard__badge ecard__badge--paid',
+      formatPrice(ev)
+    )
   )
   if (ev.status && ev.status !== 'approved') {
     const map = { pending: 'En attente', rejected: 'Rejeté' }

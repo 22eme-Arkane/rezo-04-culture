@@ -1,5 +1,5 @@
 // Armana — écran détail d'un événement (photo pleine résolution + infos).
-import { el, formatDateFull, formatTime, formatPrice, emptyState } from './components.js'
+import { el, formatDateFull, formatTime, formatPrice, tarifMode, emptyState } from './components.js'
 import { icon, marqueurArmana } from './icons.js'
 import { studioHeader } from './studio.js'
 import { isAdmin, isLoggedIn, getUser } from '../lib/auth.js'
@@ -54,7 +54,13 @@ export async function viewDetail({ query } = {}) {
   const badges = el('div', 'detail__badges')
   if (ev.category) badges.appendChild(el('span', 'ecard__badge ecard__badge--cat', ev.category))
   badges.appendChild(
-    el('span', ev.is_paid ? 'ecard__badge ecard__badge--paid' : 'ecard__badge ecard__badge--free', formatPrice(ev))
+    el(
+      'span',
+      tarifMode(ev) === 'gratuit'
+        ? 'ecard__badge ecard__badge--free'
+        : 'ecard__badge ecard__badge--paid',
+      formatPrice(ev)
+    )
   )
   body.appendChild(badges)
 

@@ -196,6 +196,13 @@ export async function createEvent(p) {
     // Récurrence : tableau de jours (getDay) ou null pour un événement ponctuel.
     p_recur_days: p.recur_days?.length ? p.recur_days : null,
     p_contact: p.contact ?? '',
+    // Série de dates choisies une à une (migration 0028) : exclusive des jours
+    // de la semaine, c'est le serveur qui tranche si les deux arrivent.
+    p_recur_dates: p.recur_dates?.length ? p.recur_dates : null,
+    p_price_detail: p.price_detail ?? '',
+    // ⚠ Le tarif fait autorité sur `p_is_paid`, conservé pour les anciennes
+    // versions. Trois valeurs : gratuit, libre, payant.
+    p_price_mode: p.price_mode ?? '',
   })
   if (error) throw error
   return data
@@ -218,6 +225,13 @@ export async function updateEvent(id, p) {
     // Récurrence : tableau de jours (getDay) ou null pour un événement ponctuel.
     p_recur_days: p.recur_days?.length ? p.recur_days : null,
     p_contact: p.contact ?? '',
+    // Série de dates choisies une à une (migration 0028) : exclusive des jours
+    // de la semaine, c'est le serveur qui tranche si les deux arrivent.
+    p_recur_dates: p.recur_dates?.length ? p.recur_dates : null,
+    p_price_detail: p.price_detail ?? '',
+    // ⚠ Le tarif fait autorité sur `p_is_paid`, conservé pour les anciennes
+    // versions. Trois valeurs : gratuit, libre, payant.
+    p_price_mode: p.price_mode ?? '',
   })
   if (error) throw error
   return data

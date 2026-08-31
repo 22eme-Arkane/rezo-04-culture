@@ -449,6 +449,35 @@ a.settings-row .settings-row__label { word-break: break-all; }
   border-color: var(--mask-green-light, #7ac97f);
 }
 .recur__echo { margin-top: 0.5rem; }
+
+/* Choix en pastilles : rythme de répétition, tarif. Mêmes couleurs actives
+   que les jours de la semaine, mais en pilules — le texte ne tient pas dans
+   un rond de 38 px. */
+.choix { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem; }
+.choix__option {
+  flex: 0 0 auto; padding: 0.4rem 0.85rem;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface); color: var(--fg);
+  font-family: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.choix__option.is-active {
+  color: var(--studio-ink, #062b1d);
+  background: var(--mask-green-light, #7ac97f);
+  border-color: var(--mask-green-light, #7ac97f);
+}
+
+/* Les dates d'une série, une par ligne, chacune retirable. */
+.serie__liste { display: flex; flex-direction: column; gap: 0.4rem; }
+.serie__ligne { display: flex; align-items: center; gap: 0.4rem; }
+.serie__date { flex: 1 1 auto; min-width: 0; }
+.serie__retirer {
+  flex: 0 0 auto; width: 34px; height: 34px; padding: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--surface); color: var(--fg);
+  font-size: 1.1rem; line-height: 1; cursor: pointer;
+}
+.serie__actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
 .detail__contact { color: inherit; word-break: break-word; }
 
 /* Journal des administrateurs (propriétaire seul). */

@@ -11,7 +11,7 @@ import { studioHeader } from './studio.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { DEFAULT_CENTER, geocodeAddress } from '../lib/geo.js'
-import { JOURS, formatJourMois } from '../lib/recurrence.js'
+import { JOURS, formatJourMois, serieProposee } from '../lib/recurrence.js'
 import { toDisplayableFile } from '../lib/heic.js'
 import { consumeDraft, consumeSharedFile } from '../lib/draft.js'
 import {
@@ -206,10 +206,110 @@ export async function viewPublish({ query } = {}) {
     daysRow.appendChild(b)
     return b
   })
+  // ⚠ LE RYTHME N'EST PAS ENREGISTRÉ, C'EST UNE AIDE DE SAISIE.
+  // « Une fois par mois » ne tombe pas sur la même semaine tous les mois : une
+  // règle hebdomadaire ne peut pas le décrire, et l'atelier « un vendredi par
+  // mois » s'affichait « Tous les vendredis ». Au-delà de l'hebdomadaire, on
+  // enregistre donc LES DATES ELLES-MÊMES ; le rythme sert seulement à les
+  // proposer, l'organisateur corrigeant celles qui tombent mal — vacances,
+  // salle prise, jour férié.
+  const RYTHMES = [
+    { cle: 'semaine', texte: 'Toutes les semaines' },
+    { cle: 'quinzaine', texte: 'Une semaine sur deux' },
+    { cle: 'mois', texte: 'Une fois par mois' },
+  ]
+  let rythme = 'semaine'
+  const rythmeRow = el('div', 'choix')
+  const rythmeBtns = RYTHMES.map((r) => {
+    const b = el('button', 'choix__option', r.texte)
+    b.type = 'button'
+    b.dataset.cle = r.cle
+    b.addEventListener('click', () => {
+      if (rythme === r.cle) return
+      rythme = r.cle
+      // Passer à un rythme non hebdomadaire propose aussitôt les dates :
+      // sinon on découvre une liste vide sans savoir quoi en faire.
+      if (rythme !== 'semaine') proposerDates()
+      majRecurrence()
+      refreshPreview()
+    })
+    rythmeRow.appendChild(b)
+    return b
+  })
+  recurBox.appendChild(rythmeRow)
   recurBox.appendChild(daysRow)
+
+  // --- Les dates de la série, une par ligne --------------------------------
+  const datesBox = el('div', 'serie')
+  const datesListe = el('div', 'serie__liste')
+  datesBox.appendChild(datesListe)
+  const datesActions = el('div', 'serie__actions')
+  const btnAjouter = el('button', 'btn btn--ghost btn--sm', 'Ajouter une date')
+  btnAjouter.type = 'button'
+  btnAjouter.addEventListener('click', () => {
+    ajouterLigneDate('')
+    refreshPreview()
+  })
+  const btnProposer = el('button', 'btn btn--ghost btn--sm', 'Recalculer les dates')
+  btnProposer.type = 'button'
+  btnProposer.addEventListener('click', () => {
+    proposerDates()
+    majRecurrence()
+    refreshPreview()
+  })
+  datesActions.append(btnAjouter, btnProposer)
+  datesBox.appendChild(datesActions)
+  recurBox.appendChild(datesBox)
+
   const recurEcho = el('p', 'form__hint recur__echo')
   recurBox.appendChild(recurEcho)
   recurWrap.appendChild(recurBox)
+
+  function ajouterLigneDate(valeur) {
+    const ligne = el('div', 'serie__ligne')
+    const champ = el('input', 'form__input serie__date')
+    champ.type = 'date'
+    if (valeur) champ.value = valeur
+    champ.addEventListener('change', () => {
+      majRecurrence()
+      refreshPreview()
+    })
+    const retirer = el('button', 'serie__retirer', '×')
+    retirer.type = 'button'
+    retirer.setAttribute('aria-label', 'Retirer cette date')
+    retirer.addEventListener('click', () => {
+      ligne.remove()
+      majRecurrence()
+      refreshPreview()
+    })
+    ligne.append(champ, retirer)
+    datesListe.appendChild(ligne)
+    return champ
+  }
+
+  /** Dates saisies, nettoyées : triées, sans doublon ni ligne vide. */
+  const datesChoisies = () => {
+    const brut = [...datesListe.querySelectorAll('.serie__date')]
+      .map((i) => i.value)
+      .filter((v) => /^\d{4}-\d{2}-\d{2}$/.test(v))
+    return [...new Set(brut)].sort()
+  }
+
+  /**
+   * Propose les dates depuis le début et la fin de période saisis.
+   * « Une fois par mois » garde le RANG DU JOUR DANS LE MOIS — deuxième
+   * vendredi, troisième samedi — et non le quantième : c'est ainsi que les
+   * ateliers et les marchés s'organisent, et le 31 n'existe pas tous les mois.
+   */
+  function proposerDates() {
+    const debut = lireDateChamp(fStart.input)
+    const fin = lireDateChamp(fEnd.input)
+    if (!debut || !fin) return
+    const out = serieProposee(debut, fin, rythme)
+    if (!out.length) return
+    datesListe.innerHTML = ''
+    for (const d of out) ajouterLigneDate(d)
+  }
 
   const joursChoisis = () =>
     dayBtns.filter((b) => b.classList.contains('is-active')).map((b) => Number(b.dataset.n))
@@ -217,12 +317,29 @@ export async function viewPublish({ query } = {}) {
   function majRecurrence() {
     const actif = recurInput.checked
     recurBox.style.display = actif ? '' : 'none'
-    // Pour un événement récurrent, « Fin » borne la PÉRIODE et devient requis :
-    // sans borne, la répétition remplirait le calendrier indéfiniment.
+    for (const b of rythmeBtns) b.classList.toggle('is-active', b.dataset.cle === rythme)
+
+    const parDates = rythme !== 'semaine'
+    daysRow.style.display = parDates ? 'none' : ''
+    datesBox.style.display = parDates ? '' : 'none'
+
+    // Pour une répétition hebdomadaire, « Fin » borne la PÉRIODE et devient
+    // requis : sans borne, elle remplirait le calendrier indéfiniment. Pour une
+    // série de dates, les bornes se déduisent des dates — mais elles restent
+    // nécessaires pour les PROPOSER.
     const lbl = fEnd.wrap.querySelector('.form__label')
     if (lbl) lbl.textContent = actif ? 'Fin de la période *' : 'Fin (optionnel)'
     if (!actif) {
       recurEcho.textContent = ''
+      return
+    }
+
+    if (parDates) {
+      const n = datesChoisies().length
+      recurEcho.textContent = n
+        ? `${n} séance${n > 1 ? 's' : ''}. Corrigez les dates qui tombent mal, ` +
+          'ajoutez ou retirez-en librement.'
+        : 'Renseignez le début et la fin de période, puis « Recalculer les dates ».'
       return
     }
     const noms = JOURS.filter((j) => joursChoisis().includes(j.n)).map((j) => j.long)
@@ -237,9 +354,19 @@ export async function viewPublish({ query } = {}) {
 
   // Reprise d'un événement existant en édition.
   const joursInit = Array.isArray(init.recur_days) ? init.recur_days.map(Number) : []
-  recurInput.checked = joursInit.length > 0
+  const datesInit = Array.isArray(init.recur_dates)
+    ? init.recur_dates.map((d) => String(d).slice(0, 10)).filter(Boolean)
+    : []
+  recurInput.checked = joursInit.length > 0 || datesInit.length > 0
   for (const b of dayBtns) {
     if (joursInit.includes(Number(b.dataset.n))) b.classList.add('is-active')
+  }
+  if (datesInit.length) {
+    // On ne sait plus quel rythme les avait produites, et ça n'a pas
+    // d'importance : ce sont les dates qui font foi. « Une fois par mois »
+    // n'est ici qu'un intitulé d'onglet.
+    rythme = 'mois'
+    for (const d of datesInit) ajouterLigneDate(d)
   }
   majRecurrence()
 
@@ -254,29 +381,69 @@ export async function viewPublish({ query } = {}) {
     )
   )
 
-  // Gratuit / payant.
+  // --- Tarif : gratuit, prix libre, payant ----------------------------------
+  // « Prix libre » existait déjà dans les faits — une affiche publiée porte
+  // « Entrée libre participation » — sans pouvoir se dire dans le formulaire.
+  const TARIFS = [
+    { cle: 'gratuit', texte: 'Gratuit' },
+    { cle: 'libre', texte: 'Prix libre' },
+    { cle: 'payant', texte: 'Payant' },
+  ]
+  let tarif = init.price_mode || (init.is_paid ? 'payant' : 'gratuit')
   const paidWrap = el('div', 'form__field')
   paidWrap.appendChild(el('span', 'form__label', 'Tarif'))
+  const tarifRow = el('div', 'choix')
+  const tarifBtns = TARIFS.map((t) => {
+    const b = el('button', 'choix__option', t.texte)
+    b.type = 'button'
+    b.dataset.cle = t.cle
+    b.addEventListener('click', () => {
+      tarif = t.cle
+      majTarif()
+      refreshPreview()
+    })
+    tarifRow.appendChild(b)
+    return b
+  })
+  paidWrap.appendChild(tarifRow)
+
   const paidRow = el('div', 'form__row')
-  const paidToggle = el('label', 'switch')
-  const paidInput = el('input')
-  paidInput.type = 'checkbox'
-  paidInput.checked = Boolean(init.is_paid)
-  paidToggle.appendChild(paidInput)
-  paidToggle.appendChild(el('span', 'switch__text', 'Événement payant'))
-  paidRow.appendChild(paidToggle)
   const priceInput = el('input', 'form__input form__input--price')
   priceInput.type = 'number'
   priceInput.min = '0'
   priceInput.step = '0.5'
   priceInput.placeholder = 'Prix en €'
   if (init.price != null) priceInput.value = init.price
-  priceInput.style.display = paidInput.checked ? '' : 'none'
-  paidInput.addEventListener('change', () => {
-    priceInput.style.display = paidInput.checked ? '' : 'none'
-  })
+  priceInput.addEventListener('input', refreshPreview)
   paidRow.appendChild(priceInput)
+
+  // ⚠ LONGUEUR BORNÉE À 40, comme la contrainte en base. Cette précision
+  // s'affiche à la suite du montant sur la vignette d'agenda, sur UNE ligne :
+  // plus long, elle serait tronquée — soit exactement l'information qu'on
+  // vient d'ajouter.
+  const detailInput = el('input', 'form__input')
+  detailInput.type = 'text'
+  detailInput.maxLength = 40
+  detailInput.placeholder = 'ex. les 9 séances, par personne…'
+  if (init.price_detail) detailInput.value = init.price_detail
+  detailInput.addEventListener('input', refreshPreview)
+  paidRow.appendChild(detailInput)
   paidWrap.appendChild(paidRow)
+  const tarifEcho = el('span', 'form__hint')
+  paidWrap.appendChild(tarifEcho)
+
+  function majTarif() {
+    for (const b of tarifBtns) b.classList.toggle('is-active', b.dataset.cle === tarif)
+    priceInput.style.display = tarif === 'payant' ? '' : 'none'
+    detailInput.style.display = tarif === 'gratuit' ? 'none' : ''
+    tarifEcho.textContent =
+      tarif === 'gratuit'
+        ? ''
+        : tarif === 'libre'
+          ? 'Chacun donne ce qu’il veut. La précision est facultative : « à partir de 5 € »…'
+          : 'La précision est facultative : « les 9 séances », « par personne », « tarif réduit 12 € ».'
+  }
+  majTarif()
 
   // Localisation : adresse + géocodage + mini-carte avec marqueur déplaçable.
   const locWrap = el('div', 'form__field')
@@ -468,8 +635,10 @@ export async function viewPublish({ query } = {}) {
       starts_at: startsAt.toISOString(),
       address: addrInput?.value.trim() || 'Lieu à préciser',
       category: fCategory?.input.value || 'Catégorie ?',
-      is_paid: paidInput?.checked ?? false,
-      price: paidInput?.checked && priceInput?.value ? Number(priceInput.value) : null,
+      price_mode: tarif,
+      is_paid: tarif === 'payant',
+      price: tarif === 'payant' && priceInput?.value ? Number(priceInput.value) : null,
+      price_detail: tarif === 'gratuit' ? '' : detailInput?.value.trim() || '',
       thumb_url: null,
     }
   }
@@ -680,8 +849,9 @@ export async function viewPublish({ query } = {}) {
           description: fDesc.input.value,
           startLocal: fStart.input.value,
           endLocal: fEnd.input.value,
-          isPaid: paidInput.checked,
+          tarif,
           price: priceInput.value,
+          priceDetail: detailInput.value,
           address: addrInput.value,
           lat: state.lat,
           lng: state.lng,
@@ -705,9 +875,12 @@ export async function viewPublish({ query } = {}) {
       fDesc.input.value = saved.description ?? ''
       fStart.input.value = saved.startLocal ?? ''
       fEnd.input.value = saved.endLocal ?? ''
-      paidInput.checked = Boolean(saved.isPaid)
-      priceInput.style.display = paidInput.checked ? '' : 'none'
+      // `isPaid` : brouillon d'avant la migration 0028, encore en mémoire sur
+      // les téléphones. On le relit plutôt que de perdre la saisie.
+      tarif = saved.tarif || (saved.isPaid ? 'payant' : 'gratuit')
       if (saved.price) priceInput.value = saved.price
+      if (saved.priceDetail) detailInput.value = saved.priceDetail
+      majTarif()
       addrInput.value = saved.address ?? ''
       if (saved.lat != null) {
         state.lat = saved.lat
@@ -838,12 +1011,22 @@ export async function viewPublish({ query } = {}) {
       return fail('Placez le lieu sur la carte (adresse ou clic).')
     if (ends_at && ends_at < starts_at) return fail('La fin est avant le début.')
 
-    // Répétition : sans jour ni borne, elle n'a pas de sens (et remplirait le
-    // calendrier indéfiniment). La base refuse d'ailleurs les deux cas.
-    const recurrence = recurInput.checked ? joursChoisis() : []
+    // Répétition. Deux formes exclusives : les jours de la semaine sur une
+    // période, ou la liste des dates. Sans jour ni borne, l'hebdomadaire
+    // remplirait le calendrier indéfiniment — la base refuse d'ailleurs les
+    // deux cas.
+    const parDates = recurInput.checked && rythme !== 'semaine'
+    const recurrence = recurInput.checked && !parDates ? joursChoisis() : []
+    const series = parDates ? datesChoisies() : []
     if (recurInput.checked) {
-      if (!recurrence.length) return fail('Choisissez au moins un jour de répétition.')
-      if (!ends_at) return fail('Un événement qui se répète doit avoir une date de fin de période.')
+      if (parDates) {
+        if (series.length < 2)
+          return fail('Une série demande au moins deux dates. Ajoutez-les ou changez de rythme.')
+      } else {
+        if (!recurrence.length) return fail('Choisissez au moins un jour de répétition.')
+        if (!ends_at)
+          return fail('Un événement qui se répète doit avoir une date de fin de période.')
+      }
     }
 
     const payload = {
@@ -851,13 +1034,18 @@ export async function viewPublish({ query } = {}) {
       description: fDesc.input.value.trim(),
       starts_at,
       ends_at,
-      is_paid: paidInput.checked,
-      price: paidInput.checked && priceInput.value ? Number(priceInput.value) : null,
+      // ⚠ `price_mode` fait autorité ; `is_paid` reste envoyé pour rester
+      // compatible avec la fonction d'avant la migration 0028.
+      price_mode: tarif,
+      is_paid: tarif === 'payant',
+      price: tarif === 'payant' && priceInput.value ? Number(priceInput.value) : null,
+      price_detail: tarif === 'gratuit' ? '' : detailInput.value.trim(),
       lat: state.lat,
       lng: state.lng,
       address: addrInput.value.trim(),
       category: fCategory.input.value,
       recur_days: recurrence,
+      recur_dates: series,
       contact: fContact.input.value.trim(),
     }
 
@@ -920,6 +1108,20 @@ export async function viewPublish({ query } = {}) {
 }
 
 // --- Champs ---
+/**
+ * La DATE seule d'un champ `datetime-local`, en Date locale calée à MIDI.
+ *
+ * ⚠ Midi, et jamais minuit : un calcul de dates qui traverse un changement
+ * d'heure décalerait une date de minuit à la veille 23 h, et le jour affiché
+ * ne serait plus le bon.
+ */
+function lireDateChamp(input) {
+  const v = (input?.value || '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null
+  const [a, m, j] = v.split('-').map(Number)
+  return new Date(a, m - 1, j, 12, 0, 0, 0)
+}
+
 function textField(label, type, value) {
   const wrap = el('label', 'form__field')
   wrap.appendChild(el('span', 'form__label', label))
