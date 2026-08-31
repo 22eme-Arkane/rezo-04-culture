@@ -2,6 +2,7 @@
 // Elle est volontairement indépendante de la carte générique utilisée ailleurs.
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
+import { villeDeLAdresse } from '../lib/adresse.js'
 import { addGem, removeGem } from '../lib/events.js'
 import { el, formatPrice, formatTime } from './components.js'
 import { icon, marqueurArmana } from './icons.js'
@@ -103,11 +104,16 @@ export function posterEventCard(ev, opts = {}) {
   // information qu'on ne lit pas en parcourant une liste. Trois choses
   // suffisent ici : le style, le nom, le lieu. Le détail est sur la fiche.
   if (ev.address) {
+    // ⚠ LA VILLE SEULE, PAS L'ADRESSE COMPLÈTE. « Chapelle St François,
+    // Couvent des Cordeliers, 04300 Forcalquier » tenait sur trois lignes et
+    // repoussait tout le reste, alors qu'en parcourant l'agenda on ne cherche
+    // qu'à savoir si c'est près de chez soi. L'adresse entière est sur la
+    // fiche, à un doigt de là — c'est là qu'on la lit, au moment d'y aller.
+    const lieu = el('p', 'poster-card__place')
     // Le même marqueur que la carte et la fiche, en tout petit : il signale
     // « c'est ici que ça se passe » sans qu'on ait à lire.
-    const lieu = el('p', 'poster-card__place')
     lieu.appendChild(marqueurArmana({ size: 12 }))
-    lieu.appendChild(document.createTextNode(' ' + ev.address))
+    lieu.appendChild(document.createTextNode(' ' + villeDeLAdresse(ev.address)))
     info.appendChild(lieu)
   }
   info.appendChild(el('span', 'poster-card__price', formatPrice(ev)))
