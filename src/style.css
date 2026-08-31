@@ -379,7 +379,29 @@ html, body {
 }
 
 /* Zone d'un modérateur : une pastille par département, allumée ou éteinte. */
-.moderateur__zone { display: flex; gap: 0.28rem; flex: 0 0 auto; }
+/* La zone d'un modérateur vit SOUS sa ligne, dépliable : sur la ligne même,
+   sept pastilles ne laissaient plus la place d'afficher son nom. */
+.moderateur__zone {
+  display: flex;
+  gap: 0.28rem;
+  flex-wrap: wrap;
+  padding: 0 0.2rem 0.6rem 3.1rem;
+}
+/* Le choix de zone à la désignation reste sur une seule rangée, sans retrait. */
+.moderateur__zone--choix { padding: 0; }
+.moderateur__bascule {
+  flex: 0 0 auto;
+  padding: 0.22rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.moderateur__ident { cursor: pointer; }
 .moderateur__zone .recur__day {
   width: 30px;
   height: 30px;
@@ -453,6 +475,9 @@ a.settings-row .settings-row__label { word-break: break-all; }
 /* Choix en pastilles : rythme de répétition, tarif. Mêmes couleurs actives
    que les jours de la semaine, mais en pilules — le texte ne tient pas dans
    un rond de 38 px. */
+/* « supérieur ou égal à », devant le montant minimum d'un prix libre. */
+.tarif__prefixe { flex: 0 0 auto; align-self: center; font-size: 0.85rem; }
+
 .choix { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem; }
 .choix__option {
   flex: 0 0 auto; padding: 0.4rem 0.85rem;

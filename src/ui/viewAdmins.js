@@ -129,7 +129,8 @@ export async function viewAdmins() {
       ligne.appendChild(pastille)
 
       const corps = el('div', 'liste-compacte__corps')
-      corps.appendChild(el('span', 'liste-compacte__nom', a.display_name || a.email))
+      const nom = el('span', 'liste-compacte__nom', a.display_name || a.email)
+      corps.appendChild(nom)
       corps.appendChild(
         el(
           'span',
@@ -137,6 +138,22 @@ export async function viewAdmins() {
           a.is_owner ? 'Propriétaire — tous les droits' : a.email
         )
       )
+      // Le nom ouvre la fiche du membre — comme dans la liste des membres, et
+      // au PROPRIÉTAIRE SEUL : la fiche porte l'adresse e-mail et les droits.
+      if (!a.is_owner) {
+        corps.classList.add('moderateur__ident')
+        corps.setAttribute('role', 'button')
+        corps.tabIndex = 0
+        corps.title = 'Voir la fiche de ce membre'
+        const ouvrir = () => navigate('/membre?id=' + a.id)
+        corps.addEventListener('click', ouvrir)
+        corps.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            ouvrir()
+          }
+        })
+      }
       ligne.appendChild(corps)
 
       if (a.is_owner) {
@@ -195,10 +212,38 @@ export async function viewAdmins() {
         zone.appendChild(b)
       }
       peindre()
-      ligne.appendChild(zone)
+
+      // ⚠ LA ZONE PASSE SOUS LE NOM, ET SE REPLIE.
+      // Avec sept départements, les pastilles occupaient plus de 230 px sur la
+      // même ligne : le nom du modérateur n'avait plus la place de s'afficher.
+      // Le bouton résume la zone (« 04 · 05 ») et l'ouvre au besoin.
+      const bascule = el('button', 'moderateur__bascule')
+      bascule.type = 'button'
+      const resumeZone = () => (depts.length ? depts.join(' · ') : 'aucun département')
+      const majBascule = () => {
+        bascule.textContent = resumeZone()
+        bascule.setAttribute('aria-expanded', String(zone.style.display !== 'none'))
+        bascule.title = 'Modifier la zone de ' + (a.display_name || a.email)
+      }
+      zone.style.display = 'none'
+      bascule.addEventListener('click', () => {
+        zone.style.display = zone.style.display === 'none' ? '' : 'none'
+        majBascule()
+      })
+      // Le résumé suit les bascules de département, qui enregistrent aussitôt.
+      const peindreAvecResume = () => {
+        peindre()
+        majBascule()
+      }
+      for (const b of boutons.values()) b.addEventListener('click', () => setTimeout(majBascule, 0))
+      majBascule()
+      ligne.appendChild(bascule)
 
       if (a.id === myId) ligne.appendChild(el('span', 'liste-compacte__fin', 'vous'))
       groupe.appendChild(ligne)
+      // La rangée de pastilles vit SOUS la ligne, en pleine largeur.
+      groupe.appendChild(zone)
+      peindreAvecResume()
     }
     listWrap.appendChild(groupe)
   }

@@ -25,6 +25,12 @@ import {
 
 const PREVIEW_MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
 
+// Longueur maximale du badge de tarif sur la vignette d'agenda, PRIX COMPRIS.
+// ⚠ Mesuré, pas estimé : le badge est plafonné par sa colonne (86 px au
+// format le plus courant) et coupe au-delà. « Payant · 200 € », 14 signes,
+// passe tout juste ; « 200 € · réduit 12 € », 19 signes, était tronqué.
+const BADGE_MAX = 15
+
 // Date écrite en toutes lettres, ANNÉE COMPRISE : c'est elle qui manque partout
 // ailleurs (l'aperçu n'affiche que « 01 AOÛT »).
 const DATE_LONGUE = new Intl.DateTimeFormat('fr-FR', {
@@ -103,10 +109,26 @@ export async function viewPublish({ query } = {}) {
   const form = el('form', 'form form--wide')
 
   const fTitle = textField('Titre *', 'text', init.title)
-  const fCategory = selectField('Catégorie *', CATEGORIES, init.category)
+  // « Musique » par défaut : la catégorie la plus publiée, et un choix déjà
+  // valide vaut mieux qu'un champ vide qu'on oublie de remplir.
+  const fCategory = selectField('Catégorie *', CATEGORIES, init.category || 'Musique')
   const fDesc = textareaField('Description', init.description)
-  const fStart = textField('Début *', 'datetime-local', toLocalInput(init.starts_at))
+  // ⚠ DÉBUT PRÉ-RENSEIGNÉ SUR AUJOURD'HUI. Vide, `datetime-local` laisse
+  // l'année à ce que le navigateur propose : c'est ainsi qu'un événement s'est
+  // retrouvé daté 2027 (« La mare où (l')on se Mire ») et relégué tout en bas
+  // de l'agenda. Partir de la date du jour supprime la faute la plus coûteuse,
+  // celle qu'on ne voit pas.
+  // L'heure, elle, doit bien être choisie : 20 h, l'heure la plus fréquente
+  // pour un événement culturel — à corriger d'un geste.
+  const fStart = textField(
+    'Début *',
+    'datetime-local',
+    toLocalInput(init.starts_at) || debutParDefaut()
+  )
   const fEnd = textField('Fin (optionnel)', 'datetime-local', toLocalInput(init.ends_at))
+
+  fTitle.input.placeholder = 'Titre de l’événement'
+  fDesc.input.placeholder = 'Décrivez votre événement avec le maximum d’informations'
 
   // ⚠ L'ANNÉE est le piège de `datetime-local` : on tape le jour et le mois, et
   // l'année reste sur ce que le navigateur avait proposé. Rien ne la rappelait
@@ -250,7 +272,11 @@ export async function viewPublish({ query } = {}) {
     ajouterLigneDate('')
     refreshPreview()
   })
-  const btnProposer = el('button', 'btn btn--ghost btn--sm', 'Recalculer les dates')
+  // ⚠ LE LIBELLÉ DOIT DIRE CE QUE FAIT LE BOUTON. « Recalculer les dates » ne
+  // le disait pas — Matthieu n'a pas compris à quoi il servait. Il REPREND la
+  // liste depuis le début et la fin de période : utile quand on change ces
+  // dates après coup, la liste ne les suit pas toute seule.
+  const btnProposer = el('button', 'btn btn--ghost btn--sm', 'Reproposer depuis la période')
   btnProposer.type = 'button'
   btnProposer.addEventListener('click', () => {
     proposerDates()
@@ -338,8 +364,9 @@ export async function viewPublish({ query } = {}) {
       const n = datesChoisies().length
       recurEcho.textContent = n
         ? `${n} séance${n > 1 ? 's' : ''}. Corrigez les dates qui tombent mal, ` +
-          'ajoutez ou retirez-en librement.'
-        : 'Renseignez le début et la fin de période, puis « Recalculer les dates ».'
+          'ajoutez ou retirez-en librement. « Reproposer depuis la période » ' +
+          'refait la liste à partir du début et de la fin — vos retouches sont perdues.'
+        : 'Renseignez le début et la fin de période, puis « Reproposer depuis la période ».'
       return
     }
     const noms = JOURS.filter((j) => joursChoisis().includes(j.n)).map((j) => j.long)
@@ -408,22 +435,31 @@ export async function viewPublish({ query } = {}) {
   paidWrap.appendChild(tarifRow)
 
   const paidRow = el('div', 'form__row')
+  // « Prix libre » prend lui aussi un MONTANT, pas du texte : c'est le minimum
+  // attendu, rangé dans la même colonne `price`. D'où ce préfixe, affiché pour
+  // ce seul tarif.
+  const prefixe = el('span', 'tarif__prefixe', 'supérieur ou égal à')
+  paidRow.appendChild(prefixe)
   const priceInput = el('input', 'form__input form__input--price')
   priceInput.type = 'number'
   priceInput.min = '0'
   priceInput.step = '0.5'
-  priceInput.placeholder = 'Prix en €'
   if (init.price != null) priceInput.value = init.price
-  priceInput.addEventListener('input', refreshPreview)
+  priceInput.addEventListener('input', () => {
+    // Le montant mange la place de la précision : on remet les compteurs.
+    majTarif()
+    refreshPreview()
+  })
   paidRow.appendChild(priceInput)
 
-  // ⚠ LONGUEUR BORNÉE À 40, comme la contrainte en base. Cette précision
-  // s'affiche à la suite du montant sur la vignette d'agenda, sur UNE ligne :
-  // plus long, elle serait tronquée — soit exactement l'information qu'on
-  // vient d'ajouter.
+  // ⚠ LONGUEUR BORNÉE À 15, comme la contrainte en base (migration 0029).
+  // Cette précision s'affiche à la suite du montant dans le badge de la
+  // vignette, sur UNE ligne. « tarif réduit 12 €, par personne » n'y entrerait
+  // jamais : elle serait tronquée, soit exactement l'information qu'on vient
+  // d'ajouter. Quinze caractères, prix compris.
   const detailInput = el('input', 'form__input')
   detailInput.type = 'text'
-  detailInput.maxLength = 40
+  detailInput.maxLength = 15
   // L'exemple suit le tarif choisi : voir `majTarif`. Proposer « tarif réduit
   // 12 € » sous « Prix libre » n'aurait aucun sens.
   if (init.price_detail) detailInput.value = init.price_detail
@@ -435,16 +471,38 @@ export async function viewPublish({ query } = {}) {
 
   function majTarif() {
     for (const b of tarifBtns) b.classList.toggle('is-active', b.dataset.cle === tarif)
-    priceInput.style.display = tarif === 'payant' ? '' : 'none'
-    detailInput.style.display = tarif === 'gratuit' ? 'none' : ''
-    detailInput.placeholder =
-      tarif === 'libre' ? 'ex. à partir de 5 €…' : 'ex. tarif réduit 12 €, par personne…'
-    tarifEcho.textContent =
-      tarif === 'gratuit'
-        ? ''
-        : tarif === 'libre'
-          ? 'Chacun donne ce qu’il veut. La précision est facultative : « à partir de 5 € »…'
-          : 'La précision est facultative : « tarif réduit 12 € », « par personne »…'
+    // Le montant sert au tarif payant (le prix) comme au prix libre (le
+    // minimum) ; la précision en texte est réservée au payant.
+    priceInput.style.display = tarif === 'gratuit' ? 'none' : ''
+    prefixe.style.display = tarif === 'libre' ? '' : 'none'
+    detailInput.style.display = tarif === 'payant' ? '' : 'none'
+    priceInput.placeholder = tarif === 'libre' ? 'Minimum en €' : 'Prix en €'
+    detailInput.placeholder = 'ex. réduit 12 €'
+
+    if (tarif === 'gratuit') {
+      tarifEcho.textContent = ''
+      return
+    }
+    if (tarif === 'libre') {
+      tarifEcho.textContent =
+        'Chacun donne ce qu’il veut. Laissez le montant vide s’il n’y a pas de minimum.'
+      return
+    }
+
+    // ⚠ QUINZE CARACTÈRES EN TOUT, PRIX COMPRIS — et non quinze pour la seule
+    // précision. Mesuré : le badge de la vignette est plafonné par sa colonne
+    // (86 px) et coupe au-delà d'une quinzaine de caractères. « 200 € · réduit
+    // 12 € » y était TRONQUÉ, donc l'information ajoutée se perdait.
+    // La place restante dépend du montant : on l'annonce, et on borne le champ
+    // en conséquence plutôt que de laisser saisir ce qui ne s'affichera pas.
+    const dejaPris = formatPrice({ price_mode: 'payant', price: Number(priceInput.value) || 0 })
+      .replace(/^Payant · /, '').length + 3 // le montant, plus le « · »
+    const reste = Math.max(0, BADGE_MAX - dejaPris)
+    detailInput.maxLength = reste
+    if (detailInput.value.length > reste) detailInput.value = detailInput.value.slice(0, reste)
+    tarifEcho.textContent = reste
+      ? `Précision facultative, ${reste} caractères : « réduit 12 € », « par personne ».`
+      : 'Le montant occupe déjà toute la place : pas de précision possible.'
   }
   majTarif()
 
@@ -640,8 +698,9 @@ export async function viewPublish({ query } = {}) {
       category: fCategory?.input.value || 'Catégorie ?',
       price_mode: tarif,
       is_paid: tarif === 'payant',
-      price: tarif === 'payant' && priceInput?.value ? Number(priceInput.value) : null,
-      price_detail: tarif === 'gratuit' ? '' : detailInput?.value.trim() || '',
+      // Le montant vaut pour « payant » (le prix) ET « libre » (le minimum).
+      price: tarif !== 'gratuit' && priceInput?.value ? Number(priceInput.value) : null,
+      price_detail: tarif === 'payant' ? detailInput?.value.trim() || '' : '',
       thumb_url: null,
     }
   }
@@ -958,11 +1017,25 @@ export async function viewPublish({ query } = {}) {
     }
   })
 
-  requestAnimationFrame(() => {
+  // ⚠ setTimeout ET NON requestAnimationFrame. rAF est GELÉ quand l'onglet
+  // n'est pas au premier plan : la carte ne se construisait alors jamais. Même
+  // correction que sur la carte principale, où le piège avait déjà mordu.
+  setTimeout(() => {
     const start = state.lat != null ? [state.lat, state.lng] : [DEFAULT_CENTER.lat, DEFAULT_CENTER.lng]
-    map = L.map(pickMap).setView(start, state.lat != null ? 14 : 10)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    map = L.map(pickMap, {
+      // ⚠ SANS PLANCHER DE ZOOM, un dézoom ramenait la carte du monde : des
+      // centaines de tuiles à charger d'un coup, pour choisir une adresse à
+      // vingt kilomètres. C'est ce qui la rendait poussive. 7 montre déjà tout
+      // le territoire couvert.
+      minZoom: 7,
+    }).setView(start, state.lat != null ? 14 : 10)
+    // ⚠ MÊME SOURCE DE TUILES QUE LA CARTE PRINCIPALE. Celle-ci était restée
+    // sur les sous-domaines `{s}.` abandonnés par OpenStreetMap, qui répondent
+    // plus lentement. `keepBuffer` garde une couronne de tuiles autour de
+    // l'écran, ce qui évite les carrés gris au déplacement.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
+      keepBuffer: 3,
       attribution:
         '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
     }).addTo(map)
@@ -1041,8 +1114,10 @@ export async function viewPublish({ query } = {}) {
       // compatible avec la fonction d'avant la migration 0028.
       price_mode: tarif,
       is_paid: tarif === 'payant',
-      price: tarif === 'payant' && priceInput.value ? Number(priceInput.value) : null,
-      price_detail: tarif === 'gratuit' ? '' : detailInput.value.trim(),
+      // Le montant vaut pour « payant » (le prix) ET « libre » (le minimum) ;
+      // la précision en texte est réservée au payant.
+      price: tarif !== 'gratuit' && priceInput.value ? Number(priceInput.value) : null,
+      price_detail: tarif === 'payant' ? detailInput.value.trim() : '',
       lat: state.lat,
       lng: state.lng,
       address: addrInput.value.trim(),
@@ -1123,6 +1198,16 @@ function lireDateChamp(input) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null
   const [a, m, j] = v.split('-').map(Number)
   return new Date(a, m - 1, j, 12, 0, 0, 0)
+}
+
+/** Aujourd'hui, 20 h, au format attendu par `datetime-local`. */
+function debutParDefaut() {
+  const d = new Date()
+  d.setHours(20, 0, 0, 0)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(
+    d.getMinutes()
+  )}`
 }
 
 function textField(label, type, value) {

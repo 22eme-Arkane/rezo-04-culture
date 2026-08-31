@@ -61,11 +61,19 @@ export function formatPrice(ev) {
   const detail = (ev.price_detail || '').trim()
 
   if (mode === 'gratuit') return 'Gratuit'
-  if (mode === 'libre') return detail ? `Prix libre · ${detail}` : 'Prix libre'
-  if (ev.price == null) return detail ? `Payant · ${detail}` : 'Payant'
 
-  const n = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(Number(ev.price))
-  return detail ? `${n} € · ${detail}` : `Payant · ${n} €`
+  const montant =
+    ev.price == null
+      ? null
+      : new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(Number(ev.price))
+
+  // Prix libre : chacun donne ce qu'il veut, éventuellement au-dessus d'un
+  // minimum. « Libre ≥ 5 € » plutôt que « Prix libre · ≥ 5 € » — le badge est
+  // étroit, et le mot entier ne sert plus une fois le symbole présent.
+  if (mode === 'libre') return montant ? `Libre ≥ ${montant} €` : 'Prix libre'
+
+  if (montant == null) return detail ? `Payant · ${detail}` : 'Payant'
+  return detail ? `${montant} € · ${detail}` : `Payant · ${montant} €`
 }
 
 /** Crée un élément avec classe + texte optionnels. */
