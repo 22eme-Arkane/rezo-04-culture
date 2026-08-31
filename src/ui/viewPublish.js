@@ -424,7 +424,8 @@ export async function viewPublish({ query } = {}) {
   const detailInput = el('input', 'form__input')
   detailInput.type = 'text'
   detailInput.maxLength = 40
-  detailInput.placeholder = 'ex. tarif réduit 12 €, par personne…'
+  // L'exemple suit le tarif choisi : voir `majTarif`. Proposer « tarif réduit
+  // 12 € » sous « Prix libre » n'aurait aucun sens.
   if (init.price_detail) detailInput.value = init.price_detail
   detailInput.addEventListener('input', refreshPreview)
   paidRow.appendChild(detailInput)
@@ -436,6 +437,8 @@ export async function viewPublish({ query } = {}) {
     for (const b of tarifBtns) b.classList.toggle('is-active', b.dataset.cle === tarif)
     priceInput.style.display = tarif === 'payant' ? '' : 'none'
     detailInput.style.display = tarif === 'gratuit' ? 'none' : ''
+    detailInput.placeholder =
+      tarif === 'libre' ? 'ex. à partir de 5 €…' : 'ex. tarif réduit 12 €, par personne…'
     tarifEcho.textContent =
       tarif === 'gratuit'
         ? ''
