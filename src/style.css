@@ -475,8 +475,15 @@ a.settings-row .settings-row__label { word-break: break-all; }
 /* Choix en pastilles : rythme de répétition, tarif. Mêmes couleurs actives
    que les jours de la semaine, mais en pilules — le texte ne tient pas dans
    un rond de 38 px. */
-/* « supérieur ou égal à », devant le montant minimum d'un prix libre. */
-.tarif__prefixe { flex: 0 0 auto; align-self: center; font-size: 0.85rem; }
+/* « ≥ », devant le montant minimum d'un prix libre. Le symbole plutôt que les
+   mots : il se lit d'un coup et ne prend pas la moitié de la ligne. */
+.tarif__prefixe {
+  flex: 0 0 auto;
+  align-self: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+}
 
 .choix { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem; }
 .choix__option {
@@ -1040,6 +1047,7 @@ a.settings-row .settings-row__label { word-break: break-all; }
 .page--studio-publish.page--studio-sub .form .form__label,
 .page--studio-publish .form .switch__text,
 .page--studio-publish .form .recur__echo,
+.page--studio-publish .form .tarif__prefixe,
 .page--studio-publish .form .photo-slot__jour { color: #fff; }
 .page--studio-publish.page--studio-sub .form .form__hint,
 .page--studio-publish .form .photo-preview__hint { color: rgba(255, 255, 255, 0.9); }

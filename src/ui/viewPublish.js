@@ -127,8 +127,9 @@ export async function viewPublish({ query } = {}) {
   )
   const fEnd = textField('Fin (optionnel)', 'datetime-local', toLocalInput(init.ends_at))
 
-  fTitle.input.placeholder = 'Titre de l’événement'
-  fDesc.input.placeholder = 'Décrivez votre événement avec le maximum d’informations'
+  fTitle.input.placeholder = 'Nom de l’événement'
+  fDesc.input.placeholder =
+    'Décrivez votre événement de la manière la plus précise possible'
 
   // ⚠ L'ANNÉE est le piège de `datetime-local` : on tape le jour et le mois, et
   // l'année reste sur ce que le navigateur avait proposé. Rien ne la rappelait
@@ -438,7 +439,7 @@ export async function viewPublish({ query } = {}) {
   // « Prix libre » prend lui aussi un MONTANT, pas du texte : c'est le minimum
   // attendu, rangé dans la même colonne `price`. D'où ce préfixe, affiché pour
   // ce seul tarif.
-  const prefixe = el('span', 'tarif__prefixe', 'supérieur ou égal à')
+  const prefixe = el('span', 'tarif__prefixe', '≥')
   paidRow.appendChild(prefixe)
   const priceInput = el('input', 'form__input form__input--price')
   priceInput.type = 'number'
@@ -477,7 +478,7 @@ export async function viewPublish({ query } = {}) {
     prefixe.style.display = tarif === 'libre' ? '' : 'none'
     detailInput.style.display = tarif === 'payant' ? '' : 'none'
     priceInput.placeholder = tarif === 'libre' ? 'Minimum en €' : 'Prix en €'
-    detailInput.placeholder = 'ex. réduit 12 €'
+    detailInput.placeholder = 'ex. tarif réduit'
 
     if (tarif === 'gratuit') {
       tarifEcho.textContent = ''
@@ -501,7 +502,8 @@ export async function viewPublish({ query } = {}) {
     detailInput.maxLength = reste
     if (detailInput.value.length > reste) detailInput.value = detailInput.value.slice(0, reste)
     tarifEcho.textContent = reste
-      ? `Précision facultative, ${reste} caractères : « réduit 12 € », « par personne ».`
+      ? `Précision facultative, ${reste} caractères : « tarif réduit », « par personne ». ` +
+        'Le montant est déjà dans le champ Prix, ne le répétez pas.'
       : 'Le montant occupe déjà toute la place : pas de précision possible.'
   }
   majTarif()
@@ -802,6 +804,11 @@ export async function viewPublish({ query } = {}) {
   // étapes, l'aperçu se complétant au fil de la saisie. Corriger une faute de
   // frappe, en revanche, ne doit pas imposer de retraverser quatre écrans —
   // d'où la page unique en modification (décision de Matthieu).
+  // ⚠ DÉCLARÉE ICI, ET PAS PLUS BAS. `montrer()` la lit, et `montrer(0)`
+  // s'exécute avant le bloc de la carte : une déclaration plus tardive la
+  // laisserait en zone morte temporelle et jetterait une ReferenceError.
+  let map = null
+
   const ETAPES = [
     { titre: 'L’essentiel', champs: [fPhoto, fTitle.wrap, fCategory.wrap] },
     { titre: 'Quand', champs: [fDesc.wrap, fStart.wrap, fEnd.wrap, recurWrap] },
@@ -852,6 +859,13 @@ export async function viewPublish({ query } = {}) {
       // Le bouton « Publier » n'apparaît qu'à la fin : le voir dès la première
       // étape laisserait croire qu'on peut publier un formulaire à moitié vide.
       submit.hidden = !dernier
+      // ⚠ LA MINI-CARTE EST CONSTRUITE DANS UNE ÉTAPE MASQUÉE. Leaflet y
+      // mesure un conteneur de taille NULLE et ne charge donc aucune tuile ;
+      // rien ne le lui redisait quand l'étape s'affichait enfin, d'où une
+      // carte qui « a du mal à se charger ». On le lui redit à chaque
+      // changement d'étape — c'est la vraie cause, les tuiles n'y étaient
+      // pour rien.
+      if (map) setTimeout(() => map.invalidateSize(), 0)
       wrap.scrollIntoView({ block: 'start', behavior: 'smooth' })
     }
     precedent.addEventListener('click', () => montrer(pageActive - 1))
@@ -893,7 +907,6 @@ export async function viewPublish({ query } = {}) {
     lat: init.lat ?? null,
     lng: init.lng ?? null,
   }
-  let map = null
   let marker = null
 
   // --- Brouillon persistant (création uniquement) ---
@@ -932,11 +945,15 @@ export async function viewPublish({ query } = {}) {
     }
     // On ne restaure que s'il y a une vraie saisie (titre ou description ou point).
     if (saved && (saved.title || saved.description || saved.lat != null)) {
-      fTitle.input.value = saved.title ?? ''
+      // ⚠ ON N'ECRASE QUE CE QUI EXISTE. Ces lignes affectaient la valeur
+      // enregistrée même vide : un brouillon sans date effaçait le début
+      // pré-rempli sur aujourd'hui, et le champ redevenait vide — donc à
+      // nouveau exposé à l'erreur d'année qu'il servait à écarter.
+      if (saved.title) fTitle.input.value = saved.title
       if (saved.category) fCategory.input.value = saved.category
-      fDesc.input.value = saved.description ?? ''
-      fStart.input.value = saved.startLocal ?? ''
-      fEnd.input.value = saved.endLocal ?? ''
+      if (saved.description) fDesc.input.value = saved.description
+      if (saved.startLocal) fStart.input.value = saved.startLocal
+      if (saved.endLocal) fEnd.input.value = saved.endLocal
       // `isPaid` : brouillon d'avant la migration 0028, encore en mémoire sur
       // les téléphones. On le relit plutôt que de perdre la saisie.
       tarif = saved.tarif || (saved.isPaid ? 'payant' : 'gratuit')
