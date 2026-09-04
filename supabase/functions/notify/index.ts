@@ -49,7 +49,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY') ?? ''
 const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY') ?? ''
-const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:contact@armana04.vercel.app'
+const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:contact@armana.app'
 
 // Secret partagé avec la base (migration 0016). Sans lui, la fonction était
 // déclenchable par quiconque disposait de la clé publique de l'application —

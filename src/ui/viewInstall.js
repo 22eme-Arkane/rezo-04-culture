@@ -115,7 +115,7 @@ export function viewInstall() {
   wrap.appendChild(
     note('info', '💡 Et si je ne veux rien installer ?', [
       'Aucun problème : Armana fonctionne exactement pareil dans un simple ' +
-        'navigateur. Mettez armana04.vercel.app en favori et c’est réglé. ' +
+        'navigateur. Mettez armana.app en favori et c’est réglé. ' +
         'L’installation n’apporte que le raccourci sur l’écran d’accueil et ' +
         'l’affichage sans barre d’adresse.',
     ])

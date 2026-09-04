@@ -4,7 +4,10 @@
 // sinon copie dans le presse-papiers » : l'écran Profil et l'écran Installer
 // s'en servent tous les deux.
 
-export const APP_URL = 'https://armana04.vercel.app'
+// ⚠ ADRESSE OFFICIELLE, celle qu'on diffuse et qui part dans les partages.
+// armana04.vercel.app RESTE EN SERVICE et sert la meme application : les
+// personnes installees avant le 30/08/2026 ne doivent pas etre cassees.
+export const APP_URL = 'https://armana.app'
 
 const TITRE = 'Armana'
 // ⚠ PAS DE DÉPARTEMENT NI DE RÉGION DANS CE TEXTE. Armana est partie du seul
