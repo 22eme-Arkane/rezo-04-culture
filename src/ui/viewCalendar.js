@@ -78,8 +78,9 @@ export async function viewCalendar() {
   calendarToggle.classList.add('is-open')
   calendarToggle.appendChild(icon('calendar'))
 
-  // ⚠ ESSAI LOCAL : le bouton calendrier ne vit plus dans l'en-tête mais au
-  // bout de la rangée des filtres rapides (voir plus bas).
+  // ⚠ ESSAI LOCAL : le bouton reste dans l'en-tête, sur la ligne du titre,
+  // mais à droite — le masque ayant pris la gauche (voir style.css).
+  head.appendChild(calendarToggle)
   // ⚠ PAS de bouton de partage ici : j'en avais ajouté un « pour la cohérence »,
   // Matthieu l'a fait retirer — l'Agenda est déjà chargé (titre, calendrier,
   // filtres) et c'était mieux avant. Il reste sur Carte, Favoris et Profil.
@@ -185,10 +186,6 @@ export async function viewCalendar() {
   // « Ce mois-ci » lui cède la place : le calendrier affiche déjà son mois,
   // la puce ne faisait que répéter ce qui était à l'écran.
   addChip('Gratuit', 'gratuit', 'tarif')
-
-  // ⚠ ESSAI LOCAL : le bouton calendrier atterrit ici, poussé à droite.
-  calendarToggle.classList.add('studio-calendar-toggle--rangee')
-  chipsRow.appendChild(calendarToggle)
 
   const paintChips = () => {
     const q = getQuand()

@@ -3115,41 +3115,45 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 }
 
 /* =============================================================================
-   ESSAI LOCAL — AGENDA EN JAUNE  ⚠ NE PAS DÉPLOYER
+   ESSAI LOCAL — CALENDRIER EN VERT, TITRE EN JAUNE  ⚠ NE PAS METTRE EN PROD
    =============================================================================
-   Demande de Matthieu : voir le nom « Armana » dans le vert du masque sur un
-   agenda jaune. Bloc volontairement isolé EN FIN DE FICHIER, d'un seul tenant,
-   pour se retirer en une fois — et posé après tout le reste, ce qui lui évite
-   le piège de spécificité rencontré quatre fois sur ce projet.
+   Le fond de l'agenda RESTE BLEU. Seul le calendrier change de couleur, et le
+   nom « Armana » avec lui.
 
-   ⚠ CONTRASTES MESURÉS, pas supposés :
-     vert du logo #26784c sur jaune logo #f4ca15 ...... 3,4:1
-     vert du logo #26784c sur jaune du thème #f9d44d .. 3,8:1
-     vert sombre #064f36 sur jaune du thème ........... 6,7:1
-     bleu #0b55c5 sur jaune du thème .................. 4,7:1
-   Le seuil est de 4,5:1 pour du texte courant, 3:1 pour un gros titre. Le vert
-   du logo ne passe donc QUE sur le titre (48 px) ; l'écrire en petit sur le
-   jaune serait illisible. D'où le jaune du THÈME, plus doux, et le vert SOMBRE
-   pour tout ce qui n'est pas le titre.
+   ⚠ POURQUOI PAS LE VERT SUR LE TITRE, comme demandé d'abord : sur le bleu
+   #0b55c5, les verts du masque tombent à 1,2:1 (vert du logo) et 1,9:1 (vert
+   du masque) — invisibles. Seul le vert le plus clair atteignait 3,4, tout
+   juste au-dessus du seuil des gros titres. Matthieu a proposé lui-même
+   d'inverser : le jaune du thème sur ce bleu donne 4,7:1, lisible partout.
+
+   ⚠ ET LE CALENDRIER EN VERT CLAIR, PAS EN VERT DU LOGO. Mesuré sur des
+   chiffres de 11,5 px, où il faut 4,5:1 :
+     fond #7ac97f + encre #062b1d .... 7,7  ← retenu
+     fond #26784c + crème #fff4df .... 5,0
+     fond #539957 : rien ne passe (3,2 à 4,4)
+   Le vert clair est à la fois le plus lisible et le plus vif — et c'est déjà
+   celui des puces actives, donc il ne sort pas de la palette.
    ============================================================================= */
-.screen--studio-calendar {
-  background: #f9d44d;
-}
-.screen--studio-calendar .screen-head--studio {
-  background: #f9d44d;
-  color: #064f36;
-}
 .screen--studio-calendar .screen-title--studio {
-  /* Le vert relevé sur le masque du logo. 3,8:1 sur ce jaune : réservé au
-     titre, qui fait 48 px. */
-  color: #26784c;
+  color: #f9d44d;
 }
-/* Le masque passe à GAUCHE du titre : la grille devient « auto 1fr », l'image
-   en première colonne. Les deux règles d'origine imposaient des colonnes
-   fixes (3 pour l'image, 2 pour le bouton) : il faut les défaire, sans quoi
-   l'image resterait à droite quel que soit l'ordre du DOM. */
+.screen--studio-calendar .calendar--studio {
+  background: #7ac97f;
+}
+/* Les chiffres, le nom du mois et les initiales de jours passent en encre :
+   sur ce vert clair, le vert du logo ne donnait que 2,8:1. */
+.screen--studio-calendar .calendar--studio .calendar__month,
+.screen--studio-calendar .calendar--studio .calendar__cell,
+.screen--studio-calendar .calendar--studio .calendar__dow,
+.screen--studio-calendar .calendar--studio .calendar__nav {
+  color: #062b1d;
+}
+
+/* Le masque passe à GAUCHE du titre, le bouton calendrier revient SUR LA MÊME
+   LIGNE, à droite. Les colonnes d'origine (image en 3, bouton en 2) sont
+   défaites : c'est l'ordre du DOM qui commande désormais. */
 .screen--studio-calendar .screen-head--studio {
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
 }
 .screen--studio-calendar .screen-head--studio > img {
   grid-column: 1;
@@ -3158,25 +3162,8 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 .screen--studio-calendar .screen-title--studio {
   grid-column: 2;
 }
-/* Le bouton calendrier, désormais au bout de la rangée des filtres rapides.
-   `margin-left: auto` le pousse à droite ; il garde sa taille et ses couleurs
-   d'origine, mais perd la colonne de grille qui le retenait dans l'en-tête. */
-.studio-calendar-toggle--rangee {
-  grid-column: auto;
-  grid-row: auto;
+.screen--studio-calendar .studio-calendar-toggle {
+  grid-column: 3;
+  grid-row: 1;
   margin-left: auto;
-}
-/* ⚠ LE CADRE AUSSI. `.content:has(.screen--studio-calendar)` peint le fond
-   BLEU derrière l'écran, qui n'occupe pas toute la largeur (0,5rem de marge de
-   chaque côté). Sans cette règle, le jaune flottait dans un liseré bleu — et
-   j'ai d'abord cru à un débordement de mise en page, alors que la page ne
-   défilait pas d'un pixel. */
-.content:has(.screen--studio-calendar) {
-  background: #f9d44d;
-}
-/* La bande sous les vignettes était bleue elle aussi. Elle déborde de 0,5rem
-   de chaque côté (`margin: 0 -0.5rem`) pour aller au bord de l'écran : il
-   fallait donc la reprendre, sinon le jaune s'arrêtait au-dessus des cartes. */
-.screen--studio-calendar .events-list {
-  background: #f9d44d;
 }
