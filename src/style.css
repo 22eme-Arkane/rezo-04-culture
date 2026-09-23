@@ -2302,16 +2302,26 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 /* ⚠ TAILLE D'ORIGINE CONSERVÉE (52 px au maximum, mesurés en production).
    En unifiant la police j'avais aussi rétréci ce titre à 36,8 px — Matthieu
    l'a vu tout de suite. La police change, la taille non. */
+/* Le nom de l'application, sur l'écran d'accueil — et LUI SEUL : cette classe
+   n'est portée que par ce titre (viewCalendar.js). Les autres écrans gardent
+   Oswald, qui reste la police d'interface. */
 .screen-title--studio {
   justify-content: flex-start;
   color: #fff;
-  font-family: var(--font-display);
+  /* ⚠ LOBSTER EST UNE SIGNATURE, PAS UNE POLICE D'INTERFACE. Choisie par
+     Matthieu pour son air de fête : elle convient à un mot, écrit gros, et à
+     rien d'autre. Ne pas l'étendre aux titres des autres écrans ni aux
+     libellés — un script se lit mal en petit et n'a pas de gras. */
+  font-family: 'Lobster', var(--font-display);
   font-size: clamp(2.7rem, 12.8vw, 3.25rem);
-  font-weight: 700;
-  /* Oswald est déjà condensée : le resserrement de -0,055em, qui servait à
-     tasser Poppins, collerait les lettres les unes aux autres. */
+  /* ⚠ 400, ET SURTOUT PAS 700 : Lobster n'existe qu'en une seule graisse. En
+     demander une plus grasse pousse le navigateur à l'ÉPAISSIR LUI-MÊME, ce
+     qui empâte les déliés et abîme précisément ce qui fait son allure. */
+  font-weight: 400;
   letter-spacing: 0;
-  line-height: 1;
+  /* Un script a des jambages plus hauts que la moyenne : `line-height: 1`
+     rognait le haut du « A ». */
+  line-height: 1.15;
 }
 .studio-calendar-toggle {
   grid-column: 2;
