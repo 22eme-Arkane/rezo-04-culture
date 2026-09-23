@@ -11,7 +11,7 @@ import { eventsWithinRadius } from '../lib/events.js'
 import { dayKey, eventDayKeys } from '../lib/recurrence.js'
 import { tagVisitDept } from '../lib/admins.js'
 import { isLoggedIn } from '../lib/auth.js'
-import { getCategory, setCategory } from '../lib/filter.js'
+import { getCategory, getDepartementsEffectifs, setCategory } from '../lib/filter.js'
 import { CATEGORIES } from '../lib/events.js'
 import { studioHeader, boutonPartage } from './studio.js'
 import {
@@ -281,7 +281,12 @@ export async function viewMap() {
   let departmentBounds = null
   // Relue à chaque rendu : l'utilisateur peut changer ses départements dans le
   // Profil et revenir sur la carte sans que celle-ci soit reconstruite.
-  const mesCodes = () => getMesDepartements()
+  // ⚠ LA LISTE EFFECTIVE, pas le choix durable : si le panneau de filtres
+  // porte une retouche temporaire, le masque de la carte doit la suivre,
+  // sinon l'agenda et la carte ne montreraient pas le même territoire.
+  // (Le menu de départements PROPRE À LA CARTE, lui, écrit toujours le choix
+  //  durable — c'est un troisième endroit à consolider, voir le rapport.)
+  const mesCodes = () => getDepartementsEffectifs()
   const markers = L.layerGroup()
 
   async function loadEvents() {

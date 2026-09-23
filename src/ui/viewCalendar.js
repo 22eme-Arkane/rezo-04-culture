@@ -5,10 +5,25 @@ import { posterEventCard } from './posterEventCard.js'
 import { icon } from './icons.js'
 import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
-import { getCategory, setCategory } from '../lib/filter.js'
+import {
+  appliquerFiltres,
+  choisirStyleSeul,
+  getDepartementsEffectifs,
+  getQuand,
+  getStyles,
+  nbFiltresActifs,
+  onFilterChange,
+  resetFiltres,
+  resumeFiltres,
+  setQuand,
+} from '../lib/filter.js'
+import { ouvrirFiltres } from './filtres.js'
 import { dayKey, eventDayKeys, isRecurring, recurrenceDaysLabel } from '../lib/recurrence.js'
-import { estDansLeTerritoire, loadDepartements } from '../lib/departements.js'
-import { getMesDepartements, toutLeTerritoire } from '../lib/mesDepartements.js'
+import {
+  CODES_DEPARTEMENTS,
+  estDansLeTerritoire,
+  loadDepartements,
+} from '../lib/departements.js'
 import { CATEGORIES, listApprovedEvents, listGemEventIds } from '../lib/events.js'
 
 // Les jours couverts par un événement (multi-jours ET récurrence) sont calculés
@@ -76,11 +91,11 @@ export async function viewCalendar() {
     const c = el('button', 'chip', label)
     c.dataset.value = value ?? ''
     c.addEventListener('click', () => {
-      // Re-taper la catégorie active la retire : on revient à « Tous les styles ».
-      setCategory(getCategory() === value ? null : value)
-      paintCats()
-      repaintCalendar()
-      repaintList()
+      // ⚠ RACCOURCI, PAS UN FILTRE CONCURRENT. Un appui retient ce style SEUL
+      // — le geste d'avant, même rapidité — et un second le relâche. Les
+      // combinaisons se font dans le panneau, sur LE MÊME état : si deux
+      // styles y sont cochés, les deux puces s'allument ici.
+      choisirStyleSeul(value)
     })
     catChips.push(c)
     catRow.appendChild(c)
@@ -88,43 +103,48 @@ export async function viewCalendar() {
   addCat('Tous les styles', null)
   for (const c of CATEGORIES) addCat(c, c)
   const paintCats = () => {
-    const cur = getCategory() || ''
-    for (const c of catChips) c.classList.toggle('is-active', c.dataset.value === cur)
+    const retenus = getStyles()
+    for (const c of catChips) {
+      const v = c.dataset.value
+      // « Tous les styles » s'allume quand rien n'est retenu.
+      c.classList.toggle('is-active', v ? retenus.has(v) : retenus.size === 0)
+    }
   }
   paintCats()
   head.appendChild(catRow)
 
-  // --- Filtres rapides, calqués sur la maquette Studio Affiche ---
+  // --- Filtres rapides ---
+  // ⚠ « Gratuit » et « Tout » ont disparu, et ce n'est pas une perte.
+  // Les quatre puces s'EXCLUAIENT : choisir « Gratuit » effaçait « Ce
+  // week-end », alors que « gratuit ce week-end » est précisément la question
+  // du vendredi soir. Le tarif rejoint donc le panneau, où il se COMBINE.
+  // « Tout » devient inutile : re-taper la puce active la relâche, et la ligne
+  // de rappel sous l'en-tête porte la remise à zéro quand il y a lieu.
+  // « Ce mois-ci » prend la place libérée — une troisième fenêtre de temps
+  // naturelle, plutôt qu'un vide.
   const chipsRow = el('div', 'chips-row chips-row--studio')
   const allChips = []
-  let quickFilter = 'all'
   const addChip = (label, value) => {
     const c = el('button', 'chip', label)
     c.dataset.value = value
-    // Chevron décoratif sur « Tout » : sans lui, cette puce est bien plus
-    // étroite que les trois autres et la rangée paraît décalée. Retiré une
-    // fois, remis aussitôt pour cette raison.
-    if (value === 'all') c.appendChild(icon('chevronDown'))
     c.addEventListener('click', () => {
-      quickFilter = value
-      // « Aujourd'hui » et « Ce week-end » désignent une date précise : on
-      // ramène le calendrier sur le mois concerné, sinon les choisir depuis
-      // décembre afficherait une liste vide. « Gratuit » et « Tout » ne
-      // désignent aucune date : on laisse l'utilisateur là où il naviguait.
+      // Les fenêtres de temps désignent une date : on ramène le calendrier sur
+      // le mois concerné, sinon les choisir depuis décembre afficherait une
+      // liste vide.
       const mois = moisDuFiltre(value)
-      if (mois) monthCursor = mois
+      setQuand(value)
+      if (mois && getQuand() === value) monthCursor = mois
       selectedDay = null
-      paintChips()
-      repaintCalendar()
-      repaintList()
     })
     allChips.push(c)
     chipsRow.appendChild(c)
   }
-  /** Mois sur lequel se placer quand un filtre de date est choisi, sinon null. */
+  /** Mois sur lequel se placer quand une fenêtre de temps est choisie. */
   function moisDuFiltre(value) {
     const now = new Date()
-    if (value === 'today') return new Date(now.getFullYear(), now.getMonth(), 1)
+    if (value === 'today' || value === 'month') {
+      return new Date(now.getFullYear(), now.getMonth(), 1)
+    }
     if (value === 'weekend') {
       const samedi = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       samedi.setDate(samedi.getDate() + ((6 - samedi.getDay() + 7) % 7))
@@ -133,12 +153,30 @@ export async function viewCalendar() {
     return null
   }
 
+  // Le bouton du panneau, avec le nombre de filtres actifs : un filtre qui ne
+  // se voit pas est un filtre qu'on oublie, et un agenda vide qu'on ne
+  // s'explique pas.
+  const boutonFiltres = el('button', 'chip chip--filtres')
+  boutonFiltres.type = 'button'
+  const libelleFiltres = el('span', null, 'Filtres')
+  boutonFiltres.append(libelleFiltres, icon('chevronDown'))
+  boutonFiltres.addEventListener('click', () => ouvrirFiltres(() => {}))
+  chipsRow.appendChild(boutonFiltres)
+
+  // ⚠ LES FENÊTRES DE TEMPS VIENNENT APRÈS LE BOUTON, et pas l'inverse.
+  // La rangée défile horizontalement : placé en dernier, « Filtres » sortait
+  // de l'écran sur un téléphone de 375 px — le point d'entrée du panneau à
+  // moitié caché. Il reste donc toujours visible, les fenêtres défilent.
   addChip("Aujourd'hui", 'today')
   addChip('Ce week-end', 'weekend')
-  addChip('Gratuit', 'free')
-  addChip('Tout', 'all')
+  addChip('Ce mois-ci', 'month')
+
   const paintChips = () => {
-    for (const c of allChips) c.classList.toggle('is-active', c.dataset.value === quickFilter)
+    const q = getQuand()
+    for (const c of allChips) c.classList.toggle('is-active', c.dataset.value === q)
+    const n = nbFiltresActifs()
+    libelleFiltres.textContent = n ? `Filtres · ${n}` : 'Filtres'
+    boutonFiltres.classList.toggle('is-active', n > 0)
   }
   paintChips()
   head.appendChild(chipsRow)
@@ -151,20 +189,22 @@ export async function viewCalendar() {
     // Contours des départements, uniquement pour situer chaque événement.
     // ⚠ Tolérant à l'échec : hors ligne ou fichier indisponible, on préfère
     // afficher l'agenda entier plutôt qu'un agenda vide sans explication.
-    toutLeTerritoire() ? Promise.resolve(null) : loadDepartements().catch(() => null),
+    // ⚠ CHARGÉ SYSTÉMATIQUEMENT depuis le panneau de filtres : on ne sait
+    // plus d'avance si l'utilisateur va restreindre les départements en
+    // cours de route. Le fichier est en cache, la dépense est nulle.
+    loadDepartements().catch(() => null),
   ])
   const studioPreview = import.meta.env.DEV && new URLSearchParams(location.search).has('studio-preview')
   const allEvents = studioPreview ? studioPreviewEvents(approvedEvents[0]) : approvedEvents
   /** Filtres portant sur l'ÉVÉNEMENT lui-même (style, gratuité). */
   const filtered = () => {
-    const cat = getCategory()
-    let events = cat ? allEvents.filter((event) => event.category === cat) : allEvents
+    let events = appliquerFiltres(allEvents, tarifMode)
 
-    // Départements retenus dans le Profil. Rien n'est filtré quand ils le sont
-    // tous : inutile de calculer, et le fichier de contours n'est alors même
-    // pas téléchargé.
-    if (contours && !toutLeTerritoire()) {
-      const codes = getMesDepartements()
+    // Départements RÉELLEMENT appliqués : la retouche temporaire du panneau si
+    // elle existe, sinon le choix durable de Profil. Rien n'est filtré quand
+    // ils sont tous retenus — inutile de calculer.
+    const codes = getDepartementsEffectifs()
+    if (contours && codes.length < CODES_DEPARTEMENTS.length) {
       events = events.filter((event) => {
         const p = { lat: Number(event.lat), lng: Number(event.lng) }
         // Un événement sans coordonnées ne peut pas être situé : on le garde
@@ -174,18 +214,30 @@ export async function viewCalendar() {
       })
     }
 
-    // ⚠ « Gratuit » veut dire GRATUIT, pas « prix libre ». Les deux ont
-    // `is_paid` à false : filtrer dessus aurait fait apparaître ici des
-    // événements où l'on attend tout de même une participation.
-    return quickFilter === 'free'
-      ? events.filter((event) => tarifMode(event) === 'gratuit')
-      : events
+    // ⚠ Le tarif est filtré par `appliquerFiltres`, et « Gratuit » y veut dire
+    // GRATUIT, pas « prix libre » : les deux ont `is_paid` à false, et
+    // `tarifMode` est le seul juge.
+    return events
   }
 
   /** Filtres portant sur le JOUR — appliqués aux occurrences, pas aux événements. */
   function joursDuFiltreRapide() {
-    if (quickFilter === 'today') return new Set([dayKey(new Date())])
-    if (quickFilter === 'weekend') {
+    const q = getQuand()
+    if (q === 'today') return new Set([dayKey(new Date())])
+    if (q === 'month') {
+      // Tout le mois EN COURS, à partir d'aujourd'hui : les jours déjà passés
+      // n'ont rien à y faire.
+      const now = new Date()
+      const fin = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      const jours = new Set()
+      const cur = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      while (cur <= fin) {
+        jours.add(dayKey(cur))
+        cur.setDate(cur.getDate() + 1)
+      }
+      return jours
+    }
+    if (q === 'weekend') {
       const now = new Date()
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const samedi = new Date(start)
@@ -337,10 +389,50 @@ export async function viewCalendar() {
   }
 
   // --- Liste des événements ---
+  // ⚠ RAPPEL PERMANENT DES FILTRES ACTIFS. C'est la contrepartie du panneau :
+  // sans elle, quelqu'un qui a coché « Théâtre » puis oublié conclut que
+  // l'agenda est vide, pas qu'il est filtré. La remise à zéro est ici, et
+  // c'est ce qui permet de supprimer la puce « Tout », inutile le reste du
+  // temps.
+  const rappel = el('div', 'filtres-actifs')
+  rappel.hidden = true
+  const rappelTexte = el('span', 'filtres-actifs__texte')
+  const rappelRaz = el('button', 'filtres-actifs__raz', 'Tout afficher')
+  rappelRaz.type = 'button'
+  rappelRaz.addEventListener('click', () => resetFiltres())
+  rappel.append(rappelTexte, rappelRaz)
+  wrap.appendChild(rappel)
+
+  function majRappel() {
+    const n = nbFiltresActifs()
+    rappel.hidden = n === 0
+    rappelTexte.textContent = resumeFiltres()
+  }
+
   const sectionLabel = el('h2', 'section-label')
   const list = el('div', 'events-list')
   wrap.appendChild(sectionLabel)
   wrap.appendChild(list)
+
+  /** ⚠ TOUT PASSE PAR ICI. L'état de filtre est partagé et peut changer
+   *  depuis la rangée comme depuis le panneau : un seul abonnement redessine
+   *  l'ensemble, plutôt que trois appels recopiés à chaque endroit. */
+  function toutRedessiner() {
+    paintCats()
+    paintChips()
+    majRappel()
+    repaintCalendar()
+    repaintList()
+  }
+  // ⚠ LE ROUTEUR NE PRÉVIENT DE RIEN : il fait `container.innerHTML = ''`,
+  // sans événement ni rappel. L'abonnement survivrait donc à la vue et
+  // redessinerait un DOM détaché à chaque changement de filtre. On se
+  // débranche soi-même en constatant le détachement — même idiome que la
+  // carte, qui teste `isConnected`.
+  const desabonner = onFilterChange(() => {
+    if (!wrap.isConnected) return desabonner()
+    toutRedessiner()
+  })
 
   function repaintList() {
     list.innerHTML = ''

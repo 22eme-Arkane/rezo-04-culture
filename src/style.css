@@ -472,6 +472,123 @@ a.settings-row .settings-row__label { word-break: break-all; }
 }
 .recur__echo { margin-top: 0.5rem; }
 
+/* --- Panneau de filtres : feuille qui monte du bas ------------------------ */
+.feuille-fond {
+  position: fixed;
+  inset: 0;
+  /* ⚠ AU-DESSUS DE 950, la hauteur du bouton « + » flottant (`.fab`). À 900,
+     il traversait la feuille et restait cliquable par-dessus les filtres. */
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(6, 43, 29, 0.45);
+}
+.feuille {
+  width: 100%;
+  max-width: var(--maxw, 540px);
+  /* ⚠ Hauteur BORNÉE et corps défilant : avec sept départements et douze
+     styles, le contenu dépasse l'écran d'un téléphone, et le pied — donc
+     « Tout afficher » — se retrouvait hors de portée. */
+  max-height: 86dvh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  background: var(--surface, #fff);
+  box-shadow: 0 -8px 30px rgba(6, 43, 29, 0.3);
+}
+.feuille__tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem 0.5rem;
+}
+.feuille__titre {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--studio-ink);
+}
+.feuille__fermer {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--studio-ink);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.feuille__corps {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0 1rem 0.8rem;
+}
+.feuille__section {
+  margin: 1rem 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--studio-ink);
+}
+.feuille__aide {
+  margin: 0 0 0.5rem;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.feuille__pied {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem calc(0.9rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+.feuille__pied .btn { flex: 1 1 0; }
+
+/* Le bouton du panneau, dans la rangée de filtres rapides. */
+.chip--filtres { display: inline-flex; align-items: center; gap: 0.25rem; }
+
+/* Rappel permanent : un filtre qui ne se voit pas est un filtre qu'on oublie. */
+/* ⚠ CETTE LIGNE D'ABORD. `[hidden]` ne pèse rien face à un `display`
+   explicite : sans elle, le rappel restait affiché, vide, en permanence.
+   Le même piège avait déjà fait apparaître « Publier » dès la première
+   étape du formulaire. */
+.filtres-actifs[hidden] { display: none; }
+.filtres-actifs {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0.2rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 12px;
+  background: var(--mask-yellow, #f4ca15);
+  color: var(--studio-ink, #062b1d);
+}
+.filtres-actifs__texte {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.filtres-actifs__raz {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgba(6, 43, 29, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* Choix en pastilles : rythme de répétition, tarif. Mêmes couleurs actives
    que les jours de la semaine, mais en pilules — le texte ne tient pas dans
    un rond de 38 px. */
