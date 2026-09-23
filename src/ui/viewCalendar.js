@@ -65,6 +65,9 @@ export async function viewCalendar() {
   logo.src = '/icons/armana-logo.png'
   logo.alt = 'Armana'
   logo.addEventListener('error', () => logo.remove())
+  // ⚠ ESSAI LOCAL : le masque passe AVANT le titre. L'ordre du DOM fait
+  // l'ordre des colonnes de la grille — voir le bloc d'essai de style.css.
+  head.appendChild(logo)
   head.appendChild(title)
 
   const calendarToggle = el('button', 'studio-calendar-toggle')
@@ -75,11 +78,11 @@ export async function viewCalendar() {
   calendarToggle.classList.add('is-open')
   calendarToggle.appendChild(icon('calendar'))
 
-  head.appendChild(calendarToggle)
+  // ⚠ ESSAI LOCAL : le bouton calendrier ne vit plus dans l'en-tête mais au
+  // bout de la rangée des filtres rapides (voir plus bas).
   // ⚠ PAS de bouton de partage ici : j'en avais ajouté un « pour la cohérence »,
   // Matthieu l'a fait retirer — l'Agenda est déjà chargé (titre, calendrier,
   // filtres) et c'était mieux avant. Il reste sur Carte, Favoris et Profil.
-  head.appendChild(logo)
 
   // --- Filtre par style, sous le titre et AU-DESSUS des filtres rapides ---
   // On choisit d'abord le genre de sortie, puis le moment. Le filtre est celui
@@ -182,6 +185,10 @@ export async function viewCalendar() {
   // « Ce mois-ci » lui cède la place : le calendrier affiche déjà son mois,
   // la puce ne faisait que répéter ce qui était à l'écran.
   addChip('Gratuit', 'gratuit', 'tarif')
+
+  // ⚠ ESSAI LOCAL : le bouton calendrier atterrit ici, poussé à droite.
+  calendarToggle.classList.add('studio-calendar-toggle--rangee')
+  chipsRow.appendChild(calendarToggle)
 
   const paintChips = () => {
     const q = getQuand()
