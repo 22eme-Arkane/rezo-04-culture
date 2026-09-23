@@ -3136,9 +3136,14 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    44 px plus leurs écarts dépassaient de 7 px et auraient rétréci le titre.
    ============================================================================= */
 .screen--studio-calendar .screen-head--studio {
-  grid-template-columns: auto 1fr auto;
-  /* Écart resserré : les masques encadrent le nom au lieu de flotter loin. */
-  gap: 0.3rem;
+  /* ⚠ `auto` AU MILIEU, ET NON `1fr`. Avec `1fr`, la colonne du titre avalait
+     toute la place restante et REPOUSSAIT les masques aux deux bords de
+     l'écran — ils encadraient l'écran, pas le nom. En `auto`, les trois
+     prennent leur largeur naturelle et se groupent ; `justify-content`
+     centre l'ensemble. */
+  grid-template-columns: auto auto auto;
+  justify-content: center;
+  gap: 0.35rem;
 }
 .screen--studio-calendar .screen-head--studio > img {
   /* ⚠ LARGEUR ÉLASTIQUE, ET C'EST UNE NÉCESSITÉ ARITHMÉTIQUE. Deux masques
@@ -3148,15 +3153,31 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
      — un seul masque à l'époque — sont donc hors d'atteinte à deux.
      Le `clamp` descend à 38 px sur les écrans de 320, où le nom rétrécit lui
      aussi, et plafonne à 46 partout ailleurs. */
-  width: clamp(38px, 12vw, 46px);
+  /* ⚠ J'AVAIS MAL POSÉ LA CONTRAINTE. Je croyais que chaque pixel de masque se
+     prenait sur le titre. C'est faux : les DEUX RANGÉES DE FILTRES sont aussi
+     des enfants de cette grille et occupent toute la largeur, si bien que les
+     colonnes latérales font déjà 78 px chacune — bien plus que les masques.
+     Mesuré : colonnes « 78,5 / 156,7 / 78,5 » pour des images de 52.
+     Les masques peuvent donc monter jusqu'à ~64 px SANS toucher au titre. */
+  width: clamp(52px, 17.5vw, 68px);
   height: auto;
 }
+/* ⚠ ET ILS DOIVENT SE COLLER AU NOM. Par défaut, chaque image se pose au DÉBUT
+   de sa colonne : la gauche laissait 32 px de vide avant le titre, la droite
+   44 px après elle — d'où des masques « au bord de l'écran » et un ensemble
+   qui paraissait décentré. Chacune se range désormais du côté du titre, ce qui
+   recentre le groupe par la même occasion. */
+.screen--studio-calendar .screen-head--studio > img:first-of-type { justify-self: end; }
+.screen--studio-calendar .screen-head--studio > img:last-of-type { justify-self: start; }
 .screen--studio-calendar .screen-head--studio > img:first-of-type { grid-column: 1; }
 .screen--studio-calendar .screen-head--studio > img:last-of-type { grid-column: 3; }
 .screen--studio-calendar .screen-title--studio {
   grid-column: 2;
   justify-content: center;
   text-align: center;
+  /* Réduit par rapport aux 12,8vw d'origine, pour rendre la place aux
+     masques — voir ci-dessus. */
+  font-size: clamp(2rem, 11vw, 2.8rem);
 }
 /* Le bouton du calendrier ferme la rangée des filtres, poussé à droite. Il
    perd la colonne de grille qui le retenait dans l'en-tête. */
