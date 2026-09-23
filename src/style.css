@@ -2534,9 +2534,16 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 .chips-row--studio.chips-row--rapides {
   flex-wrap: wrap;
   overflow-x: visible;
-  gap: 0.3rem;
+  gap: 0.2rem;
 }
-.chips-row--studio.chips-row--rapides .chip { padding: 0.36rem 0.55rem; }
+/* ⚠ RESSERREMENT CALCULÉ POUR LE BOUTON DU CALENDRIER, qui a rejoint la
+   rangée et lui coûte 32 px de plus. Mesuré sur 360 px (Galaxy S23) : il
+   fallait 352 px pour 325 disponibles, la rangée passait sur deux lignes.
+   Police et marges réduites d'autant, pas plus. */
+.chips-row--studio.chips-row--rapides .chip {
+  padding: 0.36rem 0.4rem;
+  font-size: 0.7rem;
+}
 .screen--studio-calendar .section-label {
   display: none;
 }
@@ -3115,28 +3122,49 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 }
 
 /* =============================================================================
-   ESSAI LOCAL — DISPOSITION DE L'EN-TÊTE  ⚠ NE PAS METTRE EN PRODUCTION
+   ESSAI LOCAL — DEUX MASQUES, TITRE CENTRÉ  ⚠ NE PAS METTRE EN PRODUCTION
    =============================================================================
-   Il ne reste QUE les déplacements. Les essais de couleur — agenda en jaune,
-   puis calendrier en vert avec titre en jaune — ont été abandonnés par
-   Matthieu : le titre revient en blanc, le calendrier en blanc.
+   Un masque de chaque côté du nom, « Armana » centré entre les deux, et le
+   bouton du calendrier renvoyé au bout de la rangée des filtres.
 
-   Ce qui subsiste : le masque passe à GAUCHE du titre, et le bouton du
-   calendrier reste sur la MÊME LIGNE, à droite. Les colonnes fixes d'origine
-   (image en 3, bouton en 2) sont défaites — c'est l'ordre du DOM qui commande.
+   ⚠ LE CENTRAGE NE SE CALCULE PAS : les deux images faisant la même largeur,
+   la colonne du milieu est centrée d'elle-même. Un décalage ne pourrait venir
+   que d'images de tailles différentes.
+
+   ⚠ 40 px CHACUNE, ET C'EST UNE CONTRAINTE, PAS UN GOÛT. Sur 375 px il reste
+   340 px utiles ; le nom en réclame 232 à sa taille actuelle. Deux masques de
+   44 px plus leurs écarts dépassaient de 7 px et auraient rétréci le titre.
    ============================================================================= */
 .screen--studio-calendar .screen-head--studio {
   grid-template-columns: auto 1fr auto;
+  /* Écart resserré : les masques encadrent le nom au lieu de flotter loin. */
+  gap: 0.3rem;
 }
 .screen--studio-calendar .screen-head--studio > img {
-  grid-column: 1;
-  width: 58px;
+  /* ⚠ LARGEUR ÉLASTIQUE, ET C'EST UNE NÉCESSITÉ ARITHMÉTIQUE. Deux masques
+     coûtent le double d'un seul, et le nom réclame 222 px à sa taille
+     actuelle. Sur 360 px (Galaxy S23) il ne reste que 325 px utiles : au-delà
+     de 46 px par masque, c'est le TITRE qui serait rogné. Les 70 px d'origine
+     — un seul masque à l'époque — sont donc hors d'atteinte à deux.
+     Le `clamp` descend à 38 px sur les écrans de 320, où le nom rétrécit lui
+     aussi, et plafonne à 46 partout ailleurs. */
+  width: clamp(38px, 12vw, 46px);
+  height: auto;
 }
+.screen--studio-calendar .screen-head--studio > img:first-of-type { grid-column: 1; }
+.screen--studio-calendar .screen-head--studio > img:last-of-type { grid-column: 3; }
 .screen--studio-calendar .screen-title--studio {
   grid-column: 2;
+  justify-content: center;
+  text-align: center;
 }
-.screen--studio-calendar .studio-calendar-toggle {
-  grid-column: 3;
-  grid-row: 1;
+/* Le bouton du calendrier ferme la rangée des filtres, poussé à droite. Il
+   perd la colonne de grille qui le retenait dans l'en-tête. */
+.studio-calendar-toggle--rangee {
+  grid-column: auto;
+  grid-row: auto;
   margin-left: auto;
+  width: 28px;
+  height: 28px;
 }
+.studio-calendar-toggle--rangee svg { width: 15px; height: 15px; }
