@@ -65,15 +65,15 @@ export async function viewCalendar() {
   logo.src = '/icons/armana-logo.png'
   logo.alt = 'Armana'
   logo.addEventListener('error', () => logo.remove())
-  // ⚠ ESSAI LOCAL : DEUX masques, un de chaque côté, et le titre centré
-  // entre eux. Les deux images faisant la même largeur, le centrage vient
-  // de la grille elle-même — rien à calculer.
+  // ⚠ ESSAI LOCAL : le titre À GAUCHE, les DEUX masques à sa droite, puis le
+  // bouton du calendrier au bord de l'écran. L'ordre du DOM fait l'ordre des
+  // colonnes — voir le bloc d'essai de style.css.
   const logoDroite = logo.cloneNode(true)
   logoDroite.addEventListener('error', () => logoDroite.remove())
   logoDroite.alt = ''
   logoDroite.setAttribute('aria-hidden', 'true')
-  head.appendChild(logo)
   head.appendChild(title)
+  head.appendChild(logo)
   head.appendChild(logoDroite)
 
   const calendarToggle = el('button', 'studio-calendar-toggle')
@@ -83,6 +83,10 @@ export async function viewCalendar() {
   calendarToggle.setAttribute('aria-expanded', 'true')
   calendarToggle.classList.add('is-open')
   calendarToggle.appendChild(icon('calendar'))
+  // ⚠ APPENDU ICI, ET PAS PLUS HAUT AVEC LE TITRE : `calendarToggle` est
+  // déclaré juste au-dessus, une insertion plus tôt le lisait en zone morte
+  // temporelle et faisait échouer tout le rendu de l'Agenda.
+  head.appendChild(calendarToggle)
 
   // ⚠ PAS de bouton de partage ici : j'en avais ajouté un « pour la cohérence »,
   // Matthieu l'a fait retirer — l'Agenda est déjà chargé (titre, calendrier,
@@ -189,10 +193,6 @@ export async function viewCalendar() {
   // « Ce mois-ci » lui cède la place : le calendrier affiche déjà son mois,
   // la puce ne faisait que répéter ce qui était à l'écran.
   addChip('Gratuit', 'gratuit', 'tarif')
-
-  // ⚠ ESSAI LOCAL : le bouton du calendrier ferme la rangée, à droite.
-  calendarToggle.classList.add('studio-calendar-toggle--rangee')
-  chipsRow.appendChild(calendarToggle)
 
   const paintChips = () => {
     const q = getQuand()

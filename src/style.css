@@ -3122,70 +3122,54 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 }
 
 /* =============================================================================
-   ESSAI LOCAL — DEUX MASQUES, TITRE CENTRÉ  ⚠ NE PAS METTRE EN PRODUCTION
+   ESSAI LOCAL — TITRE À GAUCHE, DEUX MASQUES À SA DROITE
+   ⚠ NE PAS METTRE EN PRODUCTION
    =============================================================================
-   Un masque de chaque côté du nom, « Armana » centré entre les deux, et le
-   bouton du calendrier renvoyé au bout de la rangée des filtres.
+   « Armana » à gauche, les deux masques accolés à sa droite, et le bouton du
+   calendrier rejeté au bord de l'écran, sur la même ligne.
 
-   ⚠ LE CENTRAGE NE SE CALCULE PAS : les deux images faisant la même largeur,
-   la colonne du milieu est centrée d'elle-même. Un décalage ne pourrait venir
-   que d'images de tailles différentes.
+   ⚠ LA COLONNE ÉLASTIQUE EST CELLE DU BOUTON, pas celle du titre. C'est elle
+   qui absorbe la place restante et pousse le bouton contre le bord ; le titre
+   et les masques gardent leur largeur naturelle et restent groupés. Mettre le
+   `1fr` sur le titre écarterait de nouveau les masques, erreur déjà commise à
+   l'essai précédent.
 
-   ⚠ 40 px CHACUNE, ET C'EST UNE CONTRAINTE, PAS UN GOÛT. Sur 375 px il reste
-   340 px utiles ; le nom en réclame 232 à sa taille actuelle. Deux masques de
-   44 px plus leurs écarts dépassaient de 7 px et auraient rétréci le titre.
+   ⚠ CE QUI TIENT SUR 360 px, où il reste 325 px utiles : titre 157 + deux
+   masques 108 + bouton 32 + trois écarts 17 = 314. Le titre reste à ~40 px ;
+   à sa taille d'origine (48 px, soit 229 de large) l'ensemble réclamerait 386
+   et déborderait.
    ============================================================================= */
 .screen--studio-calendar .screen-head--studio {
-  /* ⚠ `auto` AU MILIEU, ET NON `1fr`. Avec `1fr`, la colonne du titre avalait
-     toute la place restante et REPOUSSAIT les masques aux deux bords de
-     l'écran — ils encadraient l'écran, pas le nom. En `auto`, les trois
-     prennent leur largeur naturelle et se groupent ; `justify-content`
-     centre l'ensemble. */
-  grid-template-columns: auto auto auto;
-  justify-content: center;
+  grid-template-columns: auto auto auto 1fr;
   gap: 0.35rem;
 }
-.screen--studio-calendar .screen-head--studio > img {
-  /* ⚠ LARGEUR ÉLASTIQUE, ET C'EST UNE NÉCESSITÉ ARITHMÉTIQUE. Deux masques
-     coûtent le double d'un seul, et le nom réclame 222 px à sa taille
-     actuelle. Sur 360 px (Galaxy S23) il ne reste que 325 px utiles : au-delà
-     de 46 px par masque, c'est le TITRE qui serait rogné. Les 70 px d'origine
-     — un seul masque à l'époque — sont donc hors d'atteinte à deux.
-     Le `clamp` descend à 38 px sur les écrans de 320, où le nom rétrécit lui
-     aussi, et plafonne à 46 partout ailleurs. */
-  /* ⚠ J'AVAIS MAL POSÉ LA CONTRAINTE. Je croyais que chaque pixel de masque se
-     prenait sur le titre. C'est faux : les DEUX RANGÉES DE FILTRES sont aussi
-     des enfants de cette grille et occupent toute la largeur, si bien que les
-     colonnes latérales font déjà 78 px chacune — bien plus que les masques.
-     Mesuré : colonnes « 78,5 / 156,7 / 78,5 » pour des images de 52.
-     Les masques peuvent donc monter jusqu'à ~64 px SANS toucher au titre. */
-  width: clamp(52px, 17.5vw, 68px);
-  height: auto;
-}
-/* ⚠ ET ILS DOIVENT SE COLLER AU NOM. Par défaut, chaque image se pose au DÉBUT
-   de sa colonne : la gauche laissait 32 px de vide avant le titre, la droite
-   44 px après elle — d'où des masques « au bord de l'écran » et un ensemble
-   qui paraissait décentré. Chacune se range désormais du côté du titre, ce qui
-   recentre le groupe par la même occasion. */
-.screen--studio-calendar .screen-head--studio > img:first-of-type { justify-self: end; }
-.screen--studio-calendar .screen-head--studio > img:last-of-type { justify-self: start; }
-.screen--studio-calendar .screen-head--studio > img:first-of-type { grid-column: 1; }
-.screen--studio-calendar .screen-head--studio > img:last-of-type { grid-column: 3; }
 .screen--studio-calendar .screen-title--studio {
-  grid-column: 2;
-  justify-content: center;
-  text-align: center;
-  /* Réduit par rapport aux 12,8vw d'origine, pour rendre la place aux
-     masques — voir ci-dessus. */
+  grid-column: 1;
+  justify-content: flex-start;
+  text-align: left;
   font-size: clamp(2rem, 11vw, 2.8rem);
 }
-/* Le bouton du calendrier ferme la rangée des filtres, poussé à droite. Il
-   perd la colonne de grille qui le retenait dans l'en-tête. */
-.studio-calendar-toggle--rangee {
-  grid-column: auto;
-  grid-row: auto;
-  margin-left: auto;
-  width: 28px;
-  height: 28px;
+.screen--studio-calendar .screen-head--studio > img {
+  width: clamp(46px, 15vw, 60px);
+  height: auto;
 }
-.studio-calendar-toggle--rangee svg { width: 15px; height: 15px; }
+.screen--studio-calendar .screen-head--studio > img:first-of-type { grid-column: 2; }
+.screen--studio-calendar .screen-head--studio > img:last-of-type { grid-column: 3; }
+.screen--studio-calendar .studio-calendar-toggle {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
+}
+
+/* Le bouton ayant quitté la rangée, j'ai voulu lui rendre sa police d'origine.
+   ⚠ MESURE : ça ne passe pas. Avec 0,82rem et 0,55rem de marge, il faut
+   344 px pour 325 — « Gratuit » se retrouvait seul sur une deuxième ligne.
+   On remonte donc la police (0,78rem au lieu de 0,7) sans aller jusqu'au bout,
+   et on resserre marges et écart d'autant. Résultat visé : une ligne. */
+.chips-row--studio.chips-row--rapides {
+  gap: 0.22rem;
+}
+.chips-row--studio.chips-row--rapides .chip {
+  padding: 0.36rem 0.42rem;
+  font-size: 0.78rem;
+}
