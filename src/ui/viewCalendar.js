@@ -122,7 +122,10 @@ export async function viewCalendar() {
   // de rappel sous l'en-tête porte la remise à zéro quand il y a lieu.
   // « Ce mois-ci » prend la place libérée — une troisième fenêtre de temps
   // naturelle, plutôt qu'un vide.
-  const chipsRow = el('div', 'chips-row chips-row--studio')
+  // ⚠ CLASSE PROPRE À CETTE RANGÉE. Contrairement à celle des styles, elle
+  // ne doit JAMAIS être tronquée : elle ne compte que quatre puces, et on
+  // ne devine pas qu'il faut la faire défiler pour en trouver une.
+  const chipsRow = el('div', 'chips-row chips-row--studio chips-row--rapides')
   const allChips = []
   // `nature` vaut 'quand' (fenêtre de temps) ou 'tarif' : la rangée porte
   // désormais deux sortes de filtres, qui se COMBINENT — c'était tout l'enjeu.

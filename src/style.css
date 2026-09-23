@@ -167,6 +167,8 @@ html, body {
 }
 .chip.is-active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); box-shadow: var(--shadow); }
 
+
+
 /* --- Calendrier mensuel --- */
 .calendar { background: transparent; margin: 0.3rem 0 1rem; }
 .calendar__head { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-bottom: 0.6rem; }
@@ -2511,6 +2513,30 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 /* Rangée des styles : sous le titre, au-dessus des filtres rapides. */
 .chips-row--cats { margin-top: 0.85rem; }
 .chips-row--cats + .chips-row--studio { margin-top: 0.4rem; }
+
+/* Rangée des filtres rapides : elle ne doit être tronquée sur AUCUN téléphone.
+   Celle des styles, elle, défile — il y a douze styles, personne ne s'attend
+   à les voir tous d'un coup.
+
+   ⚠ DOUBLE CLASSE SUR LE MÊME ÉLÉMENT, et c'est indispensable. Écrite plus
+   haut dans le fichier avec la seule classe `--rapides`, la règle était
+   écrasée par `.chips-row--studio` (même spécificité, définie plus bas) : le
+   resserrement ne rendait qu'UN pixel sur les quinze manquants. C'est le piège
+   de spécificité déjà rencontré trois fois sur ce projet.
+
+   ⚠ MESURÉ, PAS ESTIMÉ. Sur 360 px (Galaxy S23), les quatre puces réclamaient
+   340 px pour 325 disponibles : « Gratuit » était coupé.
+
+   ⚠ ET `flex-wrap` PAR SÉCURITÉ. Un resserrement ne garantit rien : la largeur
+   d'un texte dépend de la police, de la langue et du réglage de taille du
+   système, qu'on ne maîtrise pas. Plus étroit encore, la rangée passe sur deux
+   lignes — moins joli, mais jamais coupé, et c'est la demande. */
+.chips-row--studio.chips-row--rapides {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  gap: 0.3rem;
+}
+.chips-row--studio.chips-row--rapides .chip { padding: 0.36rem 0.55rem; }
 .screen--studio-calendar .section-label {
   display: none;
 }
