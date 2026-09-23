@@ -2534,16 +2534,9 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 .chips-row--studio.chips-row--rapides {
   flex-wrap: wrap;
   overflow-x: visible;
-  gap: 0.2rem;
+  gap: 0.3rem;
 }
-/* ⚠ RESSERREMENT CALCULÉ POUR LE BOUTON DU CALENDRIER, qui a rejoint la
-   rangée et lui coûte 32 px de plus. Mesuré sur 360 px (Galaxy S23) : il
-   fallait 352 px pour 325 disponibles, la rangée passait sur deux lignes.
-   Police et marges réduites d'autant, pas plus. */
-.chips-row--studio.chips-row--rapides .chip {
-  padding: 0.36rem 0.4rem;
-  font-size: 0.7rem;
-}
+.chips-row--studio.chips-row--rapides .chip { padding: 0.36rem 0.55rem; }
 .screen--studio-calendar .section-label {
   display: none;
 }
@@ -3119,57 +3112,4 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   .poster-card { grid-template-columns: 30% 42% 28%; height: 148px; min-height: 148px; }
   .screen--studio-calendar .poster-card:first-of-type { height: 162px; min-height: 162px; }
   .poster-card__info { padding-right: 0.34rem; padding-left: 0.34rem; }
-}
-
-/* =============================================================================
-   ESSAI LOCAL — TITRE À GAUCHE, DEUX MASQUES À SA DROITE
-   ⚠ NE PAS METTRE EN PRODUCTION
-   =============================================================================
-   « Armana » à gauche, les deux masques accolés à sa droite, et le bouton du
-   calendrier rejeté au bord de l'écran, sur la même ligne.
-
-   ⚠ LA COLONNE ÉLASTIQUE EST CELLE DU BOUTON, pas celle du titre. C'est elle
-   qui absorbe la place restante et pousse le bouton contre le bord ; le titre
-   et les masques gardent leur largeur naturelle et restent groupés. Mettre le
-   `1fr` sur le titre écarterait de nouveau les masques, erreur déjà commise à
-   l'essai précédent.
-
-   ⚠ CE QUI TIENT SUR 360 px, où il reste 325 px utiles : titre 157 + deux
-   masques 108 + bouton 32 + trois écarts 17 = 314. Le titre reste à ~40 px ;
-   à sa taille d'origine (48 px, soit 229 de large) l'ensemble réclamerait 386
-   et déborderait.
-   ============================================================================= */
-.screen--studio-calendar .screen-head--studio {
-  grid-template-columns: auto auto auto 1fr;
-  gap: 0.35rem;
-}
-.screen--studio-calendar .screen-title--studio {
-  grid-column: 1;
-  justify-content: flex-start;
-  text-align: left;
-  font-size: clamp(2rem, 11vw, 2.8rem);
-}
-.screen--studio-calendar .screen-head--studio > img {
-  width: clamp(46px, 15vw, 60px);
-  height: auto;
-}
-.screen--studio-calendar .screen-head--studio > img:first-of-type { grid-column: 2; }
-.screen--studio-calendar .screen-head--studio > img:last-of-type { grid-column: 3; }
-.screen--studio-calendar .studio-calendar-toggle {
-  grid-column: 4;
-  grid-row: 1;
-  justify-self: end;
-}
-
-/* Le bouton ayant quitté la rangée, j'ai voulu lui rendre sa police d'origine.
-   ⚠ MESURE : ça ne passe pas. Avec 0,82rem et 0,55rem de marge, il faut
-   344 px pour 325 — « Gratuit » se retrouvait seul sur une deuxième ligne.
-   On remonte donc la police (0,78rem au lieu de 0,7) sans aller jusqu'au bout,
-   et on resserre marges et écart d'autant. Résultat visé : une ligne. */
-.chips-row--studio.chips-row--rapides {
-  gap: 0.22rem;
-}
-.chips-row--studio.chips-row--rapides .chip {
-  padding: 0.36rem 0.42rem;
-  font-size: 0.78rem;
 }

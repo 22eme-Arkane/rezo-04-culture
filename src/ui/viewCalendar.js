@@ -65,16 +65,7 @@ export async function viewCalendar() {
   logo.src = '/icons/armana-logo.png'
   logo.alt = 'Armana'
   logo.addEventListener('error', () => logo.remove())
-  // ⚠ ESSAI LOCAL : le titre À GAUCHE, les DEUX masques à sa droite, puis le
-  // bouton du calendrier au bord de l'écran. L'ordre du DOM fait l'ordre des
-  // colonnes — voir le bloc d'essai de style.css.
-  const logoDroite = logo.cloneNode(true)
-  logoDroite.addEventListener('error', () => logoDroite.remove())
-  logoDroite.alt = ''
-  logoDroite.setAttribute('aria-hidden', 'true')
   head.appendChild(title)
-  head.appendChild(logo)
-  head.appendChild(logoDroite)
 
   const calendarToggle = el('button', 'studio-calendar-toggle')
   calendarToggle.type = 'button'
@@ -83,14 +74,12 @@ export async function viewCalendar() {
   calendarToggle.setAttribute('aria-expanded', 'true')
   calendarToggle.classList.add('is-open')
   calendarToggle.appendChild(icon('calendar'))
-  // ⚠ APPENDU ICI, ET PAS PLUS HAUT AVEC LE TITRE : `calendarToggle` est
-  // déclaré juste au-dessus, une insertion plus tôt le lisait en zone morte
-  // temporelle et faisait échouer tout le rendu de l'Agenda.
-  head.appendChild(calendarToggle)
 
+  head.appendChild(calendarToggle)
   // ⚠ PAS de bouton de partage ici : j'en avais ajouté un « pour la cohérence »,
   // Matthieu l'a fait retirer — l'Agenda est déjà chargé (titre, calendrier,
   // filtres) et c'était mieux avant. Il reste sur Carte, Favoris et Profil.
+  head.appendChild(logo)
 
   // --- Filtre par style, sous le titre et AU-DESSUS des filtres rapides ---
   // On choisit d'abord le genre de sortie, puis le moment. Le filtre est celui
