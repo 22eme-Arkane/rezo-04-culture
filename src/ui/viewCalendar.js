@@ -41,7 +41,11 @@ export async function viewCalendar() {
 
   // --- En-tête Studio Affiche : titre utile + marque ---
   const head = el('header', 'screen-head screen-head--studio')
-  const title = el('h1', 'screen-title screen-title--studio', 'Agenda')
+  // ⚠ « ARMANA », ET NON « Agenda ». Le nom de l'application n'apparaissait
+  // NULLE PART à l'écran : ni ici, ni dans les autres titres, ni dans la barre
+  // d'onglets — qui garde « Agenda », puisqu'elle nomme l'onglet, pas l'app.
+  // C'est le seul endroit où la marque peut se voir sans rien coûter.
+  const title = el('h1', 'screen-title screen-title--studio', 'ARMANA')
   const logo = el('img')
   logo.src = '/icons/armana-logo.png'
   logo.alt = 'Armana'
