@@ -551,44 +551,6 @@ a.settings-row .settings-row__label { word-break: break-all; }
 /* Le bouton du panneau, dans la rangée de filtres rapides. */
 .chip--filtres { display: inline-flex; align-items: center; gap: 0.25rem; }
 
-/* Rappel permanent : un filtre qui ne se voit pas est un filtre qu'on oublie. */
-/* ⚠ CETTE LIGNE D'ABORD. `[hidden]` ne pèse rien face à un `display`
-   explicite : sans elle, le rappel restait affiché, vide, en permanence.
-   Le même piège avait déjà fait apparaître « Publier » dès la première
-   étape du formulaire. */
-.filtres-actifs[hidden] { display: none; }
-.filtres-actifs {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 0.5rem 0 0.2rem;
-  padding: 0.45rem 0.7rem;
-  border-radius: 12px;
-  background: var(--mask-yellow, #f4ca15);
-  color: var(--studio-ink, #062b1d);
-}
-.filtres-actifs__texte {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-.filtres-actifs__raz {
-  flex: 0 0 auto;
-  padding: 0.2rem 0.55rem;
-  border: 1px solid rgba(6, 43, 29, 0.35);
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  font-size: 0.74rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
 /* Choix en pastilles : rythme de répétition, tarif. Mêmes couleurs actives
    que les jours de la semaine, mais en pilules — le texte ne tient pas dans
    un rond de 38 px. */

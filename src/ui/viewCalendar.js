@@ -7,14 +7,14 @@ import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import {
   appliquerFiltres,
+  basculerTarif,
   choisirStyleSeul,
   getDepartementsEffectifs,
   getQuand,
   getStyles,
+  getTarifs,
   nbFiltresActifs,
   onFilterChange,
-  resetFiltres,
-  resumeFiltres,
   setQuand,
 } from '../lib/filter.js'
 import { ouvrirFiltres } from './filtres.js'
@@ -124,10 +124,14 @@ export async function viewCalendar() {
   // naturelle, plutôt qu'un vide.
   const chipsRow = el('div', 'chips-row chips-row--studio')
   const allChips = []
-  const addChip = (label, value) => {
+  // `nature` vaut 'quand' (fenêtre de temps) ou 'tarif' : la rangée porte
+  // désormais deux sortes de filtres, qui se COMBINENT — c'était tout l'enjeu.
+  const addChip = (label, value, nature = 'quand') => {
     const c = el('button', 'chip', label)
     c.dataset.value = value
+    c.dataset.nature = nature
     c.addEventListener('click', () => {
+      if (nature === 'tarif') return basculerTarif(value)
       // Les fenêtres de temps désignent une date : on ramène le calendrier sur
       // le mois concerné, sinon les choisir depuis décembre afficherait une
       // liste vide.
@@ -169,11 +173,21 @@ export async function viewCalendar() {
   // moitié caché. Il reste donc toujours visible, les fenêtres défilent.
   addChip("Aujourd'hui", 'today')
   addChip('Ce week-end', 'weekend')
-  addChip('Ce mois-ci', 'month')
+  // ⚠ « GRATUIT » REVIENT EN PUCE, mais il ne s'exclut plus des dates : il
+  // agit sur le TARIF, pas sur la même valeur unique qu'avant. « Gratuit ce
+  // week-end » devient donc possible — c'était le défaut de départ.
+  // « Ce mois-ci » lui cède la place : le calendrier affiche déjà son mois,
+  // la puce ne faisait que répéter ce qui était à l'écran.
+  addChip('Gratuit', 'gratuit', 'tarif')
 
   const paintChips = () => {
     const q = getQuand()
-    for (const c of allChips) c.classList.toggle('is-active', c.dataset.value === q)
+    const t = getTarifs()
+    for (const c of allChips) {
+      const actif =
+        c.dataset.nature === 'tarif' ? t.has(c.dataset.value) : c.dataset.value === q
+      c.classList.toggle('is-active', actif)
+    }
     const n = nbFiltresActifs()
     libelleFiltres.textContent = n ? `Filtres · ${n}` : 'Filtres'
     boutonFiltres.classList.toggle('is-active', n > 0)
@@ -224,22 +238,16 @@ export async function viewCalendar() {
   function joursDuFiltreRapide() {
     const q = getQuand()
     if (q === 'today') return new Set([dayKey(new Date())])
-    if (q === 'month') {
-      // Tout le mois EN COURS, à partir d'aujourd'hui : les jours déjà passés
-      // n'ont rien à y faire.
-      const now = new Date()
-      const fin = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      const jours = new Set()
-      const cur = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      while (cur <= fin) {
-        jours.add(dayKey(cur))
-        cur.setDate(cur.getDate() + 1)
-      }
-      return jours
-    }
     if (q === 'weekend') {
       const now = new Date()
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      // ⚠ LE DIMANCHE, ON EST DÉJÀ DANS LE WEEK-END. L'ancien calcul cherchait
+      // le PROCHAIN samedi : `(6 - getDay() + 7) % 7` vaut 6 le dimanche, ce
+      // qui renvoyait au week-end SUIVANT et faisait disparaître la journée en
+      // cours. Vérifié sur les sept jours : le défaut ne touchait que celui-là,
+      // le samedi était juste. Le samedi étant passé, on ne garde que le jour
+      // même — « jusqu'au dimanche soir ».
+      if (start.getDay() === 0) return new Set([dayKey(start)])
       const samedi = new Date(start)
       samedi.setDate(start.getDate() + ((6 - start.getDay() + 7) % 7))
       const dimanche = new Date(samedi)
@@ -389,26 +397,6 @@ export async function viewCalendar() {
   }
 
   // --- Liste des événements ---
-  // ⚠ RAPPEL PERMANENT DES FILTRES ACTIFS. C'est la contrepartie du panneau :
-  // sans elle, quelqu'un qui a coché « Théâtre » puis oublié conclut que
-  // l'agenda est vide, pas qu'il est filtré. La remise à zéro est ici, et
-  // c'est ce qui permet de supprimer la puce « Tout », inutile le reste du
-  // temps.
-  const rappel = el('div', 'filtres-actifs')
-  rappel.hidden = true
-  const rappelTexte = el('span', 'filtres-actifs__texte')
-  const rappelRaz = el('button', 'filtres-actifs__raz', 'Tout afficher')
-  rappelRaz.type = 'button'
-  rappelRaz.addEventListener('click', () => resetFiltres())
-  rappel.append(rappelTexte, rappelRaz)
-  wrap.appendChild(rappel)
-
-  function majRappel() {
-    const n = nbFiltresActifs()
-    rappel.hidden = n === 0
-    rappelTexte.textContent = resumeFiltres()
-  }
-
   const sectionLabel = el('h2', 'section-label')
   const list = el('div', 'events-list')
   wrap.appendChild(sectionLabel)
@@ -420,7 +408,6 @@ export async function viewCalendar() {
   function toutRedessiner() {
     paintCats()
     paintChips()
-    majRappel()
     repaintCalendar()
     repaintList()
   }

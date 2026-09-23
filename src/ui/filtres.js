@@ -28,7 +28,6 @@ const TARIFS = [
 const QUAND = [
   { cle: 'today', texte: 'Aujourd’hui' },
   { cle: 'weekend', texte: 'Ce week-end' },
-  { cle: 'month', texte: 'Ce mois-ci' },
 ]
 
 /**

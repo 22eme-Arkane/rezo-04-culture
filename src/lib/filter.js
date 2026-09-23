@@ -20,7 +20,7 @@ import { getMesDepartements } from './mesDepartements.js'
 let styles = new Set()
 /** Tarifs retenus ('gratuit' | 'libre' | 'payant'). Vide = tous. */
 let tarifs = new Set()
-/** Fenêtre de dates : 'today' | 'weekend' | 'month' | null (toutes). */
+/** Fenêtre de dates : 'today' | 'weekend' | null (toutes). */
 let quand = null
 
 /**
@@ -147,20 +147,6 @@ export function resetFiltres() {
   // « tous les départements ».
   deptsTemporaires = null
   notifier()
-}
-
-/** Résumé lisible des filtres actifs, pour la ligne de rappel. */
-export function resumeFiltres() {
-  const morceaux = []
-  if (styles.size) morceaux.push([...styles].join(', '))
-  if (tarifs.size) {
-    const noms = { gratuit: 'gratuit', libre: 'prix libre', payant: 'payant' }
-    morceaux.push([...tarifs].map((t) => noms[t] ?? t).join(', '))
-  }
-  const fenetres = { today: 'aujourd’hui', weekend: 'ce week-end', month: 'ce mois-ci' }
-  if (quand) morceaux.push(fenetres[quand] ?? quand)
-  if (deptsTemporaires) morceaux.push(deptsTemporaires.join(', '))
-  return morceaux.join(' · ')
 }
 
 // --- Application aux événements ----------------------------------------------
