@@ -3115,43 +3115,16 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
 }
 
 /* =============================================================================
-   ESSAI LOCAL — CALENDRIER EN VERT, TITRE EN JAUNE  ⚠ NE PAS METTRE EN PROD
+   ESSAI LOCAL — DISPOSITION DE L'EN-TÊTE  ⚠ NE PAS METTRE EN PRODUCTION
    =============================================================================
-   Le fond de l'agenda RESTE BLEU. Seul le calendrier change de couleur, et le
-   nom « Armana » avec lui.
+   Il ne reste QUE les déplacements. Les essais de couleur — agenda en jaune,
+   puis calendrier en vert avec titre en jaune — ont été abandonnés par
+   Matthieu : le titre revient en blanc, le calendrier en blanc.
 
-   ⚠ POURQUOI PAS LE VERT SUR LE TITRE, comme demandé d'abord : sur le bleu
-   #0b55c5, les verts du masque tombent à 1,2:1 (vert du logo) et 1,9:1 (vert
-   du masque) — invisibles. Seul le vert le plus clair atteignait 3,4, tout
-   juste au-dessus du seuil des gros titres. Matthieu a proposé lui-même
-   d'inverser : le jaune du thème sur ce bleu donne 4,7:1, lisible partout.
-
-   ⚠ ET LE CALENDRIER EN VERT CLAIR, PAS EN VERT DU LOGO. Mesuré sur des
-   chiffres de 11,5 px, où il faut 4,5:1 :
-     fond #7ac97f + encre #062b1d .... 7,7  ← retenu
-     fond #26784c + crème #fff4df .... 5,0
-     fond #539957 : rien ne passe (3,2 à 4,4)
-   Le vert clair est à la fois le plus lisible et le plus vif — et c'est déjà
-   celui des puces actives, donc il ne sort pas de la palette.
+   Ce qui subsiste : le masque passe à GAUCHE du titre, et le bouton du
+   calendrier reste sur la MÊME LIGNE, à droite. Les colonnes fixes d'origine
+   (image en 3, bouton en 2) sont défaites — c'est l'ordre du DOM qui commande.
    ============================================================================= */
-.screen--studio-calendar .screen-title--studio {
-  color: #f9d44d;
-}
-.screen--studio-calendar .calendar--studio {
-  background: #7ac97f;
-}
-/* Les chiffres, le nom du mois et les initiales de jours passent en encre :
-   sur ce vert clair, le vert du logo ne donnait que 2,8:1. */
-.screen--studio-calendar .calendar--studio .calendar__month,
-.screen--studio-calendar .calendar--studio .calendar__cell,
-.screen--studio-calendar .calendar--studio .calendar__dow,
-.screen--studio-calendar .calendar--studio .calendar__nav {
-  color: #062b1d;
-}
-
-/* Le masque passe à GAUCHE du titre, le bouton calendrier revient SUR LA MÊME
-   LIGNE, à droite. Les colonnes d'origine (image en 3, bouton en 2) sont
-   défaites : c'est l'ordre du DOM qui commande désormais. */
 .screen--studio-calendar .screen-head--studio {
   grid-template-columns: auto 1fr auto;
 }
