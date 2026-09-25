@@ -8,6 +8,8 @@ import { canModerateEvent, myModDepts } from '../lib/moderation.js'
 import { dayKey, describeRecurrence, isRecurring, nextOccurrence } from '../lib/recurrence.js'
 import { navigate } from '../lib/router.js'
 import { sendFeedback } from '../lib/feedback.js'
+import { shareEvent } from '../lib/share.js'
+import { villeDeLAdresse } from '../lib/adresse.js'
 import {
   getEventById,
   listGemEventIds,
@@ -161,6 +163,14 @@ export async function viewDetail({ query } = {}) {
     body.appendChild(favBtn)
   }
 
+  // --- Partager l'événement (demande d'une utilisatrice) ------------------
+  // Visible SANS compte : partager ne demande rien, et c'est souvent ainsi
+  // qu'un événement trouve son public.
+  // ⚠ SEULEMENT POUR UN ÉVÉNEMENT PUBLIÉ. Un événement en attente ou rejeté
+  // n'est lisible que par son auteur et les modérateurs : partagé, son lien
+  // mènerait les destinataires vers « Cet événement n'existe plus ».
+  if (ev.status === 'approved') body.appendChild(boutonPartagerEvenement(ev))
+
   // --- L'ADRESSE, mise en avant -------------------------------------------
   if (ev.address) {
     const lieu = el('section', 'detail-lieu')
@@ -217,6 +227,56 @@ export async function viewDetail({ query } = {}) {
   wrap.appendChild(buildActions(ev, ctxModeration))
 
   return wrap
+}
+
+const JOUR_LONG = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+
+/**
+ * Quand, en une ligne lisible dans un message : « jeudi 24 septembre à 18:30 »,
+ * « du 31 août au 17 septembre », « prochaine séance jeudi 9 octobre à 15:30 ».
+ */
+function quandPourPartage(ev) {
+  if (isRecurring(ev)) {
+    const d = nextOccurrence(ev)
+    return `prochaine séance ${JOUR_LONG.format(d)} à ${formatTime(d.toISOString())}`
+  }
+  const fin = ev.ends_at ? new Date(ev.ends_at) : null
+  if (fin && dayKey(fin) !== dayKey(ev.starts_at)) {
+    return `du ${JOUR_LONG.format(new Date(ev.starts_at))} au ${JOUR_LONG.format(fin)}`
+  }
+  return `${JOUR_LONG.format(new Date(ev.starts_at))} à ${formatTime(ev.starts_at)}`
+}
+
+/** Le bouton « Partager l'événement », et son retour visible. */
+function boutonPartagerEvenement(ev) {
+  const b = el('button', 'btn btn--block detail__partager')
+  b.type = 'button'
+  const peindre = (texte) => {
+    b.textContent = ''
+    b.appendChild(icon('share'))
+    b.appendChild(document.createTextNode(' ' + texte))
+  }
+  peindre('Partager l’événement')
+
+  b.addEventListener('click', async () => {
+    const ville = ev.address ? villeDeLAdresse(ev.address) : ''
+    // ⚠ Le texte dit TOUT l'essentiel : l'aperçu du lien, lui, ne montrera que
+    // la page d'accueil d'Armana (voir shareEvent, dans lib/share.js).
+    const texte = [ev.title, quandPourPartage(ev) + (ville ? `, ${ville}` : ''), 'Sur Armana :']
+      .filter(Boolean)
+      .join('\n')
+    b.disabled = true
+    const r = await shareEvent({ id: ev.id, title: ev.title, texte })
+    b.disabled = false
+    // Partage natif : la feuille du système a fait le travail, rien à dire.
+    // Copie : on le dit, sinon on appuie sans savoir s'il s'est passé quelque
+    // chose — c'est le cas sur ordinateur, où il n'y a pas de feuille.
+    if (r === 'copied' || r === 'failed') {
+      peindre(r === 'copied' ? '✅ Lien copié — à coller dans un message' : 'Copie impossible')
+      setTimeout(() => peindre('Partager l’événement'), 3000)
+    }
+  })
+  return b
 }
 
 function buildActions(ev, ctxModeration) {

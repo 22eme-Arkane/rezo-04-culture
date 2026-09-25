@@ -45,6 +45,43 @@ export async function copyText(texte) {
   }
 }
 
+/** Adresse d'un événement, sur l'adresse officielle. */
+export function eventUrl(id) {
+  // ⚠ APP_URL, et non `location.origin` : partagé depuis une installation
+  // restée sur armana04.vercel.app, le lien doit tout de même pointer vers
+  // armana.app, l'adresse qu'on diffuse.
+  return `${APP_URL}/#/evenement?id=${encodeURIComponent(id)}`
+}
+
+/**
+ * Propose de partager UN événement.
+ *
+ * ⚠ LE TEXTE PORTE L'ESSENTIEL, ET CE N'EST PAS DE LA REDONDANCE. L'adresse
+ * d'un événement passe par le fragment `#/evenement?id=…`, que le navigateur
+ * n'envoie JAMAIS au serveur. WhatsApp ou Messenger, qui fabriquent l'aperçu
+ * du lien en interrogeant le serveur, ne voient donc que la page d'accueil
+ * d'Armana : leur aperçu sera celui de l'application, pas de l'événement. Le
+ * titre, la date et la ville doivent donc voyager dans le texte lui-même.
+ *
+ * @param {{ id: string, title: string, texte: string }} ev
+ * @returns {Promise<'shared'|'copied'|'cancelled'|'failed'>}
+ */
+export async function shareEvent({ id, title, texte }) {
+  const url = eventUrl(id)
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text: texte, url })
+      return 'shared'
+    } catch (e) {
+      if (e?.name === 'AbortError') return 'cancelled'
+    }
+  }
+  // Sans feuille de partage (ordinateur) : on copie le texte ET le lien, pour
+  // qu'un message collé tel quel dise de quoi il s'agit — même raison que
+  // ci-dessus, l'aperçu ne le dira pas.
+  return (await copyText(`${texte}\n${url}`)) ? 'copied' : 'failed'
+}
+
 /**
  * Propose de partager Armana.
  * @returns {Promise<'shared'|'copied'|'cancelled'|'failed'>}
