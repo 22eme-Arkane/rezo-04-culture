@@ -3113,3 +3113,8 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   .screen--studio-calendar .poster-card:first-of-type { height: 162px; min-height: 162px; }
   .poster-card__info { padding-right: 0.34rem; padding-left: 0.34rem; }
 }
+
+/* Champ de recherche de la liste des membres. Pas de libellé : le texte
+   d'invite suffit, et une ligne de plus repousserait la liste hors de l'écran
+   sur un téléphone. */
+.membres-recherche { margin: 0.2rem 0 0.6rem; }

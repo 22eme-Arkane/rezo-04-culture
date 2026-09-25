@@ -25,6 +25,20 @@ export async function viewMembers() {
 
   const intro = el('p', 'page__subtitle', '')
   wrap.appendChild(intro)
+
+  // ⚠ RECHERCHE CÔTÉ CLIENT, ET C'EST SUFFISANT. `list_members` renvoie déjà
+  // TOUS les inscrits en une fois : filtrer ici évite un aller-retour par
+  // frappe, et la liste ne compte que quelques centaines de lignes. Le jour où
+  // elle en compterait des milliers, c'est le chargement complet qu'il faudrait
+  // revoir, pas la recherche.
+  const rechercheChamp = el('label', 'form__field membres-recherche')
+  const recherche = el('input', 'form__input')
+  recherche.type = 'search'
+  recherche.placeholder = 'Chercher un nom…'
+  recherche.autocomplete = 'off'
+  rechercheChamp.appendChild(recherche)
+  wrap.appendChild(rechercheChamp)
+
   const box = el('div', 'settings-group')
   wrap.appendChild(box)
   wrap.appendChild(
@@ -39,19 +53,39 @@ export async function viewMembers() {
     )
   )
 
+  let tous = []
+
   async function refresh() {
     box.innerHTML = ''
-    let members = []
     try {
-      members = await listMembers()
+      tous = await listMembers()
     } catch (e) {
       box.appendChild(emptyState('Chargement impossible : ' + e.message))
       return
     }
+    peindre()
+  }
 
-    intro.textContent = `${members.length} membre${members.length > 1 ? 's' : ''} inscrit${
-      members.length > 1 ? 's' : ''
-    }.`
+  recherche.addEventListener('input', peindre)
+
+  function peindre() {
+    box.innerHTML = ''
+    const q = normaliser(recherche.value)
+    const members = q
+      ? tous.filter((m) => normaliser(m.display_name).includes(q))
+      : tous
+
+    // Le total reste celui des INSCRITS ; pendant une recherche on annonce en
+    // plus ce qu'elle donne, sinon on croirait avoir perdu des membres.
+    const pluriel = tous.length > 1 ? 's' : ''
+    intro.textContent = q
+      ? `${members.length} sur ${tous.length} membre${pluriel}.`
+      : `${tous.length} membre${pluriel} inscrit${pluriel}.`
+
+    if (!members.length) {
+      box.appendChild(emptyState('Aucun membre ne porte ce nom.'))
+      return
+    }
 
     const myId = getUser()?.id
     const liste = el('div', 'liste-compacte')
@@ -94,6 +128,21 @@ export async function viewMembers() {
 
   await refresh()
   return wrap
+}
+
+/**
+ * Forme comparable d'un nom : minuscules, sans accents, sans espaces en trop.
+ *
+ * ⚠ LES ACCENTS SONT RETIRÉS DES DEUX CÔTÉS. Sans cela, chercher « Benoit »
+ * ne trouvait pas « Benoît », et taper un accent sur un clavier de téléphone
+ * demande un appui long que personne ne fait pour une recherche.
+ */
+export function normaliser(texte) {
+  return String(texte || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
 }
 
 /** Deux lettres pour la pastille : première du prénom, première du nom. */

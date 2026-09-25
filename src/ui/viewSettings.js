@@ -123,6 +123,10 @@ export async function viewSettings() {
   //    la ligne du dessus.
   const compte = el('div', 'settings-group settings-group--nu')
   if (logged) {
+    // Le nom n'était modifiable NULLE PART : saisi une fois à l'inscription,
+    // il restait figé — une faute de frappe l'était à vie, et elle s'affichait
+    // sur chaque événement publié.
+    compte.appendChild(rowNav(icon('user'), 'Mon profil', '/mon-profil'))
     const out = rowButton(icon('logOut'), 'Se déconnecter')
     out.classList.add('settings-row--danger')
     out.addEventListener('click', async () => {

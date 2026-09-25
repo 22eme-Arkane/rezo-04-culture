@@ -20,6 +20,7 @@ import { viewImport } from './ui/viewImport.js'
 import { viewAdmins } from './ui/viewAdmins.js'
 import { viewNewPassword } from './ui/viewNewPassword.js'
 import { viewContact } from './ui/viewContact.js'
+import { viewProfilEdit } from './ui/viewProfilEdit.js'
 import { viewMembers } from './ui/viewMembers.js'
 import { viewStats } from './ui/viewStats.js'
 import { viewFeedback } from './ui/viewFeedback.js'
@@ -121,6 +122,7 @@ defineRoutes(
     '/admins': viewAdmins,
     '/nouveau-mdp': viewNewPassword,
     '/contact': viewContact,
+    '/mon-profil': viewProfilEdit,
     '/membres': viewMembers,
     '/statistiques': viewStats,
     '/messages': viewFeedback,
