@@ -3134,3 +3134,16 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
   text-underline-offset: 2px;
   cursor: pointer;
 }
+
+/* Message arrivé depuis la dernière visite. Un liseré et une étiquette
+   suffisent : la liste reste lisible, et le repère disparaît à la visite
+   suivante puisque l'ouverture de l'écran marque tout lu. */
+.fb-item--nouveau { box-shadow: inset 3px 0 0 var(--mask-yellow, #f4ca15); }
+.fb-nouveau {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--mask-yellow, #f4ca15);
+  color: var(--studio-ink, #062b1d);
+  font-size: 0.7rem;
+  font-weight: 700;
+}

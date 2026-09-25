@@ -4,7 +4,7 @@ import { studioHeader } from './studio.js'
 import { navigate } from '../lib/router.js'
 import { isAdmin } from '../lib/auth.js'
 import { amIOwner } from '../lib/admins.js'
-import { listFeedback, deleteFeedback } from '../lib/feedback.js'
+import { listFeedback, deleteFeedback, markFeedbackRead } from '../lib/feedback.js'
 
 const DTF = new Intl.DateTimeFormat('fr-FR', {
   day: 'numeric',
@@ -49,10 +49,26 @@ export async function viewFeedback() {
     return wrap
   }
 
+  // ⚠ ORDRE : on LIT d'abord, on MARQUE ensuite. Les messages chargés gardent
+  // leur `read_at` d'avant la visite, ce qui permet de signaler ci-dessous
+  // ceux qui étaient nouveaux — les marquer avant de charger aurait tout
+  // affiché comme déjà lu. Sans attendre la réponse : l'écran n'en dépend pas.
+  // `'read_at' in f` : sans la migration 0030, la colonne est absente et rien
+  // ne doit être présenté comme nouveau.
+  const aDesNouveaux = items.some((f) => 'read_at' in f && !f.read_at)
+  if (aDesNouveaux) markFeedbackRead()
+
   for (const f of items) {
     const row = el('div', 'fb-item')
 
     const meta = el('div', 'fb-meta')
+    // Repère « Nouveau » sur ce qui n'avait pas été lu avant cette visite. Il
+    // disparaît à la suivante, puisque l'ouverture de l'écran vient de tout
+    // marquer lu.
+    if ('read_at' in f && !f.read_at) {
+      row.classList.add('fb-item--nouveau')
+      meta.appendChild(el('span', 'fb-nouveau', 'Nouveau'))
+    }
     meta.appendChild(
       el('span', 'fb-tag ' + (f.type === 'bug' ? 'fb-tag--bug' : 'fb-tag--avis'), f.type === 'bug' ? '🐞 Bug' : '💡 Avis')
     )
