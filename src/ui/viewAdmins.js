@@ -145,7 +145,7 @@ export async function viewAdmins() {
         corps.setAttribute('role', 'button')
         corps.tabIndex = 0
         corps.title = 'Voir la fiche de ce membre'
-        const ouvrir = () => navigate('/membre?id=' + a.id)
+        const ouvrir = () => navigate('/membre?id=' + a.id + '&retour=moderateurs')
         corps.addEventListener('click', ouvrir)
         corps.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') {

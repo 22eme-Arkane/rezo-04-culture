@@ -28,9 +28,24 @@ function ligne(iconEl, libelle, valeur) {
   return r
 }
 
+/**
+ * D'où l'on vient, pour que la flèche de retour y ramène.
+ *
+ * ⚠ LISTE FERMÉE, jamais une route lue telle quelle dans l'adresse : on
+ * n'envoie pas l'utilisateur vers n'importe quel chemin qu'on aurait glissé
+ * dans un lien. Toute valeur inconnue retombe sur la liste des membres.
+ */
+const RETOURS = {
+  messages: { backTo: '/messages', backLabel: 'Messages' },
+  moderateurs: { backTo: '/admins', backLabel: 'Modérateurs' },
+}
+
 export async function viewMember({ query } = {}) {
   const wrap = el('section', 'page page--studio-sub')
-  wrap.appendChild(studioHeader('Membre', { backTo: '/membres', backLabel: 'Membres' }))
+  // ⚠ Le retour était FIGÉ sur « Membres ». Ouverte depuis un message, la fiche
+  // renvoyait donc dans la liste des inscrits au lieu de la boîte de réception.
+  const retour = RETOURS[query?.get?.('retour')] ?? { backTo: '/membres', backLabel: 'Membres' }
+  wrap.appendChild(studioHeader('Membre', retour))
 
   // Même garde que la base (member_profile est réservée au propriétaire).
   if (!isAdmin() || !(await amIOwner().catch(() => false))) {

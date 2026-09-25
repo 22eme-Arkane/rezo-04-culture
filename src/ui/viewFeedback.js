@@ -1,6 +1,7 @@
 // Armana — écran « Messages reçus » (admin) : bugs signalés + avis.
 import { el, emptyState } from './components.js'
 import { studioHeader } from './studio.js'
+import { navigate } from '../lib/router.js'
 import { isAdmin } from '../lib/auth.js'
 import { amIOwner } from '../lib/admins.js'
 import { listFeedback, deleteFeedback } from '../lib/feedback.js'
@@ -55,7 +56,23 @@ export async function viewFeedback() {
     meta.appendChild(
       el('span', 'fb-tag ' + (f.type === 'bug' ? 'fb-tag--bug' : 'fb-tag--avis'), f.type === 'bug' ? '🐞 Bug' : '💡 Avis')
     )
-    meta.appendChild(el('span', null, f.author_name))
+    // Le nom mène à la FICHE de l'auteur : son adresse, pour lui répondre. Les
+    // deux écrans sont réservés au propriétaire, en base comme ici — le lien
+    // n'ouvre donc aucun accès nouveau.
+    // ⚠ Un message sans auteur (compte supprimé depuis) n'a pas de fiche :
+    // on laisse alors le nom en simple texte plutôt qu'un lien vers une
+    // « fiche introuvable ».
+    if (f.created_by) {
+      const auteur = el('button', 'fb-auteur', f.author_name)
+      auteur.type = 'button'
+      auteur.title = 'Voir sa fiche pour lui répondre'
+      auteur.addEventListener('click', () =>
+        navigate(`/membre?id=${encodeURIComponent(f.created_by)}&retour=messages`)
+      )
+      meta.appendChild(auteur)
+    } else {
+      meta.appendChild(el('span', null, f.author_name))
+    }
     meta.appendChild(el('span', null, DTF.format(new Date(f.created_at))))
     const del = el('button', 'btn btn--danger btn--sm', 'Effacer')
     del.style.marginLeft = 'auto'

@@ -3118,3 +3118,19 @@ html:has(.screen--studio-calendar)::-webkit-scrollbar { display: none; }
    d'invite suffit, et une ligne de plus repousserait la liste hors de l'écran
    sur un téléphone. */
 .membres-recherche { margin: 0.2rem 0 0.6rem; }
+
+/* Nom de l'auteur d'un message : il ouvre sa fiche, pour lui répondre. Il doit
+   SE VOIR cliquable — le gris des autres métadonnées l'aurait fondu parmi la
+   date et l'étiquette. Souligné et dans le vert du logo, qui tient 5,4:1 sur
+   le blanc de la carte. */
+.fb-auteur {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--studio-green, #26784c);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}

@@ -35,6 +35,12 @@ export async function viewSettings() {
   // « Mes événements », en revanche, n'aurait rien à montrer sans compte.
   if (logged) pub.appendChild(rowNav(icon('ticket'), 'Mes événements', '/mes-evenements'))
   pub.appendChild(rowNav(icon('map'), 'Mes départements', '/mes-departements'))
+  // Le nom n'était modifiable NULLE PART : saisi une fois à l'inscription, il
+  // restait figé — une faute de frappe l'était à vie, et elle s'affichait sur
+  // chaque événement publié. Rangé ici avec les autres réglages qui vous
+  // appartiennent, à la demande de Matthieu, plutôt qu'à côté de la
+  // déconnexion. Sans compte, il n'y a pas de profil à modifier.
+  if (logged) pub.appendChild(rowNav(icon('user'), 'Mon profil', '/mon-profil'))
   wrap.appendChild(pub)
 
   // --- Groupe 2 : la communauté ---
@@ -123,10 +129,6 @@ export async function viewSettings() {
   //    la ligne du dessus.
   const compte = el('div', 'settings-group settings-group--nu')
   if (logged) {
-    // Le nom n'était modifiable NULLE PART : saisi une fois à l'inscription,
-    // il restait figé — une faute de frappe l'était à vie, et elle s'affichait
-    // sur chaque événement publié.
-    compte.appendChild(rowNav(icon('user'), 'Mon profil', '/mon-profil'))
     const out = rowButton(icon('logOut'), 'Se déconnecter')
     out.classList.add('settings-row--danger')
     out.addEventListener('click', async () => {
