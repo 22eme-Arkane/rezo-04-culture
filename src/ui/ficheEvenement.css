@@ -14,6 +14,12 @@ body:has(.fiche) { background: #0b55c5; }
   color: #fff;
 }
 .page--studio-blue.fiche .studio-head { margin: 0 -0.9rem 0.9rem; }
+/* « Événement » à la taille des titres d'onglets (Carte, Favoris) : en petit,
+   il se perdait entre le bouton retour et le logo (retour de Matthieu). */
+.page--studio-blue.fiche .studio-head__title {
+  font-size: clamp(2.7rem, 12.8vw, 3.25rem);
+  line-height: 1;
+}
 
 /* --- Photo : entière, sur un fond flouté d'elle-même --------------------- */
 .fiche-photo {
@@ -297,13 +303,20 @@ body:has(.fiche) { background: #0b55c5; }
 
 /* --- Gestion / signalement : sur une carte crème, lisible sur le bleu ---- */
 .fiche .detail-actions:not(:empty) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
   margin-top: 1rem;
   padding: 1rem;
   border-radius: 20px;
   color: var(--studio-ink);
   background: var(--studio-cream);
 }
-.fiche .detail__section-title { text-align: center; }
+.fiche .detail__section-title { margin: 0; text-align: center; }
+/* « Supprimer » tenu à distance de « Modifier » : collés, un doigt qui visait
+   l'un touchait l'autre (retour de Matthieu). */
+.fiche .detail-actions .btn--danger { margin-top: 0.9rem; }
+.fiche .detail-actions .form__msg:empty { display: none; }
 
 /* --- Aperçu « À propos » dans le formulaire de publication --------------- */
 /* Le même bloc que sur la fiche, posé sur un cadre bleu : l'auteur voit son

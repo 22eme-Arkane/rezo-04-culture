@@ -1675,10 +1675,12 @@ a.settings-row .settings-row__label { word-break: break-all; }
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.18));
 }
 
-body:has(.screen--studio-map),
 body:has(.page--studio-profile),
 body:has(.page--studio-sub) { background: #fff4df; }
-body:has(.screen--studio-favorites) { background: #0b55c5; }
+/* Favoris et Carte : bleu jusqu'au bord, comme l'Agenda. Pour la Carte, depuis
+   le 28/09/2026, à la demande de Matthieu : le crème autour du cadre jurait. */
+body:has(.screen--studio-favorites),
+body:has(.screen--studio-map) { background: #0b55c5; }
 
 .content:has(.screen--studio-map),
 .content:has(.page--studio-profile),
@@ -1705,14 +1707,14 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
   flex-direction: column;
   padding-top: 0;
   padding-bottom: var(--nav-safe);
-  background: #fff4df;
+  background: #0b55c5;
 }
 .content:has(.screen--studio-map) {
   display: flex;
   flex-direction: column;
   padding-top: 0;
   padding-bottom: var(--nav-safe);
-  background: #fff4df;
+  background: #0b55c5;
 }
 .screen--studio-map {
   display: flex;
@@ -1726,14 +1728,14 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
 /* Écrans courts (petits téléphones, navigateur avec barre d'URL, paysage) :
    on comprime l'en-tête et le panneau pour que la carte garde une taille utile
    sans jamais imposer de défilement. */
+/* ⚠ L'EN-TÊTE N'EST PLUS COMPRIMÉ ICI. Sur un téléphone dans son navigateur
+   (≈ 360 × 700), la barre « Carte » faisait 7 px de moins que « Favoris » et
+   son titre remontait de 3 px : Matthieu voyait les deux onglets « pas tout à
+   fait à la même taille ». La carte y perd 7 px de haut, rien de plus.
+   (La réduction du titre qui figurait ici n'a jamais eu d'effet : la règle des
+   écrans racines, plus spécifique, l'emportait.) */
 @media (max-height: 700px) {
-  .screen--studio-map .studio-head {
-    padding-top: 0.7rem;
-    padding-bottom: 0.55rem;
-    margin-bottom: 0.45rem;
-  }
-  .screen--studio-map .studio-head__title { font-size: clamp(1.7rem, 8vw, 2.2rem); }
-  .screen--studio-map .studio-head__logo { width: 42px; height: 42px; }
+  .screen--studio-map .studio-head { margin-bottom: 0.45rem; }
   .screen--studio-map .chips-row--studio-map { padding-top: 0.25rem; }
   .screen--studio-map .map-search-panel { gap: 0.22rem; margin-bottom: 0.4rem; }
   .screen--studio-map .map-search-control { min-height: 36px; }
@@ -1748,7 +1750,6 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
     padding-bottom: 0.35rem;
     margin-bottom: 0.3rem;
   }
-  .screen--studio-map .studio-head__title { font-size: 1.35rem; }
   .screen--studio-map .studio-head__logo { display: none; }
   .screen--studio-map .map-search-panel {
     grid-template-columns: 1fr 1fr;
@@ -1937,7 +1938,8 @@ body:has(.screen--studio-favorites) { background: #0b55c5; }
   min-height: 0;
   border: 3px solid var(--studio-blue);
   border-radius: 18px;
-  box-shadow: 0 8px 20px rgba(11, 85, 197, 0.16);
+  /* Ombre sombre : une ombre bleue ne se voyait plus sur le fond bleu. */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 }
 /* Attribution OSM : obligatoire et lisible, mais compacte et confinée DANS le
    cadre arrondi de la carte — elle ne peut plus mordre sur la barre d'onglets. */
