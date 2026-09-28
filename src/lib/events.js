@@ -203,6 +203,8 @@ export async function createEvent(p) {
     // ⚠ Le tarif fait autorité sur `p_is_paid`, conservé pour les anciennes
     // versions. Trois valeurs : gratuit, libre, payant.
     p_price_mode: p.price_mode ?? '',
+    // « Au chapeau », complément du tarif (migration 0032).
+    p_au_chapeau: Boolean(p.au_chapeau),
   })
   if (error) throw error
   return data
@@ -232,6 +234,9 @@ export async function updateEvent(id, p) {
     // ⚠ Le tarif fait autorité sur `p_is_paid`, conservé pour les anciennes
     // versions. Trois valeurs : gratuit, libre, payant.
     p_price_mode: p.price_mode ?? '',
+    // « Au chapeau » (migration 0032). `null` si l'appelant ne le connaît pas :
+    // le serveur garde alors la valeur en place au lieu de l'effacer.
+    p_au_chapeau: typeof p.au_chapeau === 'boolean' ? p.au_chapeau : null,
   })
   if (error) throw error
   return data

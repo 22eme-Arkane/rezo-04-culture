@@ -56,7 +56,54 @@ export function tarifMode(ev) {
   return ev?.price_mode || (ev?.is_paid ? 'payant' : 'gratuit')
 }
 
+// Longueur maximale du badge de tarif sur la vignette d'agenda, PRIX COMPRIS.
+// ⚠ Mesuré, pas estimé : le badge est plafonné par sa colonne (86 px au
+// format le plus courant) et coupe au-delà. « Payant · 200 € », 14 signes,
+// passe tout juste ; « 200 € · réduit 12 € », 19 signes, était tronqué.
+export const BADGE_MAX = 15
+
+/**
+ * « AU CHAPEAU » (migration 0032, demande d'une utilisatrice) : le public donne
+ * ce qu'il veut au passage du chapeau. Ce n'est PAS un quatrième tarif mais un
+ * COMPLÉMENT, qui s'ajoute à celui choisi — gratuit et au chapeau, prix libre
+ * et au chapeau. D'où une colonne à part plutôt qu'une valeur de `price_mode`.
+ */
+export function auChapeau(ev) {
+  return Boolean(ev?.au_chapeau)
+}
+
+/** Le tarif en une ligne, COMPLET : fiche, popup de la carte, listes. */
 export function formatPrice(ev) {
+  const base = formatTarif(ev)
+  return auChapeau(ev) ? `${base} · au chapeau` : base
+}
+
+/**
+ * Le tarif pour le BADGE d'une vignette d'agenda : BADGE_MAX signes au plus.
+ *
+ * ⚠ « au chapeau » ne tient pas toujours à côté du tarif. On essaie des formes
+ * de plus en plus courtes, et à défaut on garde le tarif seul : c'est lui qui
+ * dit combien coûte l'entrée, le chapeau reste écrit en entier sur la fiche.
+ * Gratuit et au chapeau se lit « Au chapeau » : l'entrée libre y est sous-
+ * entendue, c'est le sens même de l'expression.
+ */
+export function formatPriceCourt(ev) {
+  const base = formatTarif(ev)
+  if (!auChapeau(ev)) return base
+  const mode = tarifMode(ev)
+  const formes =
+    mode === 'gratuit'
+      ? ['Au chapeau']
+      : [
+          `${base} + chapeau`,
+          // « Prix libre » → « Libre », « Libre ≥ 5 € » → « ≥ 5 € »,
+          // « Payant · 12 € » → « 12 € » : le mot tombe, le montant reste.
+          `${base.replace(/^Prix libre$/, 'Libre').replace(/^Libre (?=≥)/, '').replace(/^Payant · /, '')} + chapeau`,
+        ]
+  return formes.find((f) => f.length <= BADGE_MAX) ?? base
+}
+
+function formatTarif(ev) {
   const mode = tarifMode(ev)
   const detail = (ev.price_detail || '').trim()
 

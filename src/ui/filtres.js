@@ -23,6 +23,7 @@ const TARIFS = [
   { cle: 'gratuit', texte: 'Gratuit' },
   { cle: 'libre', texte: 'Prix libre' },
   { cle: 'payant', texte: 'Payant' },
+  { cle: 'chapeau', texte: 'Au chapeau' },
 ]
 
 const QUAND = [

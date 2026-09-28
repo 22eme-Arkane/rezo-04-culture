@@ -4,7 +4,7 @@ import { navigate } from '../lib/router.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { villeDeLAdresse } from '../lib/adresse.js'
 import { addGem, removeGem } from '../lib/events.js'
-import { el, formatPrice, formatTime } from './components.js'
+import { el, formatPriceCourt, formatTime } from './components.js'
 import { icon, marqueurArmana } from './icons.js'
 
 const MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
@@ -116,7 +116,8 @@ export function posterEventCard(ev, opts = {}) {
     lieu.appendChild(document.createTextNode(' ' + villeDeLAdresse(ev.address)))
     info.appendChild(lieu)
   }
-  info.appendChild(el('span', 'poster-card__price', formatPrice(ev)))
+  // Forme COURTE : le badge ne dépasse pas quinze signes (voir formatPriceCourt).
+  info.appendChild(el('span', 'poster-card__price', formatPriceCourt(ev)))
   card.appendChild(info)
 
   if (opts.showGem !== false) {

@@ -73,6 +73,9 @@ export function parseEventMessage(text) {
   const ends = first?.end?.date() ?? null
 
   const { is_paid, price } = detectPrice(clean)
+  // « Participation au chapeau », « passage du chapeau » : un complément du
+  // tarif, qui se coche à part dans le formulaire (migration 0032).
+  const au_chapeau = /\bchapeau\b/i.test(clean)
   const city = detectCity(clean)
   const category = detectCategory(clean)
 
@@ -83,6 +86,7 @@ export function parseEventMessage(text) {
     ends_at: ends ? ends.toISOString() : null,
     is_paid,
     price,
+    au_chapeau,
     address: city,
     category,
     matched: {

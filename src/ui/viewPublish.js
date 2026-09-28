@@ -2,7 +2,8 @@
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import '../lib/leafletIcons.js' // correctif icônes marqueur (Vite)
-import { el, formatPrice, formatTime } from './components.js'
+import { el, formatPrice, formatPriceCourt, formatTime, BADGE_MAX } from './components.js'
+import { blocDescription } from './ficheEvenement.js'
 import { loginPrompt } from './components.js'
 import { posterEventCard } from './posterEventCard.js'
 import { createPhotoFramer } from './photoFramer.js'
@@ -24,12 +25,6 @@ import {
 } from '../lib/events.js'
 
 const PREVIEW_MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
-
-// Longueur maximale du badge de tarif sur la vignette d'agenda, PRIX COMPRIS.
-// ⚠ Mesuré, pas estimé : le badge est plafonné par sa colonne (86 px au
-// format le plus courant) et coupe au-delà. « Payant · 200 € », 14 signes,
-// passe tout juste ; « 200 € · réduit 12 € », 19 signes, était tronqué.
-const BADGE_MAX = 15
 
 // Date écrite en toutes lettres, ANNÉE COMPRISE : c'est elle qui manque partout
 // ailleurs (l'aperçu n'affiche que « 01 AOÛT »).
@@ -130,6 +125,40 @@ export async function viewPublish({ query } = {}) {
   fTitle.input.placeholder = 'Nom de l’événement'
   fDesc.input.placeholder =
     'Décrivez votre événement de la manière la plus précise possible'
+
+  // --- Aperçu « À propos », tel que la fiche l'affichera --------------------
+  // La fiche découpe la description en paragraphes (une ligne sautée), la
+  // justifie et la centre : un texte tapé d'un bloc ne ressemble plus à ce
+  // qu'on a écrit. L'auteur voit donc ici, à chaque frappe, exactement le
+  // rendu final — et comprend pourquoi sauter des lignes (demande de Matthieu,
+  // après l'affiche « Farouche Devah » dont la mise en page ne passait pas).
+  const apercuDesc = el('div', 'form__field')
+  apercuDesc.appendChild(el('span', 'form__label', 'Aperçu sur la fiche'))
+  const cadreApercu = el('div', 'fiche-apercu')
+  apercuDesc.appendChild(cadreApercu)
+  apercuDesc.appendChild(
+    el(
+      'span',
+      'form__hint',
+      'Sautez une ligne entre deux paragraphes : c’est ce qui les sépare sur la fiche.'
+    )
+  )
+  function majApercuDesc() {
+    cadreApercu.textContent = ''
+    const bloc = blocDescription(fDesc.input.value)
+    if (!bloc) {
+      cadreApercu.appendChild(
+        el('p', 'fiche-apercu__vide', 'Votre description apparaîtra ici, telle qu’elle sera lue.')
+      )
+      return
+    }
+    const carte = el('section', 'fiche-carte')
+    carte.appendChild(el('h3', 'fiche-carte__titre', 'À propos'))
+    carte.appendChild(bloc)
+    cadreApercu.appendChild(carte)
+  }
+  fDesc.input.addEventListener('input', majApercuDesc)
+  majApercuDesc()
 
   // ⚠ L'ANNÉE est le piège de `datetime-local` : on tape le jour et le mois, et
   // l'année reste sur ce que le navigateur avait proposé. Rien ne la rappelait
@@ -418,6 +447,10 @@ export async function viewPublish({ query } = {}) {
     { cle: 'payant', texte: 'Payant' },
   ]
   let tarif = init.price_mode || (init.is_paid ? 'payant' : 'gratuit')
+  // « Au chapeau » S'AJOUTE au tarif choisi (demande d'une utilisatrice) :
+  // gratuit et au chapeau, prix libre et au chapeau. Les trois tarifs
+  // s'excluent entre eux ; le chapeau, lui, se coche ou se décoche à part.
+  let chapeau = Boolean(init.au_chapeau)
   const paidWrap = el('div', 'form__field')
   paidWrap.appendChild(el('span', 'form__label', 'Tarif'))
   const tarifRow = el('div', 'choix')
@@ -433,6 +466,15 @@ export async function viewPublish({ query } = {}) {
     tarifRow.appendChild(b)
     return b
   })
+  const chapeauBtn = el('button', 'choix__option choix__option--ajout', '+ Au chapeau')
+  chapeauBtn.type = 'button'
+  chapeauBtn.setAttribute('aria-pressed', String(chapeau))
+  chapeauBtn.addEventListener('click', () => {
+    chapeau = !chapeau
+    majTarif()
+    refreshPreview()
+  })
+  tarifRow.appendChild(chapeauBtn)
   paidWrap.appendChild(tarifRow)
 
   const paidRow = el('div', 'form__row')
@@ -469,9 +511,18 @@ export async function viewPublish({ query } = {}) {
   paidWrap.appendChild(paidRow)
   const tarifEcho = el('span', 'form__hint')
   paidWrap.appendChild(tarifEcho)
+  const chapeauEcho = el(
+    'span',
+    'form__hint',
+    'Au chapeau : le public donne en plus ce qu’il veut, au passage du chapeau.'
+  )
+  paidWrap.appendChild(chapeauEcho)
 
   function majTarif() {
     for (const b of tarifBtns) b.classList.toggle('is-active', b.dataset.cle === tarif)
+    chapeauBtn.classList.toggle('is-active', chapeau)
+    chapeauBtn.setAttribute('aria-pressed', String(chapeau))
+    chapeauEcho.hidden = !chapeau
     // Le montant sert au tarif payant (le prix) comme au prix libre (le
     // minimum) ; la précision en texte est réservée au payant.
     priceInput.style.display = tarif === 'gratuit' ? 'none' : ''
@@ -703,6 +754,7 @@ export async function viewPublish({ query } = {}) {
       // Le montant vaut pour « payant » (le prix) ET « libre » (le minimum).
       price: tarif !== 'gratuit' && priceInput?.value ? Number(priceInput.value) : null,
       price_detail: tarif === 'payant' ? detailInput?.value.trim() || '' : '',
+      au_chapeau: chapeau,
       thumb_url: null,
     }
   }
@@ -723,7 +775,7 @@ export async function viewPublish({ query } = {}) {
     setText('.poster-card__category', ev.category)
     setText('.poster-card__title', ev.title)
     setText('.poster-card__place', ev.address)
-    setText('.poster-card__price', formatPrice(ev))
+    setText('.poster-card__price', formatPriceCourt(ev))
     frameTools.style.display = framingEnabled ? '' : 'none'
     syncFrameUi()
   }
@@ -811,7 +863,7 @@ export async function viewPublish({ query } = {}) {
 
   const ETAPES = [
     { titre: 'L’essentiel', champs: [fPhoto, fTitle.wrap, fCategory.wrap] },
-    { titre: 'Quand', champs: [fDesc.wrap, fStart.wrap, fEnd.wrap, recurWrap] },
+    { titre: 'Quand', champs: [fDesc.wrap, apercuDesc, fStart.wrap, fEnd.wrap, recurWrap] },
     { titre: 'Où', champs: [locWrap] },
     { titre: 'Détails', champs: [paidWrap, fContact.wrap] },
   ]
@@ -889,6 +941,7 @@ export async function viewPublish({ query } = {}) {
     form.appendChild(fTitle.wrap)
     form.appendChild(fCategory.wrap)
     form.appendChild(fDesc.wrap)
+    form.appendChild(apercuDesc)
     // Dates en pleine largeur (empilées) : en 2 colonnes le champ datetime
     // était trop étroit sur mobile (« croupi »).
     form.appendChild(fStart.wrap)
@@ -925,6 +978,7 @@ export async function viewPublish({ query } = {}) {
           startLocal: fStart.input.value,
           endLocal: fEnd.input.value,
           tarif,
+          chapeau,
           price: priceInput.value,
           priceDetail: detailInput.value,
           address: addrInput.value,
@@ -951,12 +1005,16 @@ export async function viewPublish({ query } = {}) {
       // nouveau exposé à l'erreur d'année qu'il servait à écarter.
       if (saved.title) fTitle.input.value = saved.title
       if (saved.category) fCategory.input.value = saved.category
-      if (saved.description) fDesc.input.value = saved.description
+      if (saved.description) {
+        fDesc.input.value = saved.description
+        majApercuDesc()
+      }
       if (saved.startLocal) fStart.input.value = saved.startLocal
       if (saved.endLocal) fEnd.input.value = saved.endLocal
       // `isPaid` : brouillon d'avant la migration 0028, encore en mémoire sur
       // les téléphones. On le relit plutôt que de perdre la saisie.
       tarif = saved.tarif || (saved.isPaid ? 'payant' : 'gratuit')
+      chapeau = Boolean(saved.chapeau)
       if (saved.price) priceInput.value = saved.price
       if (saved.priceDetail) detailInput.value = saved.priceDetail
       majTarif()
@@ -1135,6 +1193,7 @@ export async function viewPublish({ query } = {}) {
       // la précision en texte est réservée au payant.
       price: tarif !== 'gratuit' && priceInput.value ? Number(priceInput.value) : null,
       price_detail: tarif === 'payant' ? detailInput.value.trim() : '',
+      au_chapeau: chapeau,
       lat: state.lat,
       lng: state.lng,
       address: addrInput.value.trim(),

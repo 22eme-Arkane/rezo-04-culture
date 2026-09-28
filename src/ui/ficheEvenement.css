@@ -1,0 +1,342 @@
+/* Armana — fiche événement, sur fond bleu (voir ficheEvenement.js).
+   Tout est préfixé `fiche-` : aucun conflit avec les écrans « Studio ».
+   ⚠ TOUT EST CENTRÉ, titres comme paragraphes : demande de Matthieu. */
+
+/* --- Le fond bleu, sur tout l'écran, comme l'Agenda ---------------------- */
+body:has(.fiche) { background: #0b55c5; }
+.content:has(.fiche) { background: #0b55c5; }
+/* Double classe : `.page--studio-blue` (style.css) fixe déjà marges et
+   remplissage ; ici on les aligne sur le conteneur des sous-écrans (0,7rem). */
+.page--studio-blue.fiche {
+  gap: 0;
+  margin: 0 -0.7rem;
+  padding: 0 0.9rem 1.5rem;
+  color: #fff;
+}
+.page--studio-blue.fiche .studio-head { margin: 0 -0.9rem 0.9rem; }
+
+/* --- Photo : entière, sur un fond flouté d'elle-même --------------------- */
+.fiche-photo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 20px 20px 0 0;
+  background: #062b1d;
+  cursor: zoom-in;
+}
+.fiche-photo__flou {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  filter: blur(26px) saturate(1.3);
+  opacity: 0.9;
+}
+.fiche-photo__img {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  max-height: min(66vh, 480px);
+  object-fit: contain;
+}
+
+/* --- L'encart sous la photo : catégorie, titre, Quand · Où · Tarif ------- */
+/* ⚠ Il se POSE sous la photo, sans la chevaucher : un chevauchement masquait
+   le bas des affiches (« 5e édition » disparaissait dessous). */
+.fiche-entete {
+  position: relative;
+  border-radius: 0 0 20px 20px;
+  color: var(--studio-ink);
+  background: var(--studio-cream);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+  text-align: center;
+}
+.fiche-entete--seule { margin-top: 0.2rem; border-radius: 20px; }
+.fiche-entete__haut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 1.15rem 1.15rem 1rem;
+}
+.fiche-categorie {
+  color: var(--studio-red);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.fiche-titre {
+  margin: 0;
+  color: var(--studio-green);
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 8vw, 2.2rem);
+  font-weight: 600;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+/* Un simple filet entre le titre et les cases. ⚠ Ni pointillés ni encoches :
+   l'allure de billet a été essayée et écartée. */
+.fiche-entete__filet { height: 0; margin: 0 1rem; border-top: 2px solid rgba(11, 85, 197, 0.14); }
+/* ⚠ De l'AIR entre l'intitulé et la valeur, et entre les lignes d'une valeur
+   coupée : « Mane » collé sous « OÙ » ne se lisait pas (retour de Matthieu). */
+.fiche-cases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  padding: 1.2rem 0.5rem 1.3rem;
+}
+.fiche-case {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0 0.6rem;
+}
+.fiche-case + .fiche-case { border-left: 2px solid rgba(11, 85, 197, 0.14); }
+.fiche-case__intitule {
+  color: var(--studio-blue);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.fiche-case__valeur {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.fiche-case__sous { color: var(--studio-green); font-size: 0.78rem; font-weight: 800; }
+
+/* --- Cartes crème posées sur le bleu : le motif des écrans Studio -------- */
+.fiche-carte {
+  margin-top: 1rem;
+  padding: 1.3rem 1.15rem 1.45rem;
+  border-radius: 20px;
+  color: var(--studio-ink);
+  background: var(--studio-cream);
+  text-align: center;
+}
+.fiche-carte__titre {
+  margin: 0 0 1rem;
+  color: var(--studio-blue);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Description : paragraphes aérés, tous de la même taille.
+   ⚠ JUSTIFIÉ, DERNIÈRE LIGNE CENTRÉE. Centré tel quel, le texte faisait des
+   « dents de scie » ; Matthieu veut à peu près le même nombre de lettres par
+   ligne. La césure (`hyphens` — la page est en `lang="fr"`) évite les grands
+   blancs entre les mots qu'une justification laisse sinon dans une colonne
+   étroite. Une ligne forcée (retour à la ligne simple dans le texte) reste
+   centrée, comme la dernière : les en-têtes que les gens écrivent en tête
+   d'une description gardent leur allure. */
+.fiche-texte__p {
+  margin: 0 0 1em;
+  color: var(--studio-ink);
+  font-size: 1rem;
+  line-height: 1.7;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  text-align: justify;
+  text-align-last: center;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+.fiche-texte__p:last-child { margin-bottom: 0; }
+.fiche-texte__corps.is-replie {
+  max-height: 17rem;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(#000 62%, transparent);
+  mask-image: linear-gradient(#000 62%, transparent);
+}
+.fiche-texte__suite {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  border: 2px solid var(--studio-blue);
+  border-radius: 999px;
+  color: var(--studio-blue);
+  background: transparent;
+  font: 800 0.85rem 'Poppins', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+/* Infos pratiques : chaque ligne est une petite colonne centrée, AÉRÉE.
+   Pastilles JAUNES, intitulés bleus : tout en bleu, pastilles comprises, « ça
+   manquait de lisibilité » (Matthieu) — rien ne se détachait. */
+.fiche-infos { display: grid; gap: 1.6rem; }
+.fiche-info { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+.fiche-info__icone {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 0.2rem;
+  border-radius: 50%;
+  color: var(--studio-ink);
+  background: var(--mask-yellow);
+}
+.fiche-info__icone svg { width: 19px; height: 19px; }
+.fiche-info__intitule {
+  color: var(--studio-blue);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.fiche-info__valeur {
+  max-width: 100%;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.fiche-info__sous { font-size: 0.85rem; font-weight: 600; line-height: 1.4; color: var(--studio-green); }
+
+.fiche-auteur {
+  margin: 1.1rem 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* --- Boutons ------------------------------------------------------------- */
+/* Le site (ou l'appel), en grand, jaune comme le bouton « + ». */
+.fiche-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 3.6rem;
+  margin-top: 1rem;
+  padding: 0.7rem 1.2rem;
+  border: 0;
+  border-radius: 999px;
+  color: var(--studio-ink);
+  background: var(--mask-yellow);
+  box-shadow: 0 5px 0 rgba(6, 43, 29, 0.28);
+  font-family: var(--font-display);
+  text-decoration: none;
+  cursor: pointer;
+}
+.fiche-cta svg { width: 22px; height: 22px; flex: 0 0 auto; }
+/* Le libellé et l'adresse du site, avec de l'air entre les deux : collés,
+   « VOIR LE SITE » écrasait la ligne du dessous (retour de Matthieu). */
+.fiche-cta__texte { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; line-height: 1.15; min-width: 0; }
+.fiche-cta__texte > span { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.fiche-cta__texte > small {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pastilles rondes avec légende : Favori · Partager · Y aller (· Appeler…). */
+.fiche-ronds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.2rem, 1fr));
+  justify-items: center;
+  gap: 0.5rem;
+  margin: 1.1rem 0 0.2rem;
+}
+.fiche-rond {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+  color: #fff;
+  background: none;
+  font: 700 0.76rem 'Poppins', system-ui, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+.fiche-rond__pastille {
+  display: grid;
+  place-items: center;
+  width: 3.3rem;
+  height: 3.3rem;
+  border-radius: 50%;
+  color: var(--studio-blue);
+  background: #fff;
+  box-shadow: 0 4px 0 rgba(6, 43, 29, 0.25);
+}
+.fiche-rond__pastille svg { width: 22px; height: 22px; }
+.fiche-favori.is-on .fiche-rond__pastille { color: #fff; background: var(--studio-red); }
+
+/* --- Événement passé ----------------------------------------------------- */
+.fiche-termine {
+  align-self: center;
+  margin: 0 auto 0.9rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--studio-red);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* --- Gestion / signalement : sur une carte crème, lisible sur le bleu ---- */
+.fiche .detail-actions:not(:empty) {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 20px;
+  color: var(--studio-ink);
+  background: var(--studio-cream);
+}
+.fiche .detail__section-title { text-align: center; }
+
+/* --- Aperçu « À propos » dans le formulaire de publication --------------- */
+/* Le même bloc que sur la fiche, posé sur un cadre bleu : l'auteur voit son
+   texte exactement tel qu'il sera lu — paragraphes, justification, césure. */
+.fiche-apercu {
+  margin-top: 0.6rem;
+  padding: 0.8rem;
+  border-radius: 24px;
+  background: #0b55c5;
+}
+.fiche-apercu .fiche-carte { margin-top: 0; }
+.fiche-apercu__vide {
+  margin: 0;
+  padding: 1.1rem;
+  border-radius: 20px;
+  color: var(--studio-ink);
+  background: var(--studio-cream);
+  font-size: 0.9rem;
+  text-align: center;
+  opacity: 0.85;
+}
+
+/* --- Message éphémère ---------------------------------------------------- */
+.fiche-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-safe) + 1rem);
+  z-index: 2000;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(6, 43, 29, 0.94);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transform: translateX(-50%);
+}

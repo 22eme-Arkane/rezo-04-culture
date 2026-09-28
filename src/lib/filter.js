@@ -18,7 +18,9 @@ import { getMesDepartements } from './mesDepartements.js'
 
 /** Styles retenus. Ensemble VIDE = tous les styles, jamais « aucun ». */
 let styles = new Set()
-/** Tarifs retenus ('gratuit' | 'libre' | 'payant'). Vide = tous. */
+/** Tarifs retenus ('gratuit' | 'libre' | 'payant' | 'chapeau'). Vide = tous.
+ *  « chapeau » n'est pas un tarif mais un complément (migration 0032) : il
+ *  retient les événements au chapeau, quel que soit leur tarif. */
 let tarifs = new Set()
 /** Fenêtre de dates : 'today' | 'weekend' | null (toutes). */
 let quand = null
@@ -162,7 +164,11 @@ export function resetFiltres() {
 export function appliquerFiltres(events, tarifDe) {
   let out = events
   if (styles.size) out = out.filter((e) => styles.has(e.category))
-  if (tarifs.size && tarifDe) out = out.filter((e) => tarifs.has(tarifDe(e)))
+  // Les cases cochées s'ADDITIONNENT, comme partout dans le panneau :
+  // « Gratuit » + « Au chapeau » montre les deux.
+  if (tarifs.size && tarifDe) {
+    out = out.filter((e) => tarifs.has(tarifDe(e)) || (tarifs.has('chapeau') && e.au_chapeau))
+  }
   return out
 }
 
