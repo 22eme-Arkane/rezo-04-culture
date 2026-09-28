@@ -15,8 +15,12 @@ import { getEventById, listGemEventIds, deleteEvent } from '../lib/events.js'
 export async function viewDetail({ query } = {}) {
   const id = query?.get('id')
   const wrap = el('section', 'page page--studio-sub page--studio-blue fiche')
+  // « À l'affiche » plutôt qu'« Événement » (choix de Matthieu, 28/09/2026) :
+  // c'est ce qu'on lit devant une salle, et la page montre justement l'affiche.
+  // ⚠ Le titre est à la taille des onglets : au-delà de ~205 px sur un écran
+  // de 360 px, il chevaucherait le logo. « À l'affiche » en fait 189.
   wrap.appendChild(
-    studioHeader('Événement', { backLabel: 'Retour', onBack: () => history.back() })
+    studioHeader('À l’affiche', { backLabel: 'Retour', onBack: () => history.back() })
   )
 
   if (!id) {
